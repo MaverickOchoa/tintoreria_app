@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+backend/venv/
+backend/tintoreria_app/
 
 # Secrets - NEVER commit to git
 backend/.env
