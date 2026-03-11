@@ -13,7 +13,7 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import HourglassBottomIcon from "@mui/icons-material/HourglassBottom";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 
 const STATUS_COLORS = {
   "Pendiente": "default", "En Proceso": "info",

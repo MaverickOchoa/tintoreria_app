@@ -11,7 +11,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CelebrationIcon from "@mui/icons-material/Celebration";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 
 const STATUS_COLORS = {
   "Pendiente": "default",

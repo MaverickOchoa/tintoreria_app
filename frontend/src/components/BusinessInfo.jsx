@@ -8,7 +8,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import BusinessIcon from "@mui/icons-material/Business";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 
 const emptyForm = {
   name: "", phone: "", email: "",

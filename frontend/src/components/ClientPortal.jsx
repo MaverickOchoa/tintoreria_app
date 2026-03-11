@@ -14,7 +14,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import LockIcon from "@mui/icons-material/Lock";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 
 const MONTHS = ["", "Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 

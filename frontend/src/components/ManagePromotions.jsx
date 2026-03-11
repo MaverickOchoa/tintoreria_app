@@ -12,7 +12,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 
 const EMPTY_FORM = {
   title: "", description: "", promo_type: "bundle_price",

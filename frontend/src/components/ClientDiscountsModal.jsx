@@ -7,7 +7,7 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 
 export default function ClientDiscountsModal({ open, onClose, client, token }) {
   const [discounts, setDiscounts] = useState([]);

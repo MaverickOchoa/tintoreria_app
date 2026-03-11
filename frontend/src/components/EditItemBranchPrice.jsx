@@ -22,7 +22,7 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
 const CAN_MANAGE_ITEMS_ROLES = new Set([
   "business_admin",

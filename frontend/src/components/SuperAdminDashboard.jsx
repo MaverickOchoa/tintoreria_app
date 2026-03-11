@@ -25,7 +25,7 @@ import StorageIcon from "@mui/icons-material/Storage";
 import CreateBranchForm from "./CreateBranchForm";
 import { toTitleCase } from "../utils";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
 // ✅ YA EXISTE services en backend_new -> lo activamos
 const ENABLE_SERVICES = true;

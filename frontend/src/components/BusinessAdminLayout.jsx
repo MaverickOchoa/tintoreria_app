@@ -10,7 +10,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LogoutIcon from "@mui/icons-material/Logout";
 import StoreIcon from "@mui/icons-material/Store";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 
 function BusinessAdminLayout() {
   const navigate = useNavigate();

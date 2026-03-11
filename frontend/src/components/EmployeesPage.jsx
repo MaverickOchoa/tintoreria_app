@@ -10,7 +10,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockResetIcon from "@mui/icons-material/LockReset";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
 const getClaims = () => {
   const raw = localStorage.getItem("user_claims");

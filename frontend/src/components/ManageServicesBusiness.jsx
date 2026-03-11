@@ -22,7 +22,7 @@ import HomeRepairServiceIcon from "@mui/icons-material/HomeRepairService";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
 // Función utilitaria simple para capitalizar
 const toTitleCase = (str) => {

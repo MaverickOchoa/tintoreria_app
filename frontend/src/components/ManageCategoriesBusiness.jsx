@@ -21,7 +21,7 @@ import CategoryIcon from "@mui/icons-material/Category";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
 function ManageCategoriesBusiness() {
   const navigate = useNavigate();

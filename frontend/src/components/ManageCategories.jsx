@@ -33,7 +33,7 @@ import SaveIcon from "@mui/icons-material/Save";
 
 import { toTitleCase } from "../utils";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
 export default function ManageCategories() {
   const navigate = useNavigate();

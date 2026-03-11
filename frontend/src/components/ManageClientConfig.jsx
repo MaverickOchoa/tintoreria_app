@@ -10,7 +10,7 @@ import AddIcon from "@mui/icons-material/Add";
 import SaveIcon from "@mui/icons-material/Save";
 import PaletteIcon from "@mui/icons-material/Palette";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 
 export default function ManageClientConfig() {
   const navigate = useNavigate();

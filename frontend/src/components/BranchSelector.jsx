@@ -14,7 +14,7 @@ import {
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import LogoutIcon from "@mui/icons-material/Logout";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
 const getAuthClaims = () => {
   const claimsString = localStorage.getItem("user_claims");

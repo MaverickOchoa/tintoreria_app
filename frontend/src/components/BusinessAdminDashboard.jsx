@@ -23,7 +23,7 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import PeopleIcon from "@mui/icons-material/People";
 import LockIcon from "@mui/icons-material/Lock";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 
 export default function BusinessAdminDashboard() {
   const navigate = useNavigate();

@@ -12,7 +12,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import LockIcon from "@mui/icons-material/Lock";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 const getToken = () => localStorage.getItem("access_token");
 const getClaims = () => { try { return JSON.parse(localStorage.getItem("user_claims") || "{}"); } catch { return {}; } };
 

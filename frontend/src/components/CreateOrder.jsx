@@ -19,7 +19,7 @@ import QrCodeIcon from "@mui/icons-material/QrCode";
 import JsBarcode from "jsbarcode";
 import OrderReceipt, { usePrintReceipt } from "./OrderReceipt";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || API;
 const getClaims = () => { try { return JSON.parse(localStorage.getItem("user_claims") || "{}"); } catch { return {}; } };
 
 const MANAGER_ROLES = new Set(["business_admin", "branch_manager"]);

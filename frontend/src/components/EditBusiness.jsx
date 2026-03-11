@@ -7,7 +7,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
 const EMPTY = {
   name: "", rfc: "", curp: "", sime: "", regimen_fiscal: "",
