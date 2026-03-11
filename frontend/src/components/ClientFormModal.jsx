@@ -12,8 +12,8 @@ import {
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
 
-// Mantenemos la URL base original
-const BASE_URL = "http://127.0.0.1:5000/api/v1";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const BASE_URL = `${API}/api/v1`;
 
 // Eliminamos todos los objetos de estilo nativos (inputStyles, btnPrimary, btnSecondary)
 

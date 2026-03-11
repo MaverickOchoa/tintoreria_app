@@ -82,7 +82,7 @@ function BranchSelector() {
   const handleSelectBranch = async (branchId) => {
     try {
       const token = localStorage.getItem("access_token");
-      const res = await fetch("http://127.0.0.1:5000/auth/select-branch", {
+      const res = await fetch(`${API}/auth/select-branch`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ branch_id: branchId }),

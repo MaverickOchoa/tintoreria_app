@@ -29,6 +29,8 @@ const toTitleCase = (str) => {
     .join(" ");
 };
 
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+
 const CreateItem = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
@@ -56,7 +58,7 @@ const CreateItem = () => {
           throw new Error("No se encontró el token de autenticación.");
 
         const response = await fetch(
-          `http://127.0.0.1:5000/categories/${categoryId}`,
+          `${API}/categories/${categoryId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -113,7 +115,7 @@ const CreateItem = () => {
       if (!token) throw new Error("No se encontró el token de autenticación.");
 
       const response = await fetch(
-        `http://127.0.0.1:5000/categories/${categoryId}/items`,
+        `${API}/categories/${categoryId}/items`,
         {
           method: "POST",
           headers: {
