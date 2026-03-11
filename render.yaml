@@ -16,8 +16,9 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
 
-  - type: static
+  - type: web
     name: tintoreria-frontend
+    env: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
