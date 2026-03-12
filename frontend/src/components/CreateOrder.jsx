@@ -986,6 +986,18 @@ export default function CreateOrder() {
         <DialogContent>
           <Box display="flex" flexDirection="column" gap={2} mt={1}>
 
+            {/* Mostrar puntos ya aplicados si viene del botón de puntos */}
+            {overrideTotal !== null && payInputs.points && (
+              <Box sx={{ bgcolor: "secondary.50", border: "1px solid", borderColor: "secondary.200", borderRadius: 1, px: 2, py: 1 }}>
+                <Typography variant="body2" color="secondary.main" fontWeight={600}>
+                  Puntos aplicados: {payInputs.points} pts = ${(parseFloat(payInputs.points) * (businessConfig.peso_per_point || 1)).toFixed(2)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Resta por pagar: ${overrideTotal.toFixed(2)}
+                </Typography>
+              </Box>
+            )}
+
             {/* Selector de método */}
             <ToggleButtonGroup
               value={payMethod} exclusive size="small" fullWidth
@@ -1100,11 +1112,12 @@ export default function CreateOrder() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPayDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => { setPayDialogOpen(false); setOverrideTotal(null); }}>Cancelar</Button>
           <Button variant="contained" onClick={() => {
             const deferred = payMethod === "deferred";
-            const card = payMethod === "card" ? String(total) : payInputs.card;
-            confirmPayAndSubmit({ ...payInputs, card, isDeferred: deferred });
+            const displayTotal = overrideTotal !== null ? overrideTotal : total;
+            const cardAmt = payMethod === "card" ? String(displayTotal) : payInputs.card;
+            confirmPayAndSubmit({ ...payInputs, card: cardAmt, isDeferred: deferred });
           }} disabled={submitting}>
             {submitting ? <CircularProgress size={18} /> : "Confirmar orden"}
           </Button>
