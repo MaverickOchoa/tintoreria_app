@@ -280,7 +280,6 @@ export default function CreateOrder() {
         .then(r => r.json())
         .then(d => setActivePromos(d.promotions || []))
         .catch(console.error);
-    }
   }, [clientId, token]);
 
   // Multiplicador de precio según urgencia
