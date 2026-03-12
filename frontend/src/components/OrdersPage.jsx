@@ -186,14 +186,14 @@ const OrdersPage = () => {
               <TableRow>
                 <TableCell><strong>Folio</strong></TableCell>
                 <TableCell><strong>Cliente</strong></TableCell>
-                <TableCell><strong>Creado por</strong></TableCell>
-                <TableCell><strong>Fecha</strong></TableCell>
-                <TableCell><strong>Entrega</strong></TableCell>
-                <TableCell><strong>Entregado</strong></TableCell>
-                <TableCell><strong>Total</strong></TableCell>
-                <TableCell><strong>Pago</strong></TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}><strong>Creado por</strong></TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}><strong>Fecha</strong></TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}><strong>Entrega</strong></TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}><strong>Entregado</strong></TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}><strong>Total</strong></TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}><strong>Pago</strong></TableCell>
                 <TableCell><strong>Estado</strong></TableCell>
-                <TableCell><strong>Carrusel</strong></TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}><strong>Carrusel</strong></TableCell>
                 <TableCell align="center"><strong>Acciones</strong></TableCell>
               </TableRow>
             </TableHead>
@@ -207,16 +207,16 @@ const OrdersPage = () => {
                     <TableRow key={order.id} hover>
                       <TableCell sx={{ fontWeight: 600, fontFamily: "monospace" }}>{order.folio || `#${order.id}`}</TableCell>
                       <TableCell>{order.client_name || "—"}</TableCell>
-                      <TableCell sx={{ fontSize: "12px", color: "text.secondary" }}>{order.created_by_name || "—"}</TableCell>
-                      <TableCell>{new Date(order.order_date).toLocaleDateString("es-MX")}</TableCell>
-                      <TableCell sx={{ fontSize: "12px" }}>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" }, fontSize: "12px", color: "text.secondary" }}>{order.created_by_name || "—"}</TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>{new Date(order.order_date).toLocaleDateString("es-MX")}</TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" }, fontSize: "12px" }}>
                         {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString("es-MX") : "—"}
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", color: order.delivered_at ? "success.main" : "text.disabled" }}>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" }, fontSize: "12px", color: order.delivered_at ? "success.main" : "text.disabled" }}>
                         {order.delivered_at ? new Date(order.delivered_at).toLocaleDateString("es-MX") : "—"}
                       </TableCell>
-                      <TableCell>${parseFloat(order.total_amount).toFixed(2)}</TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>${parseFloat(order.total_amount).toFixed(2)}</TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
                         {order.payment_status === "paid"
                           ? <Chip label="Pagado" color="success" size="small" />
                           : order.payment_status === "partial"
@@ -227,7 +227,7 @@ const OrdersPage = () => {
                       <TableCell>
                         <Chip label={order.status} color={STATUS_COLORS[order.status] || "default"} size="small" />
                       </TableCell>
-                      <TableCell sx={{ fontSize: "12px", fontFamily: "monospace" }}>
+                      <TableCell sx={{ fontSize: "12px", fontFamily: "monospace", display: { xs: "none", sm: "table-cell" } }}>
                         {order.carousel_position || "—"}
                       </TableCell>
                       <TableCell align="center">

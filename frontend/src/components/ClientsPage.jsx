@@ -108,8 +108,8 @@ export default function ClientsPage() {
                 <TableHead sx={{ bgcolor: "#f5f5f5" }}>
                   <TableRow>
                     <TableCell><strong>Nombre</strong></TableCell>
-                    <TableCell><strong>Teléfono</strong></TableCell>
-                    <TableCell><strong>Email</strong></TableCell>
+                    <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}><strong>Teléfono</strong></TableCell>
+                    <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}><strong>Email</strong></TableCell>
                     <TableCell><strong>Tipo</strong></TableCell>
                     <TableCell align="center"><strong>Acciones</strong></TableCell>
                   </TableRow>
@@ -120,8 +120,8 @@ export default function ClientsPage() {
                       <TableCell>
                         {client.full_name}{client.last_name ? ` ${client.last_name}` : ""}
                       </TableCell>
-                      <TableCell>{client.phone || "—"}</TableCell>
-                      <TableCell>{client.email || "—"}</TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>{client.phone || "—"}</TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>{client.email || "—"}</TableCell>
                       <TableCell>{client.client_type || "Regular"}</TableCell>
                       <TableCell align="center">
                         <Tooltip title="Ver perfil">

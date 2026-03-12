@@ -557,7 +557,7 @@ export default function CreateOrder() {
   if (!client) return <Box sx={{ p: 4 }}><Alert severity="error">Cliente no encontrado.</Alert></Box>;
 
   return (
-    <Box sx={{ width: "calc(100% + 48px)", height: { xs: "auto", md: "calc(100vh - 64px)" }, minHeight: { xs: "100dvh", md: "unset" }, ml: -3, mr: -3, mt: -3, display: "flex", flexDirection: "column", overflow: { xs: "auto", md: "hidden" }, bgcolor: "#f0f2f5" }}>
+    <Box sx={{ width: "calc(100% + 48px)", height: { xs: "auto", md: "calc(100vh - 64px)" }, minHeight: { xs: "100dvh", md: "unset" }, ml: { xs: -2, md: -3 }, mr: { xs: -2, md: -3 }, mt: -3, display: "flex", flexDirection: "column", overflow: { xs: "auto", md: "hidden" }, bgcolor: "#f0f2f5" }}>
 
       {/* HEADER */}
       <Paper elevation={3} square sx={{ px: 3, py: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
