@@ -144,25 +144,24 @@ export default function OrderStatsCards() {
           {STAT_CARDS.map(card => {
             const IconComp = card.icon;
             const count = stats?.[card.key] ?? 0;
-            const hasData = count > 0;
             return (
-              <Card key={card.key} elevation={hasData ? 2 : 1}
+              <Card key={card.key} elevation={1}
                 sx={{
-                  borderRadius: 2, cursor: "pointer",
-                  border: hasData ? `1px solid ${card.color}` : "1px solid #e0e0e0",
+                  borderRadius: 3, cursor: "pointer",
+                  border: "1px solid #e8e8e8",
+                  bgcolor: "#fff",
                   transition: "box-shadow 0.2s",
-                  "&:hover": { boxShadow: 4 },
+                  "&:hover": { boxShadow: 3 },
                 }}
                 onClick={() => openModal(card)}>
-                <CardActionArea sx={{ p: 1.5 }}>
-                  <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
-                    <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
-                      <IconComp sx={{ fontSize: 16, color: hasData ? card.color : "text.disabled" }} />
-                      <Typography variant="caption" color="text.secondary" lineHeight={1.2}>{card.label}</Typography>
-                    </Box>
-                    <Typography variant="h4" fontWeight={800} lineHeight={1}
-                      color={hasData ? card.color : "text.disabled"}>
+                <CardActionArea sx={{ p: 2 }}>
+                  <CardContent sx={{ p: 0, "&:last-child": { pb: 0 }, textAlign: "center" }}>
+                    <IconComp sx={{ fontSize: 32, color: "text.disabled", mb: 1 }} />
+                    <Typography variant="h3" fontWeight={400} lineHeight={1} color="text.secondary" mb={0.5}>
                       {count}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" lineHeight={1.2}>
+                      {card.label}
                     </Typography>
                   </CardContent>
                 </CardActionArea>
