@@ -192,6 +192,7 @@ export default function CreateOrder() {
   const [payInputs, setPayInputs] = useState({ cash: "", card: "", points: "" });
   const [isDeferred, setIsDeferred] = useState(false);
   const [payMethod, setPayMethod] = useState("cash");
+  const [overrideTotal, setOverrideTotal] = useState(null);
 
   const [urgency, setUrgency] = useState("normal");
   const [deliveryDate, setDeliveryDate] = useState(null);
@@ -776,8 +777,10 @@ export default function CreateOrder() {
                     if (pointsValue >= total) {
                       confirmPayAndSubmit({ points: String(pointsToUse), cash: "", card: "", isDeferred: false });
                     } else {
+                      const remaining = parseFloat((total - pointsValue).toFixed(2));
                       setPayInputs({ cash: "", card: "", points: String(pointsToUse) });
                       setPayMethod("mixed");
+                      setOverrideTotal(remaining);
                       setPayDialogOpen(true);
                     }
                   }}
@@ -974,8 +977,12 @@ export default function CreateOrder() {
       </Snackbar>
 
       {/* ─── MODAL DE PAGO ─── */}
-      <Dialog open={payDialogOpen} onClose={() => setPayDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Confirmar pago — ${total.toFixed(2)}</DialogTitle>
+      <Dialog open={payDialogOpen} onClose={() => { setPayDialogOpen(false); setOverrideTotal(null); }} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          {overrideTotal !== null
+            ? `Pago restante — $${overrideTotal.toFixed(2)}`
+            : `Confirmar pago — $${total.toFixed(2)}`}
+        </DialogTitle>
         <DialogContent>
           <Box display="flex" flexDirection="column" gap={2} mt={1}>
 
@@ -1053,14 +1060,15 @@ export default function CreateOrder() {
 
             {/* Resumen */}
             {(() => {
+              const displayTotal = overrideTotal !== null ? overrideTotal : total;
               const c = payMethod === "cash" ? parseFloat(payInputs.cash || 0)
                       : payMethod === "mixed" ? parseFloat(payInputs.cash || 0) : 0;
-              const k = payMethod === "card" ? total
+              const k = payMethod === "card" ? displayTotal
                       : payMethod === "mixed" ? parseFloat(payInputs.card || 0) : 0;
               const pts = payMethod === "points" ? parseFloat(payInputs.points || 0) * businessConfig.peso_per_point : 0;
               const paid = c + k + pts;
-              const remaining = total - paid;
-              const change = payMethod === "cash" && c > total ? c - total : 0;
+              const remaining = displayTotal - paid;
+              const change = payMethod === "cash" && c > displayTotal ? c - displayTotal : 0;
               if (payMethod === "deferred") return null;
               return (
                 <Box sx={{ bgcolor: "grey.100", borderRadius: 1, p: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>

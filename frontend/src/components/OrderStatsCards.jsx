@@ -143,15 +143,15 @@ export default function OrderStatsCards() {
             const count = stats?.[card.key] ?? 0;
             return (
               <Card key={card.key} elevation={1}
-                sx={{ bgcolor: card.bg, border: `1px solid ${card.color}22`, borderRadius: 2, cursor: "pointer" }}
+                sx={{ borderRadius: 2, cursor: "pointer" }}
                 onClick={() => openModal(card)}>
                 <CardActionArea sx={{ p: 1.5 }}>
                   <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
                     <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
-                      <IconComp sx={{ fontSize: 16, color: card.color }} />
+                      <IconComp sx={{ fontSize: 16, color: "text.secondary" }} />
                       <Typography variant="caption" color="text.secondary" lineHeight={1.2}>{card.label}</Typography>
                     </Box>
-                    <Typography variant="h4" fontWeight={800} color={card.color} lineHeight={1}>{count}</Typography>
+                    <Typography variant="h4" fontWeight={800} lineHeight={1}>{count}</Typography>
                   </CardContent>
                 </CardActionArea>
               </Card>
