@@ -7,7 +7,10 @@ import {
   CircularProgress, Snackbar, Alert, Dialog,
   DialogTitle, DialogContent, DialogActions, Tooltip, InputAdornment,
   Select, MenuItem, FormControl, InputLabel,
+  Accordion, AccordionSummary, AccordionDetails, ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import StarsIcon from "@mui/icons-material/Stars";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -188,6 +191,7 @@ export default function CreateOrder() {
   // Payment modal state
   const [payInputs, setPayInputs] = useState({ cash: "", card: "", points: "" });
   const [isDeferred, setIsDeferred] = useState(false);
+  const [payMethod, setPayMethod] = useState("cash");
 
   const [urgency, setUrgency] = useState("normal");
   const [deliveryDate, setDeliveryDate] = useState(null);
@@ -468,13 +472,14 @@ export default function CreateOrder() {
     setPayDialogOpen(true);
   };
 
-  const confirmPayAndSubmit = async () => {
-    const cashAmt   = parseFloat(payInputs.cash  || "0");
-    const cardAmt   = parseFloat(payInputs.card  || "0");
-    const pointsAmt = parseFloat(payInputs.points || "0");
+  const confirmPayAndSubmit = async (overrides = {}) => {
+    const inputs = { ...payInputs, ...overrides };
+    const deferred = overrides.isDeferred !== undefined ? overrides.isDeferred : isDeferred;
+    const cashAmt   = parseFloat(inputs.cash  || "0");
+    const cardAmt   = parseFloat(inputs.card  || "0");
+    const pointsAmt = parseFloat(inputs.points || "0");
     const pointsMonetary = pointsAmt * businessConfig.peso_per_point;
 
-    // Calcular cuánto aplica realmente del efectivo (sin contar cambio)
     const nonCashTotal = cardAmt + pointsMonetary;
     const cashApplied = Math.min(cashAmt, Math.max(0, total - nonCashTotal));
 
@@ -483,7 +488,7 @@ export default function CreateOrder() {
     if (cardAmt   > 0)   payments.push({ method: "card",   amount: cardAmt });
     if (pointsAmt > 0)   payments.push({ method: "points", amount: parseFloat(pointsMonetary.toFixed(2)), points_used: pointsAmt });
 
-    if (!isDeferred && payments.length === 0) {
+    if (!deferred && payments.length === 0) {
       setError("Selecciona al menos un método de pago o marca como pago posterior."); return;
     }
 
@@ -504,7 +509,7 @@ export default function CreateOrder() {
           promo_discount: parseFloat(totalPromoDiscount.toFixed(2)),
           discount_pct: parseFloat(discountPct),
           auth_code: needsAuthCode ? authCode : undefined,
-          is_deferred: isDeferred,
+          is_deferred: deferred,
           payments,
           items: cart.map(i => ({
             product_service_id: i.product_service_id,
@@ -736,6 +741,18 @@ export default function CreateOrder() {
               </Box>
             )}
 
+            {/* Botón usar puntos */}
+            {businessConfig.payment_points && client && (client.points_balance || 0) > 0 && (() => {
+              const ptsPesos = (client.points_balance || 0) * businessConfig.peso_per_point;
+              return (
+                <Button size="small" variant="outlined" color="secondary" startIcon={<StarsIcon />}
+                  onClick={() => { setPayMethod("points"); setPayInputs(p => ({ ...p, points: String(client.points_balance || 0) })); }}
+                  sx={{ textTransform: "none", fontSize: 11 }}>
+                  Usar puntos: ${ptsPesos.toFixed(2)}
+                </Button>
+              );
+            })()}
+
             <Box display="flex" justifyContent="space-between">
               <Typography variant="subtitle2" fontWeight="bold">Total</Typography>
               <Typography variant="subtitle2" fontWeight="bold" color="primary">${total.toFixed(2)}</Typography>
@@ -832,40 +849,56 @@ export default function CreateOrder() {
 
         <DialogContent dividers sx={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", gap: 2, py: 2 }}>
           {loadingDetails ? <Box textAlign="center" py={6}><CircularProgress /></Box> : (<>
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, flexShrink: 0 }}>
-              <Box>
-                <Typography variant="subtitle2" fontWeight="bold" mb={1} color="text.secondary">
-                  ESTAMPADO <Typography component="span" variant="caption">(opcional · máx 1)</Typography>
+
+            {/* Estampados y Defectos — colapsable */}
+            <Accordion disableGutters elevation={0} sx={{ border: "1px solid #e0e0e0", borderRadius: 1, flexShrink: 0, "&:before": { display: "none" } }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: 40, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+                <Typography variant="subtitle2" fontWeight="bold" color="text.secondary">
+                  ESTAMPADO Y DEFECTO
+                  {(selectedPrint || selectedDefect) && (
+                    <Typography component="span" variant="caption" color="primary" sx={{ ml: 1 }}>
+                      {[selectedPrint?.name, selectedDefect?.name].filter(Boolean).join(" · ")}
+                    </Typography>
+                  )}
                 </Typography>
-                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 1 }}>
-                  {prints.length === 0
-                    ? <Typography variant="caption" color="text.secondary">Sin estampados registrados</Typography>
-                    : prints.map(p => (
-                      <Button key={p.id} variant={selectedPrint?.id === p.id ? "contained" : "outlined"} size="small"
-                        onClick={() => setSelectedPrint(prev => prev?.id === p.id ? null : p)}
-                        sx={{ justifyContent: "center", textTransform: "none", height: 36, fontSize: 12 }}>
-                        {p.name}
-                      </Button>
-                    ))}
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0 }}>
+                <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                  <Box>
+                    <Typography variant="caption" fontWeight="bold" color="text.secondary" mb={0.5} display="block">
+                      ESTAMPADO <span style={{ fontWeight: 400 }}>(opcional)</span>
+                    </Typography>
+                    <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 1 }}>
+                      {prints.length === 0
+                        ? <Typography variant="caption" color="text.secondary">Sin estampados</Typography>
+                        : prints.map(p => (
+                          <Button key={p.id} variant={selectedPrint?.id === p.id ? "contained" : "outlined"} size="small"
+                            onClick={() => setSelectedPrint(prev => prev?.id === p.id ? null : p)}
+                            sx={{ justifyContent: "center", textTransform: "none", height: 32, fontSize: 11 }}>
+                            {p.name}
+                          </Button>
+                        ))}
+                    </Box>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" fontWeight="bold" color="text.secondary" mb={0.5} display="block">
+                      DEFECTO <span style={{ fontWeight: 400 }}>(opcional)</span>
+                    </Typography>
+                    <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 1 }}>
+                      {defects.length === 0
+                        ? <Typography variant="caption" color="text.secondary">Sin defectos</Typography>
+                        : defects.map(d => (
+                          <Button key={d.id} variant={selectedDefect?.id === d.id ? "contained" : "outlined"} color="warning" size="small"
+                            onClick={() => setSelectedDefect(prev => prev?.id === d.id ? null : d)}
+                            sx={{ justifyContent: "center", textTransform: "none", height: 32, fontSize: 11 }}>
+                            {d.name}
+                          </Button>
+                        ))}
+                    </Box>
+                  </Box>
                 </Box>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" fontWeight="bold" mb={1} color="text.secondary">
-                  DEFECTO <Typography component="span" variant="caption">(opcional · máx 1)</Typography>
-                </Typography>
-                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 1 }}>
-                  {defects.length === 0
-                    ? <Typography variant="caption" color="text.secondary">Sin defectos registrados</Typography>
-                    : defects.map(d => (
-                      <Button key={d.id} variant={selectedDefect?.id === d.id ? "contained" : "outlined"} color="warning" size="small"
-                        onClick={() => setSelectedDefect(prev => prev?.id === d.id ? null : d)}
-                        sx={{ justifyContent: "center", textTransform: "none", height: 36, fontSize: 12 }}>
-                        {d.name}
-                      </Button>
-                    ))}
-                </Box>
-              </Box>
-            </Box>
+              </AccordionDetails>
+            </Accordion>
 
             <Divider flexItem />
 
@@ -911,91 +944,126 @@ export default function CreateOrder() {
         <DialogTitle>Confirmar pago — ${total.toFixed(2)}</DialogTitle>
         <DialogContent>
           <Box display="flex" flexDirection="column" gap={2} mt={1}>
-            {businessConfig.payment_cash && (
-              <TextField label="Efectivo ($)" type="number" size="small" fullWidth
+
+            {/* Selector de método */}
+            <ToggleButtonGroup
+              value={payMethod} exclusive size="small" fullWidth
+              onChange={(_, v) => { if (v) { setPayMethod(v); setPayInputs({ cash: "", card: "", points: "" }); } }}
+            >
+              {businessConfig.payment_cash && <ToggleButton value="cash">Efectivo</ToggleButton>}
+              {businessConfig.payment_card && <ToggleButton value="card">Tarjeta</ToggleButton>}
+              {(businessConfig.payment_cash && businessConfig.payment_card) && <ToggleButton value="mixed">Mixto</ToggleButton>}
+              {businessConfig.payment_points && client && (client.points_balance || 0) > 0 && <ToggleButton value="points">Puntos</ToggleButton>}
+              {businessConfig.allow_deferred && <ToggleButton value="deferred">Posterior</ToggleButton>}
+            </ToggleButtonGroup>
+
+            {/* Efectivo */}
+            {payMethod === "cash" && (
+              <TextField label="Monto recibido ($)" type="number" size="small" fullWidth autoFocus
                 value={payInputs.cash}
                 onChange={e => setPayInputs(p => ({ ...p, cash: e.target.value }))}
                 InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
               />
             )}
-            {businessConfig.payment_card && (
+
+            {/* Tarjeta — sin casilla, se carga el total automático */}
+            {payMethod === "card" && (
+              <Box sx={{ bgcolor: "grey.100", borderRadius: 1, p: 1.5, textAlign: "center" }}>
+                <Typography variant="body2" color="text.secondary">Monto a cobrar en tarjeta</Typography>
+                <Typography variant="h5" fontWeight="bold" color="primary">${total.toFixed(2)}</Typography>
+              </Box>
+            )}
+
+            {/* Mixto */}
+            {payMethod === "mixed" && (<>
+              <TextField label="Efectivo ($)" type="number" size="small" fullWidth
+                value={payInputs.cash}
+                onChange={e => setPayInputs(p => ({ ...p, cash: e.target.value }))}
+                InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+              />
               <TextField label="Tarjeta ($)" type="number" size="small" fullWidth
                 value={payInputs.card}
                 onChange={e => {
                   const c = parseFloat(payInputs.cash || 0);
-                  const pts = parseFloat(payInputs.points || 0) * businessConfig.peso_per_point;
-                  const maxCard = Math.max(0, total - c - pts);
+                  const maxCard = Math.max(0, total - c);
                   const v = Math.min(parseFloat(e.target.value || 0), maxCard);
                   setPayInputs(p => ({ ...p, card: v > 0 ? String(v) : "" }));
                 }}
-                helperText="No puede exceder el total (no da cambio)"
+                helperText="No puede exceder el saldo restante"
                 InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
               />
+            </>)}
+
+            {/* Puntos */}
+            {payMethod === "points" && (
+              <TextField
+                label={`Puntos a canjear (disponibles: ${(client?.points_balance || 0).toFixed(0)})`}
+                type="number" size="small" fullWidth
+                value={payInputs.points}
+                onChange={e => setPayInputs(p => ({ ...p, points: e.target.value }))}
+                helperText={`1 punto = $${businessConfig.peso_per_point}. Valor: $${((parseFloat(payInputs.points || 0)) * businessConfig.peso_per_point).toFixed(2)}`}
+              />
             )}
-            {businessConfig.payment_points && client && (
-              <Box>
-                <TextField label={`Puntos a canjear (disponibles: ${(client.points_balance || 0).toFixed(0)})`}
-                  type="number" size="small" fullWidth
-                  value={payInputs.points}
-                  onChange={e => setPayInputs(p => ({ ...p, points: e.target.value }))}
-                  helperText={`1 punto = $${businessConfig.peso_per_point}. Valor: $${((parseFloat(payInputs.points || 0)) * businessConfig.peso_per_point).toFixed(2)}`}
-                />
+
+            {/* Pago posterior */}
+            {payMethod === "deferred" && (
+              <Box sx={{ bgcolor: "warning.light", borderRadius: 1, p: 1.5, textAlign: "center" }}>
+                <Typography variant="body2" color="warning.dark" fontWeight="bold">
+                  La orden quedará pendiente de pago
+                </Typography>
+                <Typography variant="caption" color="warning.dark">
+                  Se cobrará al momento de entrega
+                </Typography>
               </Box>
             )}
 
             {/* Resumen */}
             {(() => {
-              const c = parseFloat(payInputs.cash || 0);
-              const k = parseFloat(payInputs.card || 0);
-              const pts = parseFloat(payInputs.points || 0) * businessConfig.peso_per_point;
+              const c = payMethod === "cash" ? parseFloat(payInputs.cash || 0)
+                      : payMethod === "mixed" ? parseFloat(payInputs.cash || 0) : 0;
+              const k = payMethod === "card" ? total
+                      : payMethod === "mixed" ? parseFloat(payInputs.card || 0) : 0;
+              const pts = payMethod === "points" ? parseFloat(payInputs.points || 0) * businessConfig.peso_per_point : 0;
               const paid = c + k + pts;
               const remaining = total - paid;
-              const change = c > (total - k - pts) ? c - (total - k - pts) : 0;
+              const change = payMethod === "cash" && c > total ? c - total : 0;
+              if (payMethod === "deferred") return null;
               return (
                 <Box sx={{ bgcolor: "grey.100", borderRadius: 1, p: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
                   <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Total a pagar</Typography>
+                    <Typography variant="body2">Total</Typography>
                     <Typography variant="body2" fontWeight="bold">${total.toFixed(2)}</Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Con efectivo</Typography>
-                    <Typography variant="body2">${c.toFixed(2)}</Typography>
+                    <Typography variant="body2">Pagado</Typography>
+                    <Typography variant="body2">${paid.toFixed(2)}</Typography>
                   </Box>
-                  {k > 0 && <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Con tarjeta</Typography>
-                    <Typography variant="body2">${k.toFixed(2)}</Typography>
-                  </Box>}
-                  {pts > 0 && <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Con puntos</Typography>
-                    <Typography variant="body2">${pts.toFixed(2)}</Typography>
-                  </Box>}
                   <Divider sx={{ my: 0.5 }} />
                   {change > 0.009 ? (
                     <Box display="flex" justifyContent="space-between" sx={{ bgcolor: "success.light", borderRadius: 1, px: 1, py: 0.5 }}>
                       <Typography variant="body2" fontWeight="bold" color="success.dark">Cambio a dar</Typography>
                       <Typography variant="body2" fontWeight="bold" color="success.dark">${change.toFixed(2)}</Typography>
                     </Box>
-                  ) : remaining > 0.01 && !isDeferred ? (
+                  ) : remaining > 0.01 ? (
                     <Box display="flex" justifyContent="space-between">
                       <Typography variant="body2" color="warning.main">Falta por pagar</Typography>
                       <Typography variant="body2" color="warning.main">${remaining.toFixed(2)}</Typography>
                     </Box>
-                  ) : null}
+                  ) : (
+                    <Typography variant="body2" color="success.main" fontWeight="bold" textAlign="center">✓ Pago completo</Typography>
+                  )}
                 </Box>
               );
             })()}
-
-            {businessConfig.allow_deferred && (
-              <Button variant={isDeferred ? "contained" : "outlined"} color="warning" size="small"
-                onClick={() => setIsDeferred(v => !v)}>
-                {isDeferred ? "✓ Pago posterior (sin pagar ahora)" : "Marcar como pago posterior"}
-              </Button>
-            )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPayDialogOpen(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={confirmPayAndSubmit} disabled={submitting}>
+          <Button variant="contained" onClick={() => {
+            const deferred = payMethod === "deferred";
+            const card = payMethod === "card" ? String(total) : payInputs.card;
+            confirmPayAndSubmit({ ...payInputs, card, isDeferred: deferred });
+          }} disabled={submitting}>
             {submitting ? <CircularProgress size={18} /> : "Confirmar orden"}
           </Button>
         </DialogActions>
