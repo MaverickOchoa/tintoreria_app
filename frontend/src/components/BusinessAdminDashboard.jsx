@@ -29,7 +29,7 @@ export default function BusinessAdminDashboard() {
   const navigate = useNavigate();
   const token = localStorage.getItem("access_token");
   const claims = JSON.parse(localStorage.getItem("user_claims") || "{}");
-  const activeBranchId = claims.active_branch_id || claims.branch_id;
+  const activeBranchId = claims.active_branch_id || claims.branch_id || localStorage.getItem("branch_id");
 
   const [branches, setBranches] = useState([]);
   const [folioEdits, setFolioEdits] = useState({});

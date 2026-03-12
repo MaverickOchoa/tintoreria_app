@@ -150,7 +150,7 @@ export default function CreateOrder() {
   const navigate = useNavigate();
   const token = localStorage.getItem("access_token");
   const claims = getClaims();
-  const branchId = claims.branch_id ?? claims.active_branch_id ?? null;
+  const branchId = claims.branch_id ?? claims.active_branch_id ?? localStorage.getItem("branch_id") ?? null;
   const isManager = MANAGER_ROLES.has(claims.role);
 
   const folio = useRef(null);
