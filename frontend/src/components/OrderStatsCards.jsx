@@ -45,14 +45,17 @@ function useRealTime() {
   useEffect(() => {
     if (checkedRef.current) return;
     checkedRef.current = true;
-    fetch("https://worldtimeapi.org/api/ip")
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
+    fetch("https://worldtimeapi.org/api/ip", { signal: controller.signal })
       .then(r => r.json())
       .then(d => {
         const realTime = new Date(d.datetime);
         const diff = Math.abs(realTime - new Date());
         if (diff > 5 * 60 * 1000) setClockAlert(true);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
   }, []);
 
   return { now, clockAlert };
@@ -195,7 +198,7 @@ export default function OrderStatsCards() {
                       <TableCell>{o.client_name || "—"}</TableCell>
                       <TableCell>{o.delivery_date ? new Date(o.delivery_date).toLocaleDateString("es-MX") : "—"}</TableCell>
                       <TableCell><Chip label={o.status} color={STATUS_COLORS[o.status] || "default"} size="small" /></TableCell>
-                      <TableCell>${(o.total || 0).toFixed(2)}</TableCell>
+                      <TableCell>${parseFloat(o.total_amount || 0).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

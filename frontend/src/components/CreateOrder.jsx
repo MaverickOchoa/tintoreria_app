@@ -1038,7 +1038,8 @@ export default function CreateOrder() {
                 value={payInputs.card}
                 onChange={e => {
                   const c = parseFloat(payInputs.cash || 0);
-                  const maxCard = Math.max(0, total - c);
+                  const displayTotal = overrideTotal !== null ? overrideTotal : total;
+                  const maxCard = Math.max(0, displayTotal - c);
                   const v = Math.min(parseFloat(e.target.value || 0), maxCard);
                   setPayInputs(p => ({ ...p, card: v > 0 ? String(v) : "" }));
                 }}
