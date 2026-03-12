@@ -38,6 +38,8 @@ export default function BusinessAdminDashboard() {
   const [usesIva, setUsesIva] = useState(true);
   const [savingIva, setSavingIva] = useState(false);
   const [ivaMsg, setIvaMsg] = useState(null);
+  const [savingDiscount, setSavingDiscount] = useState(false);
+  const [discountMsg, setDiscountMsg] = useState(null);
 
   const [payConfig, setPayConfig] = useState({ payment_cash: true, payment_card: true, payment_points: false, allow_deferred: true, points_per_peso: 1, peso_per_point: 1 });
   const [savingPay, setSavingPay] = useState(false);
@@ -165,6 +167,21 @@ export default function BusinessAdminDashboard() {
       else setIvaMsg({ type: "error", text: data.message || "Error al guardar" });
     } catch { setIvaMsg({ type: "error", text: "Error de conexión" }); }
     finally { setSavingIva(false); }
+  };
+
+  const handleSaveDiscount = async () => {
+    setSavingDiscount(true); setDiscountMsg(null);
+    try {
+      const res = await fetch(`${API}/branches/${activeBranchId}/config`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ discount_enabled: discountConfig.discount_enabled, max_discount_pct: discountConfig.max_discount_pct }),
+      });
+      const data = await res.json();
+      if (res.ok) setDiscountMsg({ type: "success", text: "Configuración de descuentos guardada" });
+      else setDiscountMsg({ type: "error", text: data.message || "Error al guardar" });
+    } catch { setDiscountMsg({ type: "error", text: "Error de conexión" }); }
+    finally { setSavingDiscount(false); }
   };
 
   const handleSavePayConfig = async () => {
@@ -367,6 +384,14 @@ export default function BusinessAdminDashboard() {
                 InputProps={{ endAdornment: <InputAdornment position="end"><PercentIcon fontSize="small" /></InputAdornment>, inputProps: { min: 0, max: 100 } }}
                 sx={{ mt: 1.5 }}
               />
+              <Box mt={1.5}>
+                <Button variant="contained" size="medium"
+                  startIcon={savingDiscount ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                  onClick={handleSaveDiscount} disabled={savingDiscount}>
+                  Guardar
+                </Button>
+              </Box>
+              {discountMsg && <Alert severity={discountMsg.type} sx={{ mt: 1.5 }}>{discountMsg.text}</Alert>}
             </Grid>
           </Grid>
         </Paper>

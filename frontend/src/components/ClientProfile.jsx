@@ -196,6 +196,11 @@ export default function ClientProfile() {
               {client.neighborhood && <Typography variant="body2"><b>Colonia:</b> {client.neighborhood}</Typography>}
               {client.zip_code && <Typography variant="body2"><b>C.P.:</b> {client.zip_code}</Typography>}
               {client.notes && <Typography variant="body2"><b>Notas:</b> {client.notes}</Typography>}
+              <Divider sx={{ my: 1 }} />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, bgcolor: "primary.50", borderRadius: 1, px: 1.5, py: 1, border: "1px solid", borderColor: "primary.200" }}>
+                <Typography variant="body2" fontWeight={700} color="primary.main">Puntos acumulados:</Typography>
+                <Typography variant="body2" fontWeight={700} color="primary.main">{(client.points_balance || 0).toFixed(0)} pts</Typography>
+              </Box>
             </Stack>
             {canManage && (
               <Stack direction="row" spacing={1} mt={2}>

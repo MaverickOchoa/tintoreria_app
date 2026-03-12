@@ -305,6 +305,10 @@ export default function ClientPortal() {
                   </Box>
                 </>}
                 <Divider />
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "primary.50", borderRadius: 1, px: 2, py: 1.5, border: "1px solid", borderColor: "primary.200" }}>
+                  <Typography fontWeight={700} color="primary.main">Puntos acumulados</Typography>
+                  <Typography variant="h6" fontWeight={700} color="primary.main">{(me.points_balance || 0).toFixed(0)} pts</Typography>
+                </Box>
                 <Alert severity="info" sx={{ mt: 1 }}>
                   Para modificar tus datos acude a cualquier sucursal.
                 </Alert>
