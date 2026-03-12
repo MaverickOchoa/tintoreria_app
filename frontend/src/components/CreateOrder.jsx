@@ -230,8 +230,30 @@ export default function CreateOrder() {
       folio.current = generateFolio();
       setFolioDisplay(folio.current);
     }
-    // Cargar config IVA y pagos del negocio
-    if (claims.business_id) {
+    // Cargar config IVA y pagos del branch (no del negocio)
+    if (branchId) {
+      fetch(`${API}/branches/${branchId}/config`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => {
+          if (d.uses_iva !== undefined) setUsesIva(d.uses_iva);
+          setBusinessConfig({
+            payment_cash: d.payment_cash ?? true,
+            payment_card: d.payment_card ?? true,
+            payment_points: d.payment_points ?? false,
+            allow_deferred: d.allow_deferred ?? true,
+            points_per_peso: d.points_per_peso ?? 1,
+            peso_per_point: d.peso_per_point ?? 1,
+            normal_days: d.normal_days ?? 3,
+            urgent_days: d.urgent_days ?? 1,
+            extra_urgent_days: d.extra_urgent_days ?? 0,
+            urgent_pct: d.urgent_pct ?? 20,
+            extra_urgent_pct: d.extra_urgent_pct ?? 50,
+            discount_enabled: d.discount_enabled ?? true,
+            max_discount_pct: d.max_discount_pct ?? 50,
+          });
+        })
+        .catch(console.error);
+    } else if (claims.business_id) {
       fetch(`${API}/businesses/${claims.business_id}`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(d => {
@@ -253,7 +275,8 @@ export default function CreateOrder() {
           });
         })
         .catch(console.error);
-      fetch(`${API}/api/v1/promotions?active_only=1`, { headers: { Authorization: `Bearer ${token}` } })
+    }
+    fetch(`${API}/api/v1/promotions?active_only=1`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(d => setActivePromos(d.promotions || []))
         .catch(console.error);
