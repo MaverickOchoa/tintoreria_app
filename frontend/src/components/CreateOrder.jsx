@@ -773,13 +773,13 @@ export default function CreateOrder() {
                   onClick={() => {
                     const pointsToUse = client.points_balance || 0;
                     const pointsValue = pointsToUse * (businessConfig.peso_per_point || 1);
-                    const cashNeeded = Math.max(0, total - pointsValue);
-                    confirmPayAndSubmit({
-                      points: String(pointsToUse),
-                      cash: cashNeeded > 0 ? String(cashNeeded) : "",
-                      card: "",
-                      isDeferred: cashNeeded > 0,
-                    });
+                    if (pointsValue >= total) {
+                      confirmPayAndSubmit({ points: String(pointsToUse), cash: "", card: "", isDeferred: false });
+                    } else {
+                      setPayInputs({ cash: "", card: "", points: String(pointsToUse) });
+                      setPayMethod("mixed");
+                      setPayDialogOpen(true);
+                    }
                   }}
                   sx={{ textTransform: "none", fontSize: 11 }}>
                   Pagar con puntos: ${ptsPesos.toFixed(2)} disponibles

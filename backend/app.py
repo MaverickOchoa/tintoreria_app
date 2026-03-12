@@ -2257,9 +2257,10 @@ class OrderDeliverResource(Resource):
 class OrderStatsResource(Resource):
     @jwt_required()
     def get(self):
+        from flask import request as req
         claims = get_jwt()
         business_id = claims.get('business_id')
-        branch_id = claims.get('branch_id')
+        branch_id = claims.get('branch_id') or req.args.get('branch_id')
         today = datetime.utcnow().date()
 
         q = Order.query.join(Order.branch).filter(
