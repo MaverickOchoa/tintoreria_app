@@ -1941,8 +1941,12 @@ class OrderListResource(Resource):
             delivery_dt = calculate_delivery_date(business.id if business else 0, datetime.utcnow(), days)
 
         subtotal = sum(float(i['unit_price']) * int(i['quantity']) for i in items_data)
+        branch_cfg = branch.get_config() if branch else {}
+        discount_enabled = branch_cfg.get('discount_enabled', True)
+        if not discount_enabled:
+            total_discount = 0.0
         taxable = max(0, subtotal - total_discount)
-        uses_iva = business.uses_iva if business else True
+        uses_iva = branch_cfg.get('uses_iva', business.uses_iva if business else True)
         tax = round(taxable * 0.16, 2) if uses_iva else 0.0
         total = round(taxable + tax, 2)
 
@@ -1994,8 +1998,10 @@ class OrderListResource(Resource):
             ))
 
         # Acumular puntos si el pago es completo en el momento
-        if payment_status == 'paid' and business and business.payment_points:
-            points_earned = round(total * business.points_per_peso, 2)
+        payment_points_enabled = branch_cfg.get('payment_points', business.payment_points if business else False)
+        if payment_status == 'paid' and payment_points_enabled:
+            points_per_peso = branch_cfg.get('points_per_peso', business.points_per_peso if business else 0)
+            points_earned = round(total * points_per_peso, 2)
             client.points_balance = (client.points_balance or 0) + points_earned
 
         # Descontar puntos usados
