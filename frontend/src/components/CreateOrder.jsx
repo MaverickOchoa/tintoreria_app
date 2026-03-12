@@ -727,18 +727,20 @@ export default function CreateOrder() {
               </Box>
             ))}
 
-            {/* Descuento % */}
-            <Box display="flex" justifyContent="space-between" alignItems="center" gap={1}>
-              <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>Desc.</Typography>
-              <TextField
-                type="number" size="small" value={discountPct}
-                onChange={e => { setDiscountPct(parseFloat(e.target.value) || 0); setAuthCode(""); setAuthError(""); }}
-                inputProps={{ min: 0, max: 100, step: 1 }}
-                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-                sx={{ width: 80 }}
-              />
-            </Box>
-            {discountPct > 0 && (
+            {/* Descuento % — solo si está habilitado en el branch */}
+            {businessConfig.discount_enabled && (
+              <Box display="flex" justifyContent="space-between" alignItems="center" gap={1}>
+                <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>Desc.</Typography>
+                <TextField
+                  type="number" size="small" value={discountPct}
+                  onChange={e => { setDiscountPct(parseFloat(e.target.value) || 0); setAuthCode(""); setAuthError(""); }}
+                  inputProps={{ min: 0, max: 100, step: 1 }}
+                  InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+                  sx={{ width: 80 }}
+                />
+              </Box>
+            )}
+            {businessConfig.discount_enabled && discountPct > 0 && (
               <Box display="flex" justifyContent="space-between">
                 <Typography variant="caption" color="success.main">-${discountAmt.toFixed(2)}</Typography>
               </Box>
@@ -765,12 +767,22 @@ export default function CreateOrder() {
 
             {/* Botón usar puntos */}
             {businessConfig.payment_points && client && (client.points_balance || 0) > 0 && (() => {
-              const ptsPesos = (client.points_balance || 0) * businessConfig.peso_per_point;
+              const ptsPesos = (client.points_balance || 0) * (businessConfig.peso_per_point || 1);
               return (
                 <Button size="small" variant="outlined" color="secondary" startIcon={<StarsIcon />}
-                  onClick={() => { setPayMethod("points"); setPayInputs(p => ({ ...p, points: String(client.points_balance || 0) })); }}
+                  onClick={() => {
+                    const pointsToUse = client.points_balance || 0;
+                    const pointsValue = pointsToUse * (businessConfig.peso_per_point || 1);
+                    const cashNeeded = Math.max(0, total - pointsValue);
+                    confirmPayAndSubmit({
+                      points: String(pointsToUse),
+                      cash: cashNeeded > 0 ? String(cashNeeded) : "",
+                      card: "",
+                      isDeferred: cashNeeded > 0,
+                    });
+                  }}
                   sx={{ textTransform: "none", fontSize: 11 }}>
-                  Usar puntos: ${ptsPesos.toFixed(2)}
+                  Pagar con puntos: ${ptsPesos.toFixed(2)} disponibles
                 </Button>
               );
             })()}
