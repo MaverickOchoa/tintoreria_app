@@ -301,7 +301,7 @@ function buildReceiptHTML(order, businessInfo, businessHours, barcodeDataUri) {
   ).join("");
 
   const copy = (label) => `
-  <div style="width:100%;height:128mm;padding:5mm 6mm;box-sizing:border-box;position:relative;overflow:hidden;font-family:'Courier New',Courier,monospace;font-size:8pt;color:#000">
+  <div style="width:100%;height:215.9mm;padding:5mm 6mm;box-sizing:border-box;position:relative;overflow:hidden;font-family:'Courier New',Courier,monospace;font-size:8pt;color:#000">
     <div style="text-align:center;font-size:14pt;font-weight:bold;text-transform:uppercase;line-height:1.1">${b.business_name || b.name || "TINTORERÍA"}</div>
     ${headerLines.map(l=>`<div style="text-align:center;font-size:7pt">${l}</div>`).join("")}
     <div style="border-top:1px solid #000;margin:3px 0"></div>
@@ -377,14 +377,18 @@ function buildReceiptHTML(order, businessInfo, businessHours, barcodeDataUri) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      @page{size:letter portrait;margin:0}
-      html,body{width:215.9mm;height:279.4mm;overflow:hidden}
-      .cut{text-align:center;border-top:1.5px dashed #888;font-size:7pt;color:#888;letter-spacing:3px;padding:1px 0;font-family:'Courier New',monospace}
+      @page{size:letter landscape;margin:0}
+      html,body{width:279.4mm;height:215.9mm;overflow:hidden}
+      .page{display:flex;flex-direction:row;width:279.4mm;height:215.9mm}
+      .copy{flex:0 0 50%;height:215.9mm;overflow:hidden}
+      .cut{flex:0 0 3px;height:215.9mm;border-left:1.5px dashed #888}
     </style>
   </head><body>
-    ${copy("ORIGINAL")}
-    <div class="cut">- - - - - - - - CORTE - - - - - - - -</div>
-    ${copy("COPIA")}
+    <div class="page">
+      <div class="copy">${copy("ORIGINAL")}</div>
+      <div class="cut"></div>
+      <div class="copy">${copy("COPIA")}</div>
+    </div>
   </body></html>`;
 }
 
