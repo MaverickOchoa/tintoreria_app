@@ -68,36 +68,49 @@ function PrintTicketsModal({ order, onClose }) {
   const handlePrintReceipt = () => printReceipt(order, businessInfo, businessHours);
 
   const handlePrintTickets = () => {
-    const style = `
-      @page { margin: 0; size: auto; }
-      body > * { display: none !important; }
-      #print-tickets-only { display: flex !important; }
-    `;
-    const el = document.getElementById("print-tickets-only");
-    if (el) {
-      const win = window.open("", "_blank", "width=900,height=700");
-      win.document.open();
-      win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>
-        body { margin: 0; font-family: monospace; }
-        @page { margin: 0; size: auto; }
-        .ticket { border: 1px solid #000; padding: 3px 4px; width: 3in; height: 1.5in; text-align: center;
-          display: inline-flex; flex-direction: column; justify-content: center; align-items: center;
-          box-sizing: border-box; overflow: hidden; page-break-inside: avoid; }
-      </style></head><body><div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px">
-        ${tickets.map((t, idx) => {
-          const svgEl = document.getElementById(`bc-${idx}`);
-          const svgContent = svgEl ? svgEl.outerHTML : "";
-          return `<div class="ticket">
-            <div style="font-size:10px;font-weight:bold">Nota: ${folio}</div>
-            <div style="font-size:9px">${t.item_name}</div>
-            <div style="font-size:8px;color:#555">Prenda ${t.quantity_index}</div>
-            ${svgContent}
-          </div>`;
-        }).join("")}
-      </div></body></html>`);
-      win.document.close();
-      win.onload = () => { win.focus(); win.print(); };
-    }
+    const win = window.open("", "_blank", "width=600,height=500");
+    if (!win) { alert("Permite ventanas emergentes para imprimir."); return; }
+
+    const ticketHTML = tickets.map((t, idx) => {
+      const svgEl = document.getElementById(`bc-${idx}`);
+      const barcodeHTML = svgEl
+        ? `<div style="margin:1px 0;line-height:0">${svgEl.outerHTML.replace(/width="[^"]*"/, 'width="200px"').replace(/height="[^"]*"/, 'height="22px"')}</div>`
+        : `<div style="font-size:9px;font-weight:bold;font-family:monospace">${t.ticket_code}</div>`;
+
+      const orderDate = order.order_date
+        ? new Date(order.order_date + (order.order_date.includes("T") ? "" : "T00:00:00"))
+        : new Date();
+      const dateStr = `${String(orderDate.getMonth()+1).padStart(2,"0")}/${String(orderDate.getDate()).padStart(2,"0")}/${orderDate.getFullYear()}`;
+      const timeStr = order.order_time || orderDate.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+      return `<div class="ticket">
+        <div style="font-size:11px;font-weight:bold;text-transform:uppercase;line-height:1.2">${order.client_name || "—"}</div>
+        <div style="font-size:8px">Atendió: ${order.created_by_name || "—"} &nbsp; ${dateStr} &nbsp; ${timeStr}</div>
+        <div style="font-size:8.5px">${t.quantity_index && t.total_quantity ? `${t.quantity_index}` : "1"} ${t.item_name}${t.color ? "  " + t.color : ""}</div>
+        <div style="font-size:8px">Precio $${parseFloat(t.unit_price || 0).toFixed(2)} &nbsp; Pagos: $${parseFloat(order.amount_paid || 0).toFixed(2)}</div>
+        ${barcodeHTML}
+        <div style="font-size:10px;font-weight:bold;letter-spacing:1px;margin-top:1px">${order.folio || order.id} &nbsp;&nbsp; Ticket ${t.quantity_index} de ${t.total_quantity || tickets.length} &nbsp;&nbsp; ${order.folio || order.id}</div>
+      </div>`;
+    }).join("");
+
+    win.document.open();
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
+      <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        @page{size:3in 1.5in;margin:0}
+        body{font-family:'Courier New',Courier,monospace;background:#fff;color:#000}
+        .ticket{
+          width:3in;height:1.5in;
+          padding:3px 5px;
+          display:flex;flex-direction:column;justify-content:center;align-items:center;
+          text-align:center;overflow:hidden;
+          page-break-after:always;
+        }
+        .ticket:last-child{page-break-after:auto}
+      </style>
+    </head><body>${ticketHTML}</body></html>`);
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); };
   };
 
   return (
