@@ -301,77 +301,58 @@ function buildReceiptHTML(order, businessInfo, businessHours, barcodeDataUri) {
   ).join("");
 
   const copy = (label) => `
-  <div style="width:100%;height:215.9mm;padding:5mm 6mm;box-sizing:border-box;position:relative;overflow:hidden;font-family:'Courier New',Courier,monospace;font-size:8pt;color:#000">
-    <div style="text-align:center;font-size:14pt;font-weight:bold;text-transform:uppercase;line-height:1.1">${b.business_name || b.name || "TINTORERÍA"}</div>
-    ${headerLines.map(l=>`<div style="text-align:center;font-size:7pt">${l}</div>`).join("")}
-    <div style="border-top:1px solid #000;margin:3px 0"></div>
+  <div style="width:100%;height:215.9mm;padding:10px 14px;box-sizing:border-box;position:relative;overflow:hidden;font-family:'Courier New',Courier,monospace;font-size:9.5px;color:#000">
+    <div style="text-align:center;font-size:13px;font-weight:bold;margin-bottom:2px">${b.business_name || b.name || ""}</div>
+    ${headerLines.map(l=>`<div style="text-align:center;font-size:8px">${l}</div>`).join("")}
+    <hr style="border:none;border-top:1px dashed #000;margin:5px 0"/>
     <table style="width:100%;border-collapse:collapse">
       <tr>
-        <td style="vertical-align:middle">
-          <div style="font-size:7pt">Nota de Venta No.</div>
-          <div style="font-size:20pt;font-weight:bold;line-height:1">${order.folio || `#${order.id}`}</div>
-        </td>
-        <td style="text-align:right;vertical-align:middle">${barcodeImg}</td>
+        <td style="font-weight:bold;font-size:11px;vertical-align:middle;white-space:nowrap;width:50px">Nota:</td>
+        <td style="text-align:center">${barcodeImg}</td>
       </tr>
     </table>
-    <table style="width:100%;border-collapse:collapse;font-size:7.5pt;margin-top:2px">
+    <table style="width:100%;border-collapse:collapse;margin-top:4px">
       <tr>
-        <td style="width:50%"><b>Recepción:</b> ${order.created_by_name||"—"}</td>
-        <td style="text-align:right"><b>Call:</b> ${order.client_phone||"—"}</td>
-      </tr>
-      <tr>
-        <td><b>Cliente:</b> ${order.client_name||"—"}</td>
-        <td style="text-align:right">
-          <b>Recibida:</b> ${fmtDate(order.order_date)} &nbsp;
-          <b>Entrega:</b> ${fmtDate(order.delivery_date)} ${deliveryTime} <b>${dayName}</b>
-        </td>
+        <td style="width:34%"><b>Cliente:</b> ${order.client_name||"—"}</td>
+        <td style="width:33%;text-align:center"><b>Recibida:</b><br/>${fmtDate(order.order_date)}</td>
+        <td style="width:33%;text-align:right"><b>Entrega:</b><br/>${fmtDate(order.delivery_date)} ${deliveryTime} <b>${dayName}</b></td>
       </tr>
     </table>
-    <div style="border-top:1px dashed #000;margin:2px 0"></div>
-    <table style="width:100%;border-collapse:collapse;font-size:7pt">
-      <thead><tr style="border-bottom:1px solid #000">
-        <th style="text-align:center;width:20px">Cant</th>
-        <th style="text-align:left;padding-left:3px">Descripción</th>
-        <th style="text-align:center;width:46px">Color</th>
-        <th style="text-align:center;width:36px">Estamp.</th>
-        <th style="text-align:center;width:44px">Proceso</th>
-        <th style="text-align:right;width:46px">P.Unit.</th>
-        <th style="text-align:right;width:48px">Importe</th>
-      </tr></thead>
+    <hr style="border:none;border-top:1px dashed #000;margin:5px 0"/>
+    <table style="width:100%;border-collapse:collapse;font-size:9px">
+      <thead>
+        <tr style="border-bottom:1px solid #000;font-weight:bold">
+          <th style="text-align:left">Artículo / Servicio</th>
+          <th style="text-align:center">Cant</th>
+          <th style="text-align:right">P.Unit</th>
+          <th style="text-align:right">Subtotal</th>
+        </tr>
+      </thead>
       <tbody>${itemRows}</tbody>
     </table>
-    <div style="border-top:1px dashed #000;margin:2px 0"></div>
-    ${order.notes ? `<div style="font-size:7pt;margin-bottom:2px"><b>Observaciones:</b> ${order.notes}</div>` : ""}
-    <table style="width:100%;border-collapse:collapse;font-size:7.5pt">
+    <hr style="border:none;border-top:1px dashed #000;margin:5px 0"/>
+    <table style="width:100%;border-collapse:collapse;margin-top:4px">
       <tr style="vertical-align:top">
-        <td style="width:56%;padding-right:5px">
-          <div><b>Fecha de Entrega:</b> ${fmtDateLong(order.delivery_date)} Hora Entrega ${deliveryTime||"—"}</div>
-          <div><b>Con recargos después de:</b> ${recargosDate}</div>
-          <div style="margin-top:2px"><b>Pzas.</b> ${totalPieces} &nbsp; <b>Kgs.</b> 0.00</div>
-          <div><b>Atendido por:</b> ${order.created_by_name||"—"}</div>
-          <div style="margin-top:2px"><b>A Cuenta</b> $${paid.toFixed(2)} &nbsp;&nbsp; <b>Resta</b> $${resta.toFixed(2)}</div>
-          <div style="font-size:6.5pt;margin-top:2px"><b>Importe Con Letra:</b> ${importeLetra}</div>
+        <td style="width:55%">
+          <div><b>Total piezas:</b> ${totalPieces}&nbsp;&nbsp;&nbsp;<b>Kgs.:</b> 0.00</div>
+          ${order.created_by_name ? `<div><b>Atendido por:</b> ${order.created_by_name}</div>` : ""}
+          <div style="margin-top:4px"><b>A cuenta:</b> $${paid.toFixed(2)}&nbsp;&nbsp;&nbsp;<b>Resta:</b> $${resta>0?resta.toFixed(2):"0.00"}</div>
         </td>
-        <td style="width:44%;border-left:1px solid #aaa;padding-left:5px">
-          <table style="width:100%;border-collapse:collapse;font-size:7.5pt">
-            <tr><td>Sub Total</td><td style="text-align:right">$${subtotal.toFixed(2)}</td></tr>
-            <tr><td>Cargo Adicional</td><td style="text-align:right">$0.00</td></tr>
-            <tr><td>Descuento</td><td style="text-align:right">${discount>0?`-$${discount.toFixed(2)}`:"$0.00"}</td></tr>
+        <td style="width:45%">
+          <table style="width:100%;border-collapse:collapse;font-size:9px">
+            <tr><td>Subtotal</td><td style="text-align:right">$${subtotal.toFixed(2)}</td></tr>
+            ${discount>0?`<tr><td>Descuento</td><td style="text-align:right">-$${discount.toFixed(2)}</td></tr>`:""}
             <tr><td>IVA</td><td style="text-align:right">$${tax.toFixed(2)}</td></tr>
-            <tr style="font-weight:bold;border-top:1px solid #000"><td>Total</td><td style="text-align:right">$${total.toFixed(2)}</td></tr>
+            <tr style="font-weight:bold;border-top:1px solid #000">
+              <td>Total</td><td style="text-align:right">$${total.toFixed(2)}</td>
+            </tr>
             ${paymentRows}
           </table>
         </td>
       </tr>
     </table>
-    <table style="width:100%;border-collapse:collapse;font-size:7pt;margin-top:6px">
-      <tr>
-        <td style="width:47%;border-top:1px solid #000;text-align:center;padding-top:2px">FIRMA O RÚBRICA DE AUTORIZACIÓN</td>
-        <td style="width:6%"></td>
-        <td style="width:47%;border-top:1px solid #000;text-align:center;padding-top:2px">CLIENTE</td>
-      </tr>
-    </table>
-    <div style="position:absolute;bottom:4mm;right:5mm;font-size:8pt;font-weight:bold;border:1px solid #000;padding:1px 4px;letter-spacing:2px">${label}</div>
+    ${order.notes?`<div style="margin-top:4px"><b>Notas:</b> ${order.notes}</div>`:""}
+    <div style="position:absolute;bottom:6px;right:10px;font-size:8px;font-weight:bold;color:#999;letter-spacing:2px">${label}</div>
   </div>`;
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
