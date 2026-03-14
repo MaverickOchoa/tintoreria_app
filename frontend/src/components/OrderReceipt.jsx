@@ -99,7 +99,7 @@ function numberToWords(amount) {
 }
 // ────────────────────────────────────────────────────────────────────────────
 
-function buildCopyHTML(order, b, businessHours, barcodeDataUri, label) {
+function buildCopyHTML(order, b, businessHours, barcodeDataUri, label) { // eslint-disable-line no-unused-vars
   const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.quantity) || 0), 0);
   const subtotal    = parseFloat(order.subtotal || 0);
   const discount    = parseFloat(order.discount || 0);
@@ -257,23 +257,138 @@ function buildCopyHTML(order, b, businessHours, barcodeDataUri, label) {
 
 function buildReceiptHTML(order, businessInfo, businessHours, barcodeDataUri) {
   const b = businessInfo || {};
-  const original = buildCopyHTML(order, b, businessHours, barcodeDataUri, "ORIGINAL");
-  const copia    = buildCopyHTML(order, b, businessHours, barcodeDataUri, "COPIA");
+  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.quantity) || 0), 0);
+  const subtotal    = parseFloat(order.subtotal || 0);
+  const discount    = parseFloat(order.discount || 0);
+  const tax         = parseFloat(order.tax || 0);
+  const total       = parseFloat(order.total_amount || 0);
+  const paid        = parseFloat(order.amount_paid || 0);
+  const resta       = Math.max(0, total - paid);
+  const deliveryTime = getDeliveryTime(order.delivery_date, businessHours);
+  const dayName      = getDayName(order.delivery_date);
+  const importeLetra = numberToWords(total);
+  const recargosDate = addDays(order.delivery_date, 90);
+
+  const headerLines = [];
+  if (b.rfc || b.curp || b.sime)
+    headerLines.push([b.rfc && `R.F.C.: ${b.rfc}`, b.curp && `CURP: ${b.curp}`, b.sime && `SIEM: ${b.sime}`].filter(Boolean).join("   "));
+  if (b.street)
+    headerLines.push(`${b.street}${b.ext_num ? ` No. ${b.ext_num}` : ""}${b.colonia ? `  Col. ${b.colonia}` : ""}${b.cp ? `  C.P. ${b.cp}` : ""}${b.phone ? `  Tel.: ${b.phone}` : ""}`);
+  if (b.alcaldia || b.city)
+    headerLines.push([b.alcaldia, b.city].filter(Boolean).join("  "));
+  if (b.regimen_fiscal)
+    headerLines.push(`Régimen: ${b.regimen_fiscal}`);
+
+  const barcodeImg = barcodeDataUri
+    ? `<img src="${barcodeDataUri}" style="height:40px;display:block;margin-left:auto" />`
+    : `<span style="font-size:12px;font-weight:bold">${order.folio || order.id}</span>`;
+
+  const itemRows = (order.items || []).map(item => {
+    const lineTotal = (parseInt(item.quantity)||0) * parseFloat(item.unit_price||0);
+    return `<tr>
+      <td style="text-align:center;padding:2px 2px">${item.quantity}</td>
+      <td style="padding:2px 4px">${item.product_name || ""}${item.service_name ? ` (${item.service_name})` : ""}</td>
+      <td style="text-align:center;padding:2px 2px">${item.color || "—"}</td>
+      <td style="text-align:center;padding:2px 2px">${item.stamp || "—"}</td>
+      <td style="text-align:center;padding:2px 2px">${item.process || item.service_name || "—"}</td>
+      <td style="text-align:right;padding:2px 2px">$${parseFloat(item.unit_price||0).toFixed(2)}</td>
+      <td style="text-align:right;padding:2px 2px">$${lineTotal.toFixed(2)}</td>
+    </tr>`;
+  }).join("");
+
+  const paymentRows = (order.payments || []).map(p =>
+    `<tr><td>${{cash:"Efectivo",card:"Tarjeta",points:"Puntos"}[p.method]||p.method}</td><td style="text-align:right">$${parseFloat(p.amount).toFixed(2)}</td></tr>`
+  ).join("");
+
+  const copy = (label) => `
+  <div style="width:100%;height:128mm;padding:5mm 6mm;box-sizing:border-box;position:relative;overflow:hidden;font-family:'Courier New',Courier,monospace;font-size:8pt;color:#000">
+    <div style="text-align:center;font-size:14pt;font-weight:bold;text-transform:uppercase;line-height:1.1">${b.business_name || b.name || "TINTORERÍA"}</div>
+    ${headerLines.map(l=>`<div style="text-align:center;font-size:7pt">${l}</div>`).join("")}
+    <div style="border-top:1px solid #000;margin:3px 0"></div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        <td style="vertical-align:middle">
+          <div style="font-size:7pt">Nota de Venta No.</div>
+          <div style="font-size:20pt;font-weight:bold;line-height:1">${order.folio || `#${order.id}`}</div>
+        </td>
+        <td style="text-align:right;vertical-align:middle">${barcodeImg}</td>
+      </tr>
+    </table>
+    <table style="width:100%;border-collapse:collapse;font-size:7.5pt;margin-top:2px">
+      <tr>
+        <td style="width:50%"><b>Recepción:</b> ${order.created_by_name||"—"}</td>
+        <td style="text-align:right"><b>Call:</b> ${order.client_phone||"—"}</td>
+      </tr>
+      <tr>
+        <td><b>Cliente:</b> ${order.client_name||"—"}</td>
+        <td style="text-align:right">
+          <b>Recibida:</b> ${fmtDate(order.order_date)} &nbsp;
+          <b>Entrega:</b> ${fmtDate(order.delivery_date)} ${deliveryTime} <b>${dayName}</b>
+        </td>
+      </tr>
+    </table>
+    <div style="border-top:1px dashed #000;margin:2px 0"></div>
+    <table style="width:100%;border-collapse:collapse;font-size:7pt">
+      <thead><tr style="border-bottom:1px solid #000">
+        <th style="text-align:center;width:20px">Cant</th>
+        <th style="text-align:left;padding-left:3px">Descripción</th>
+        <th style="text-align:center;width:46px">Color</th>
+        <th style="text-align:center;width:36px">Estamp.</th>
+        <th style="text-align:center;width:44px">Proceso</th>
+        <th style="text-align:right;width:46px">P.Unit.</th>
+        <th style="text-align:right;width:48px">Importe</th>
+      </tr></thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+    <div style="border-top:1px dashed #000;margin:2px 0"></div>
+    ${order.notes ? `<div style="font-size:7pt;margin-bottom:2px"><b>Observaciones:</b> ${order.notes}</div>` : ""}
+    <table style="width:100%;border-collapse:collapse;font-size:7.5pt">
+      <tr style="vertical-align:top">
+        <td style="width:56%;padding-right:5px">
+          <div><b>Fecha de Entrega:</b> ${fmtDateLong(order.delivery_date)} Hora Entrega ${deliveryTime||"—"}</div>
+          <div><b>Con recargos después de:</b> ${recargosDate}</div>
+          <div style="margin-top:2px"><b>Pzas.</b> ${totalPieces} &nbsp; <b>Kgs.</b> 0.00</div>
+          <div><b>Atendido por:</b> ${order.created_by_name||"—"}</div>
+          <div style="margin-top:2px"><b>A Cuenta</b> $${paid.toFixed(2)} &nbsp;&nbsp; <b>Resta</b> $${resta.toFixed(2)}</div>
+          <div style="font-size:6.5pt;margin-top:2px"><b>Importe Con Letra:</b> ${importeLetra}</div>
+        </td>
+        <td style="width:44%;border-left:1px solid #aaa;padding-left:5px">
+          <table style="width:100%;border-collapse:collapse;font-size:7.5pt">
+            <tr><td>Sub Total</td><td style="text-align:right">$${subtotal.toFixed(2)}</td></tr>
+            <tr><td>Cargo Adicional</td><td style="text-align:right">$0.00</td></tr>
+            <tr><td>Descuento</td><td style="text-align:right">${discount>0?`-$${discount.toFixed(2)}`:"$0.00"}</td></tr>
+            <tr><td>IVA</td><td style="text-align:right">$${tax.toFixed(2)}</td></tr>
+            <tr style="font-weight:bold;border-top:1px solid #000"><td>Total</td><td style="text-align:right">$${total.toFixed(2)}</td></tr>
+            ${paymentRows}
+          </table>
+        </td>
+      </tr>
+    </table>
+    <table style="width:100%;border-collapse:collapse;font-size:7pt;margin-top:6px">
+      <tr>
+        <td style="width:47%;border-top:1px solid #000;text-align:center;padding-top:2px">FIRMA O RÚBRICA DE AUTORIZACIÓN</td>
+        <td style="width:6%"></td>
+        <td style="width:47%;border-top:1px solid #000;text-align:center;padding-top:2px">CLIENTE</td>
+      </tr>
+    </table>
+    <div style="position:absolute;bottom:4mm;right:5mm;font-size:8pt;font-weight:bold;border:1px solid #000;padding:1px 4px;letter-spacing:2px">${label}</div>
+  </div>`;
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
     <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'Arial Narrow', Arial, sans-serif; font-size: 8.5px; color: #000; background: #fff; }
-      @page { size: letter portrait; margin: 0; }
-      .copy { width: 100%; height: 50vh; page-break-inside: avoid; overflow: hidden; }
-      .cut  { width: 100%; text-align: center; border-top: 2px dashed #aaa; font-size: 7px; color: #aaa; letter-spacing: 4px; padding: 1px 0; }
+      *{box-sizing:border-box;margin:0;padding:0}
+      @page{size:letter portrait;margin:0}
+      html,body{width:215.9mm;height:279.4mm;overflow:hidden}
+      .cut{text-align:center;border-top:1.5px dashed #888;font-size:7pt;color:#888;letter-spacing:3px;padding:1px 0;font-family:'Courier New',monospace}
     </style>
   </head><body>
-    <div class="copy">${original}</div>
-    <div class="cut">- - - - - - - CORTE - - - - - - -</div>
-    <div class="copy">${copia}</div>
+    ${copy("ORIGINAL")}
+    <div class="cut">- - - - - - - - CORTE - - - - - - - -</div>
+    ${copy("COPIA")}
   </body></html>`;
 }
+
+
 
 export function usePrintReceipt() {
   return function printReceipt(order, businessInfo, businessHours) {
