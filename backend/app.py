@@ -2584,38 +2584,38 @@ class CashCutPreviewResource(Resource):
         if not branch:
             return {'message': 'Sucursal no autorizada'}, 403
 
-        now = datetime.utcnow()
-        last_cut = CashCut.query.filter_by(branch_id=branch_id).order_by(CashCut.cut_at.desc()).first()
-        period_from = last_cut.cut_at if last_cut else (
-            Order.query.filter_by(branch_id=branch_id).order_by(Order.order_date.asc()).first()
-        )
-        if hasattr(period_from, 'order_date'):
-            period_from = period_from.order_date
-        if period_from is None:
-            period_from = now
+        try:
+            now = datetime.utcnow()
+            last_cut = CashCut.query.filter_by(branch_id=branch_id).order_by(CashCut.cut_at.desc()).first()
+            period_from = last_cut.cut_at if last_cut else None
+            if period_from is None:
+                first_order = Order.query.filter_by(branch_id=branch_id).order_by(Order.order_date.asc()).first()
+                period_from = first_order.order_date if first_order else now
 
-        payments = (db.session.query(OrderPayment.method, db.func.sum(OrderPayment.amount))
-            .join(Order, Order.id == OrderPayment.order_id)
-            .filter(Order.branch_id == branch_id)
-            .filter(Order.order_date >= period_from)
-            .group_by(OrderPayment.method)
-            .all())
+            payments = (db.session.query(OrderPayment.method, db.func.sum(OrderPayment.amount))
+                .join(Order, Order.id == OrderPayment.order_id)
+                .filter(Order.branch_id == branch_id)
+                .filter(Order.order_date >= period_from)
+                .group_by(OrderPayment.method)
+                .all())
 
-        totals = {m: float(a) for m, a in payments}
-        orders_count = Order.query.filter(
-            Order.branch_id == branch_id,
-            Order.order_date >= period_from
-        ).count()
+            totals = {m: float(a or 0) for m, a in payments}
+            orders_count = Order.query.filter(
+                Order.branch_id == branch_id,
+                Order.order_date >= period_from
+            ).count()
 
-        return {
-            'period_from': period_from.isoformat() if period_from else None,
-            'period_to': now.isoformat(),
-            'orders_count': orders_count,
-            'expected_cash': totals.get('cash', 0.0),
-            'card_total': totals.get('card', 0.0),
-            'points_total': totals.get('points', 0.0),
-            'last_cut_at': last_cut.cut_at.isoformat() if last_cut else None,
-        }, 200
+            return {
+                'period_from': period_from.isoformat() if period_from else None,
+                'period_to': now.isoformat(),
+                'orders_count': orders_count,
+                'expected_cash': totals.get('cash', 0.0),
+                'card_total': totals.get('card', 0.0),
+                'points_total': totals.get('points', 0.0),
+                'last_cut_at': last_cut.cut_at.isoformat() if last_cut else None,
+            }, 200
+        except Exception as e:
+            return {'message': f'Error interno: {str(e)}'}, 500
 
 
 class CashCutListResource(Resource):
@@ -2653,6 +2653,10 @@ class CashCutListResource(Resource):
 
         if not branch_id:
             return {'message': 'branch_id requerido'}, 400
+        try:
+            branch_id = int(branch_id)
+        except (ValueError, TypeError):
+            return {'message': 'branch_id inválido'}, 400
         branch = Branch.query.filter_by(id=branch_id, business_id=business_id).first()
         if not branch:
             return {'message': 'Sucursal no autorizada'}, 403
