@@ -56,8 +56,10 @@ export default function OrderDetail() {
         <div style="font-size:11px;font-weight:bold;text-transform:uppercase;line-height:1.2">${ord.client_name || "—"}</div>
         <div style="font-size:8px">Atendió: ${ord.created_by_name || "—"} &nbsp; ${dateStr} &nbsp; ${timeStr}</div>
         <div style="font-size:8.5px">${t.quantity_index || idx+1} ${t.item_name}${t.color ? "  " + t.color : ""}</div>
-        <div style="margin:1px 0;line-height:0"><img src="${canvases[idx]}" style="height:22px;width:200px" /></div>
-        <div style="font-size:12px;font-weight:bold;letter-spacing:2px;margin-top:1px">${ord.folio || ord.id}-${t.quantity_index || idx+1}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin:2px 0">
+          <div style="font-size:10px;font-weight:bold;font-family:monospace;letter-spacing:1px">${t.ticket_code}</div>
+          <div style="line-height:0"><img src="${canvases[idx]}" style="height:22px;width:140px" /></div>
+        </div>
       </div>`).join("");
 
     win.document.open();
