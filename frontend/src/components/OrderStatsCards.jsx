@@ -13,6 +13,7 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import HourglassBottomIcon from "@mui/icons-material/HourglassBottom";
 import WatchLaterIcon from "@mui/icons-material/WatchLater";
+import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
@@ -123,8 +124,8 @@ export default function OrderStatsCards() {
         </Alert>
       )}
 
-      {/* Fecha y hora en tiempo real */}
-      <Box display="flex" alignItems="center" gap={1} mb={2}>
+      {/* Fecha/hora + botón Corte de Caja */}
+      <Box display="flex" alignItems="center" gap={1} mb={2} flexWrap="wrap">
         <WatchLaterIcon fontSize="small" color="action" />
         <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ textTransform: "capitalize" }}>
           {dateStr}
@@ -132,6 +133,16 @@ export default function OrderStatsCards() {
         <Typography variant="body2" color="primary" fontWeight={700}>
           {timeStr}
         </Typography>
+        <Box flex={1} />
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<PointOfSaleIcon />}
+          onClick={() => navigate("/corte-de-caja")}
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          Corte de Caja
+        </Button>
       </Box>
 
       {loading ? <Box py={2}><CircularProgress size={20} /></Box> : (

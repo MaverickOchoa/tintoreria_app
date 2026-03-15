@@ -556,6 +556,42 @@ class Order(db.Model):
                 'payments': [p.to_dict() for p in self.payments],
                 'garment_tickets': [t.to_dict() for t in self.garment_tickets]}
 
+class CashCut(db.Model):
+    __tablename__ = 'cash_cuts'
+    id           = db.Column(db.Integer, primary_key=True)
+    branch_id    = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False)
+    business_id  = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    cut_by       = db.Column(db.String(120), nullable=False)
+    cut_at       = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    period_from  = db.Column(db.DateTime, nullable=True)
+    period_to    = db.Column(db.DateTime, nullable=False)
+    orders_count = db.Column(db.Integer, default=0)
+    expected_cash= db.Column(Numeric(10, 2), default=0)
+    counted_cash = db.Column(Numeric(10, 2), default=0)
+    difference   = db.Column(Numeric(10, 2), default=0)
+    card_total   = db.Column(Numeric(10, 2), default=0)
+    points_total = db.Column(Numeric(10, 2), default=0)
+    notes        = db.Column(db.Text, nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'branch_id': self.branch_id,
+            'business_id': self.business_id,
+            'cut_by': self.cut_by,
+            'cut_at': self.cut_at.isoformat() if self.cut_at else None,
+            'period_from': self.period_from.isoformat() if self.period_from else None,
+            'period_to': self.period_to.isoformat() if self.period_to else None,
+            'orders_count': self.orders_count,
+            'expected_cash': str(self.expected_cash),
+            'counted_cash': str(self.counted_cash),
+            'difference': str(self.difference),
+            'card_total': str(self.card_total),
+            'points_total': str(self.points_total),
+            'notes': self.notes,
+        }
+
+
 class OrderPayment(db.Model):
     __tablename__ = 'order_payments'
     id = db.Column(db.Integer, primary_key=True)
@@ -2531,6 +2567,135 @@ api.add_resource(PrintListResource, '/api/v1/prints')
 api.add_resource(PrintResource, '/api/v1/prints/<int:print_id>')
 api.add_resource(DefectListResource, '/api/v1/defects')
 api.add_resource(DefectResource, '/api/v1/defects/<int:defect_id>')
+
+class CashCutPreviewResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        branch_id = request.args.get('branch_id') or claims.get('branch_id')
+        if not branch_id:
+            return {'message': 'branch_id requerido'}, 400
+        branch = Branch.query.filter_by(id=branch_id, business_id=business_id).first()
+        if not branch:
+            return {'message': 'Sucursal no autorizada'}, 403
+
+        now = datetime.utcnow()
+        last_cut = CashCut.query.filter_by(branch_id=branch_id).order_by(CashCut.cut_at.desc()).first()
+        period_from = last_cut.cut_at if last_cut else (
+            Order.query.filter_by(branch_id=branch_id).order_by(Order.order_date.asc()).first()
+        )
+        if hasattr(period_from, 'order_date'):
+            period_from = period_from.order_date
+        if period_from is None:
+            period_from = now
+
+        payments = (db.session.query(OrderPayment.method, db.func.sum(OrderPayment.amount))
+            .join(Order, Order.id == OrderPayment.order_id)
+            .filter(Order.branch_id == branch_id)
+            .filter(Order.order_date >= period_from)
+            .group_by(OrderPayment.method)
+            .all())
+
+        totals = {m: float(a) for m, a in payments}
+        orders_count = Order.query.filter(
+            Order.branch_id == branch_id,
+            Order.order_date >= period_from
+        ).count()
+
+        return {
+            'period_from': period_from.isoformat() if period_from else None,
+            'period_to': now.isoformat(),
+            'orders_count': orders_count,
+            'expected_cash': totals.get('cash', 0.0),
+            'card_total': totals.get('card', 0.0),
+            'points_total': totals.get('points', 0.0),
+            'last_cut_at': last_cut.cut_at.isoformat() if last_cut else None,
+        }, 200
+
+
+class CashCutListResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        branch_id = request.args.get('branch_id') or claims.get('branch_id')
+        limit = int(request.args.get('limit', 20))
+        offset = int(request.args.get('offset', 0))
+
+        if branch_id:
+            branch = Branch.query.filter_by(id=branch_id, business_id=business_id).first()
+            if not branch:
+                return {'message': 'Sucursal no autorizada'}, 403
+            q = CashCut.query.filter_by(branch_id=branch_id)
+        else:
+            q = CashCut.query.filter_by(business_id=business_id)
+
+        total = q.count()
+        cuts = q.order_by(CashCut.cut_at.desc()).limit(limit).offset(offset).all()
+        return {'items': [c.to_dict() for c in cuts], 'total': total}, 200
+
+    @jwt_required()
+    def post(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        identity = get_jwt_identity()
+        data = request.get_json() or {}
+        branch_id = data.get('branch_id') or claims.get('branch_id')
+
+        if not branch_id:
+            return {'message': 'branch_id requerido'}, 400
+        branch = Branch.query.filter_by(id=branch_id, business_id=business_id).first()
+        if not branch:
+            return {'message': 'Sucursal no autorizada'}, 403
+
+        counted_cash = float(data.get('counted_cash', 0))
+        now = datetime.utcnow()
+
+        last_cut = CashCut.query.filter_by(branch_id=branch_id).order_by(CashCut.cut_at.desc()).first()
+        period_from = last_cut.cut_at if last_cut else (
+            Order.query.filter_by(branch_id=branch_id).order_by(Order.order_date.asc()).first()
+        )
+        if hasattr(period_from, 'order_date'):
+            period_from = period_from.order_date
+        if period_from is None:
+            period_from = now
+
+        payments = (db.session.query(OrderPayment.method, db.func.sum(OrderPayment.amount))
+            .join(Order, Order.id == OrderPayment.order_id)
+            .filter(Order.branch_id == branch_id)
+            .filter(Order.order_date >= period_from)
+            .group_by(OrderPayment.method)
+            .all())
+        totals = {m: float(a) for m, a in payments}
+        expected_cash = totals.get('cash', 0.0)
+        orders_count = Order.query.filter(
+            Order.branch_id == branch_id,
+            Order.order_date >= period_from
+        ).count()
+
+        cut = CashCut(
+            branch_id=branch_id,
+            business_id=business_id,
+            cut_by=identity,
+            cut_at=now,
+            period_from=period_from,
+            period_to=now,
+            orders_count=orders_count,
+            expected_cash=expected_cash,
+            counted_cash=counted_cash,
+            difference=counted_cash - expected_cash,
+            card_total=totals.get('card', 0.0),
+            points_total=totals.get('points', 0.0),
+            notes=data.get('notes'),
+        )
+        db.session.add(cut)
+        db.session.commit()
+        return cut.to_dict(), 201
+
+
+api.add_resource(CashCutPreviewResource, '/api/v1/cash-cuts/preview')
+api.add_resource(CashCutListResource, '/api/v1/cash-cuts')
 
 if __name__ == '__main__':
     with app.app_context():

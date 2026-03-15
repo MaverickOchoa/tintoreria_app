@@ -60,6 +60,7 @@ import ManagePromotions from "./components/ManagePromotions.jsx";
 import ProductionView from "./components/ProductionView.jsx";
 import ClientProfile from "./components/ClientProfile.jsx";
 import OperationalPanel from "./components/OperationalPanel.jsx";
+import CashCut from "./components/CashCut.jsx";
 
 const inputGlobalStyles = (
   <GlobalStyles
@@ -184,6 +185,7 @@ function App() {
               <Route path="/orders/:orderId" element={<OrderDetail />} />
               <Route path="/produccion" element={<ProductionView />} />
               <Route path="/create-order/:clientId" element={<CreateOrder />} />
+              <Route path="/corte-de-caja" element={<CashCut />} />
 
               <Route path="/employees" element={<EmployeesPage />} />
 
