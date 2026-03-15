@@ -2571,20 +2571,17 @@ api.add_resource(DefectResource, '/api/v1/defects/<int:defect_id>')
 class CashCutPreviewResource(Resource):
     @jwt_required()
     def get(self):
-        claims = get_jwt()
-        business_id = claims.get('business_id')
-        branch_id = request.args.get('branch_id') or claims.get('branch_id')
-        if not branch_id:
-            return {'message': 'branch_id requerido'}, 400
         try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            branch_id = request.args.get('branch_id') or claims.get('branch_id')
+            if not branch_id:
+                return {'message': 'branch_id requerido'}, 400
             branch_id = int(branch_id)
-        except (ValueError, TypeError):
-            return {'message': 'branch_id inválido'}, 400
-        branch = Branch.query.filter_by(id=branch_id, business_id=business_id).first()
-        if not branch:
-            return {'message': 'Sucursal no autorizada'}, 403
+            branch = Branch.query.filter_by(id=branch_id, business_id=business_id).first()
+            if not branch:
+                return {'message': 'Sucursal no autorizada'}, 403
 
-        try:
             now = datetime.utcnow()
             last_cut = CashCut.query.filter_by(branch_id=branch_id).order_by(CashCut.cut_at.desc()).first()
             period_from = last_cut.cut_at if last_cut else None
@@ -2615,7 +2612,8 @@ class CashCutPreviewResource(Resource):
                 'last_cut_at': last_cut.cut_at.isoformat() if last_cut else None,
             }, 200
         except Exception as e:
-            return {'message': f'Error interno: {str(e)}'}, 500
+            import traceback
+            return {'message': f'Error: {str(e)}', 'trace': traceback.format_exc()}, 500
 
 
 class CashCutListResource(Resource):
