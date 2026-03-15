@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Container, Box, Typography, Paper, Divider,
@@ -7,6 +7,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PrintIcon from "@mui/icons-material/Print";
 import OrderReceipt, { usePrintReceipt } from "./OrderReceipt";
+import JsBarcode from "jsbarcode";
 
 const API = import.meta.env.VITE_API_URL || API;
 const paymentLabel = { cash: "Efectivo", card: "Tarjeta", points: "Puntos" };
@@ -29,6 +30,49 @@ export default function OrderDetail() {
   const token = localStorage.getItem("access_token");
   const claims = getClaims();
   const printReceipt = usePrintReceipt();
+
+  const handlePrintTickets = (ord) => {
+    const tickets = ord.garment_tickets || [];
+    if (tickets.length === 0) { alert("Esta orden no tiene tickets de prendas."); return; }
+
+    const win = window.open("", "_blank", "width=600,height=500");
+    if (!win) { alert("Permite ventanas emergentes para imprimir."); return; }
+
+    const canvases = tickets.map(t => {
+      const canvas = document.createElement("canvas");
+      try { JsBarcode(canvas, t.ticket_code, { format: "CODE128", displayValue: true, fontSize: 9, height: 22, width: 1.4, margin: 2 }); }
+      catch (e) { console.error(e); }
+      return canvas.toDataURL("image/png");
+    });
+
+    const orderDate = ord.order_date
+      ? new Date(ord.order_date + (ord.order_date.includes("T") ? "" : "T00:00:00"))
+      : new Date();
+    const dateStr = `${String(orderDate.getMonth()+1).padStart(2,"0")}/${String(orderDate.getDate()).padStart(2,"0")}/${orderDate.getFullYear()}`;
+    const timeStr = orderDate.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+    const ticketHTML = tickets.map((t, idx) => `
+      <div class="ticket">
+        <div style="font-size:11px;font-weight:bold;text-transform:uppercase;line-height:1.2">${ord.client_name || "—"}</div>
+        <div style="font-size:8px">Atendió: ${ord.created_by_name || "—"} &nbsp; ${dateStr} &nbsp; ${timeStr}</div>
+        <div style="font-size:8.5px">${t.quantity_index || idx+1} ${t.item_name}${t.color ? "  " + t.color : ""}</div>
+        <div style="margin:1px 0;line-height:0"><img src="${canvases[idx]}" style="height:22px;width:200px" /></div>
+        <div style="font-size:12px;font-weight:bold;letter-spacing:2px;margin-top:1px">${ord.folio || ord.id}-${t.quantity_index || idx+1}</div>
+      </div>`).join("");
+
+    win.document.open();
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
+      <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        @page{size:3in 1.5in;margin:0}
+        body{font-family:'Courier New',Courier,monospace;background:#fff;color:#000}
+        .ticket{width:3in;height:1.5in;padding:3px 5px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;overflow:hidden;page-break-after:always}
+        .ticket:last-child{page-break-after:auto}
+      </style>
+    </head><body>${ticketHTML}</body></html>`);
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); };
+  };
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -74,13 +118,22 @@ export default function OrderDetail() {
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/orders")}>
           Volver a Órdenes
         </Button>
-        <Button
-          startIcon={<PrintIcon />}
-          variant="contained"
-          onClick={() => printReceipt(order, businessInfo, businessHours)}
-        >
-          Imprimir Nota
-        </Button>
+        <Box display="flex" gap={1}>
+          <Button
+            startIcon={<PrintIcon />}
+            variant="outlined"
+            onClick={() => handlePrintTickets(order)}
+          >
+            Imprimir Tickets
+          </Button>
+          <Button
+            startIcon={<PrintIcon />}
+            variant="contained"
+            onClick={() => printReceipt(order, businessInfo, businessHours)}
+          >
+            Imprimir Nota
+          </Button>
+        </Box>
       </Box>
 
       {/* ── ENCABEZADO DEL NEGOCIO ── */}

@@ -87,9 +87,8 @@ function PrintTicketsModal({ order, onClose }) {
         <div style="font-size:11px;font-weight:bold;text-transform:uppercase;line-height:1.2">${order.client_name || "—"}</div>
         <div style="font-size:8px">Atendió: ${order.created_by_name || "—"} &nbsp; ${dateStr} &nbsp; ${timeStr}</div>
         <div style="font-size:8.5px">${t.quantity_index && t.total_quantity ? `${t.quantity_index}` : "1"} ${t.item_name}${t.color ? "  " + t.color : ""}</div>
-        <div style="font-size:8px">Precio $${parseFloat(t.unit_price || 0).toFixed(2)} &nbsp; Pagos: $${parseFloat(order.amount_paid || 0).toFixed(2)}</div>
         ${barcodeHTML}
-        <div style="font-size:10px;font-weight:bold;letter-spacing:1px;margin-top:1px">${order.folio || order.id} &nbsp;&nbsp; Ticket ${t.quantity_index} de ${t.total_quantity || tickets.length} &nbsp;&nbsp; ${order.folio || order.id}</div>
+        <div style="font-size:12px;font-weight:bold;letter-spacing:2px;margin-top:1px">${order.folio || order.id}-${t.quantity_index}</div>
       </div>`;
     }).join("");
 
