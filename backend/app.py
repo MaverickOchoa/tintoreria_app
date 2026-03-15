@@ -2576,6 +2576,10 @@ class CashCutPreviewResource(Resource):
         branch_id = request.args.get('branch_id') or claims.get('branch_id')
         if not branch_id:
             return {'message': 'branch_id requerido'}, 400
+        try:
+            branch_id = int(branch_id)
+        except (ValueError, TypeError):
+            return {'message': 'branch_id inválido'}, 400
         branch = Branch.query.filter_by(id=branch_id, business_id=business_id).first()
         if not branch:
             return {'message': 'Sucursal no autorizada'}, 403
@@ -2624,6 +2628,10 @@ class CashCutListResource(Resource):
         offset = int(request.args.get('offset', 0))
 
         if branch_id:
+            try:
+                branch_id = int(branch_id)
+            except (ValueError, TypeError):
+                return {'message': 'branch_id inválido'}, 400
             branch = Branch.query.filter_by(id=branch_id, business_id=business_id).first()
             if not branch:
                 return {'message': 'Sucursal no autorizada'}, 403
