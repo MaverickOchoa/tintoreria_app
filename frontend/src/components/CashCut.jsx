@@ -36,7 +36,7 @@ function DiffChip({ value }) {
 
 export default function CashCut() {
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("access_token");
   const branchId = localStorage.getItem("branch_id");
 
   const [preview, setPreview] = useState(null);
