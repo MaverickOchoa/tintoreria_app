@@ -15,7 +15,7 @@ import {
   PieChart, Pie, Cell, ScatterChart, Scatter, RadialBarChart, RadialBar,
 } from "recharts";
 
-const API = "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 const COLORS = ["#1976d2", "#43a047", "#fb8c00", "#e53935", "#8e24aa", "#00acc1"];
 const CAT_LABELS = {
   quimicos: "Químicos",
