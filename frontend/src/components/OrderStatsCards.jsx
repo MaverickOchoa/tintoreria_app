@@ -14,6 +14,8 @@ import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import HourglassBottomIcon from "@mui/icons-material/HourglassBottom";
 import WatchLaterIcon from "@mui/icons-material/WatchLater";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
@@ -142,6 +144,26 @@ export default function OrderStatsCards() {
           sx={{ whiteSpace: "nowrap" }}
         >
           Corte de Caja
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          color="secondary"
+          startIcon={<AssessmentIcon />}
+          onClick={() => navigate("/reportes")}
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          Reportes
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          color="secondary"
+          startIcon={<ReceiptLongIcon />}
+          onClick={() => navigate("/gastos")}
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          Gastos
         </Button>
       </Box>
 

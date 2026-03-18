@@ -556,6 +556,61 @@ class Order(db.Model):
                 'payments': [p.to_dict() for p in self.payments],
                 'garment_tickets': [t.to_dict() for t in self.garment_tickets]}
 
+class MonthlyGoal(db.Model):
+    __tablename__ = 'monthly_goals'
+    id          = db.Column(db.Integer, primary_key=True)
+    business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    branch_id   = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    year        = db.Column(db.Integer, nullable=False)
+    month       = db.Column(db.Integer, nullable=False)
+    goal_amount = db.Column(Numeric(12, 2), nullable=False, default=0)
+    __table_args__ = (db.UniqueConstraint('business_id', 'branch_id', 'year', 'month', name='uq_goal'),)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'business_id': self.business_id,
+            'branch_id': self.branch_id,
+            'year': self.year,
+            'month': self.month,
+            'goal_amount': str(self.goal_amount),
+        }
+
+
+class Expense(db.Model):
+    __tablename__ = 'expenses'
+    id           = db.Column(db.Integer, primary_key=True)
+    business_id  = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    branch_id    = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False)
+    expense_date = db.Column(db.Date, nullable=False)
+    category     = db.Column(db.String(50), nullable=False)
+    item_name    = db.Column(db.String(120), nullable=False)
+    quantity     = db.Column(Numeric(10, 3), nullable=False, default=1)
+    unit         = db.Column(db.String(20), nullable=False, default='pzas')
+    unit_cost    = db.Column(Numeric(10, 2), nullable=False, default=0)
+    total_cost   = db.Column(Numeric(12, 2), nullable=False, default=0)
+    notes        = db.Column(db.Text, nullable=True)
+    created_by   = db.Column(db.String(120), nullable=False)
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'business_id': self.business_id,
+            'branch_id': self.branch_id,
+            'expense_date': self.expense_date.isoformat() if self.expense_date else None,
+            'category': self.category,
+            'item_name': self.item_name,
+            'quantity': str(self.quantity),
+            'unit': self.unit,
+            'unit_cost': str(self.unit_cost),
+            'total_cost': str(self.total_cost),
+            'notes': self.notes,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class CashCut(db.Model):
     __tablename__ = 'cash_cuts'
     id           = db.Column(db.Integer, primary_key=True)
@@ -2710,6 +2765,444 @@ class CashCutListResource(Resource):
 
 api.add_resource(CashCutPreviewResource, '/api/v1/cash-cuts/preview')
 api.add_resource(CashCutListResource, '/api/v1/cash-cuts')
+
+
+# ─── Expenses ────────────────────────────────────────────────────────────────
+
+class ExpenseListResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            branch_id = request.args.get('branch_id')
+            category = request.args.get('category')
+            date_from = request.args.get('date_from')
+            date_to = request.args.get('date_to')
+            limit = int(request.args.get('limit', 20))
+            offset = int(request.args.get('offset', 0))
+
+            q = Expense.query.filter_by(business_id=business_id)
+            if branch_id:
+                q = q.filter_by(branch_id=int(branch_id))
+            if category:
+                q = q.filter_by(category=category)
+            if date_from:
+                q = q.filter(Expense.expense_date >= date_from)
+            if date_to:
+                q = q.filter(Expense.expense_date <= date_to)
+
+            total = q.count()
+            sum_total = db.session.query(db.func.sum(Expense.total_cost)).filter(
+                Expense.business_id == business_id
+            )
+            if branch_id:
+                sum_total = sum_total.filter(Expense.branch_id == int(branch_id))
+            if category:
+                sum_total = sum_total.filter(Expense.category == category)
+            if date_from:
+                sum_total = sum_total.filter(Expense.expense_date >= date_from)
+            if date_to:
+                sum_total = sum_total.filter(Expense.expense_date <= date_to)
+            sum_val = float(sum_total.scalar() or 0)
+
+            items = q.order_by(Expense.expense_date.desc(), Expense.created_at.desc()).limit(limit).offset(offset).all()
+            return {'items': [e.to_dict() for e in items], 'total': total, 'sum_total_cost': sum_val}, 200
+        except Exception as e:
+            import traceback
+            return {'message': str(e), 'trace': traceback.format_exc()}, 500
+
+    @jwt_required()
+    def post(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            identity = get_jwt_identity()
+            data = request.get_json() or {}
+            branch_id = int(data.get('branch_id'))
+            branch = Branch.query.filter_by(id=branch_id, business_id=business_id).first()
+            if not branch:
+                return {'message': 'Sucursal no autorizada'}, 403
+            qty = float(data.get('quantity', 1))
+            unit_cost = float(data.get('unit_cost', 0))
+            exp = Expense(
+                business_id=business_id,
+                branch_id=branch_id,
+                expense_date=data.get('expense_date'),
+                category=data.get('category'),
+                item_name=data.get('item_name'),
+                quantity=qty,
+                unit=data.get('unit', 'pzas'),
+                unit_cost=unit_cost,
+                total_cost=round(qty * unit_cost, 2),
+                notes=data.get('notes'),
+                created_by=identity,
+            )
+            db.session.add(exp)
+            db.session.commit()
+            return exp.to_dict(), 201
+        except Exception as e:
+            import traceback
+            db.session.rollback()
+            return {'message': str(e), 'trace': traceback.format_exc()}, 500
+
+
+class ExpenseResource(Resource):
+    @jwt_required()
+    def put(self, expense_id):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            exp = Expense.query.filter_by(id=expense_id, business_id=business_id).first()
+            if not exp:
+                return {'message': 'Gasto no encontrado'}, 404
+            data = request.get_json() or {}
+            if 'expense_date' in data:
+                exp.expense_date = data['expense_date']
+            if 'category' in data:
+                exp.category = data['category']
+            if 'item_name' in data:
+                exp.item_name = data['item_name']
+            if 'unit' in data:
+                exp.unit = data['unit']
+            if 'notes' in data:
+                exp.notes = data['notes']
+            qty = float(data.get('quantity', exp.quantity))
+            uc = float(data.get('unit_cost', exp.unit_cost))
+            exp.quantity = qty
+            exp.unit_cost = uc
+            exp.total_cost = round(qty * uc, 2)
+            db.session.commit()
+            return exp.to_dict(), 200
+        except Exception as e:
+            db.session.rollback()
+            return {'message': str(e)}, 500
+
+    @jwt_required()
+    def delete(self, expense_id):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            exp = Expense.query.filter_by(id=expense_id, business_id=business_id).first()
+            if not exp:
+                return {'message': 'Gasto no encontrado'}, 404
+            db.session.delete(exp)
+            db.session.commit()
+            return {'message': 'Eliminado'}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {'message': str(e)}, 500
+
+
+# ─── Monthly Goals ────────────────────────────────────────────────────────────
+
+class GoalResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            year = int(request.args.get('year', datetime.utcnow().year))
+            month = int(request.args.get('month', datetime.utcnow().month))
+            branch_id = request.args.get('branch_id')
+
+            global_goal = MonthlyGoal.query.filter_by(
+                business_id=business_id, branch_id=None, year=year, month=month
+            ).first()
+            branch_goal = None
+            if branch_id:
+                branch_goal = MonthlyGoal.query.filter_by(
+                    business_id=business_id, branch_id=int(branch_id), year=year, month=month
+                ).first()
+            return {
+                'global': global_goal.to_dict() if global_goal else None,
+                'branch': branch_goal.to_dict() if branch_goal else None,
+            }, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+    @jwt_required()
+    def post(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            data = request.get_json() or {}
+            year = int(data.get('year', datetime.utcnow().year))
+            month = int(data.get('month', datetime.utcnow().month))
+            branch_id = data.get('branch_id')
+            if branch_id is not None:
+                branch_id = int(branch_id)
+            goal_amount = float(data.get('goal_amount', 0))
+
+            existing = MonthlyGoal.query.filter_by(
+                business_id=business_id, branch_id=branch_id, year=year, month=month
+            ).first()
+            if existing:
+                existing.goal_amount = goal_amount
+            else:
+                existing = MonthlyGoal(
+                    business_id=business_id, branch_id=branch_id,
+                    year=year, month=month, goal_amount=goal_amount
+                )
+                db.session.add(existing)
+            db.session.commit()
+            return existing.to_dict(), 200
+        except Exception as e:
+            db.session.rollback()
+            return {'message': str(e)}, 500
+
+
+# ─── Reports ─────────────────────────────────────────────────────────────────
+
+def _report_filters(claims, args):
+    business_id = claims.get('business_id')
+    branch_id = args.get('branch_id')
+    date_from = args.get('date_from')
+    date_to = args.get('date_to')
+    if not date_from:
+        now = datetime.utcnow()
+        date_from = now.replace(day=1).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = datetime.utcnow().strftime('%Y-%m-%d')
+    dt_from = datetime.strptime(date_from, '%Y-%m-%d')
+    dt_to = datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+    q = Order.query.filter(
+        Order.business_id == business_id,
+        Order.order_date >= dt_from,
+        Order.order_date <= dt_to,
+    )
+    if branch_id:
+        q = q.filter(Order.branch_id == int(branch_id))
+    return business_id, branch_id, dt_from, dt_to, q
+
+
+class ReportSummaryResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id, branch_id, dt_from, dt_to, q = _report_filters(claims, request.args)
+            orders = q.all()
+            total_revenue = sum(float(o.total_amount) for o in orders)
+            orders_count = len(orders)
+            ticket_avg = round(total_revenue / orders_count, 2) if orders_count else 0
+            completed = sum(1 for o in orders if o.status == 'Entregada')
+            pending = sum(1 for o in orders if o.status not in ('Entregada',))
+
+            statuses = {}
+            for o in orders:
+                statuses[o.status] = statuses.get(o.status, 0) + 1
+
+            pay_q = (db.session.query(OrderPayment.method, db.func.sum(OrderPayment.amount))
+                .join(Order, Order.id == OrderPayment.order_id)
+                .filter(Order.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
+            if branch_id:
+                pay_q = pay_q.filter(Order.branch_id == int(branch_id))
+            payment_breakdown = {m: float(a or 0) for m, a in pay_q.group_by(OrderPayment.method).all()}
+
+            return {
+                'total_revenue': total_revenue,
+                'orders_count': orders_count,
+                'ticket_avg': ticket_avg,
+                'completed': completed,
+                'pending': pending,
+                'orders_by_status': statuses,
+                'payment_breakdown': payment_breakdown,
+                'date_from': dt_from.strftime('%Y-%m-%d'),
+                'date_to': dt_to.strftime('%Y-%m-%d'),
+            }, 200
+        except Exception as e:
+            import traceback
+            return {'message': str(e), 'trace': traceback.format_exc()}, 500
+
+
+class ReportDailyTrendResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id, branch_id, dt_from, dt_to, _ = _report_filters(claims, request.args)
+            q = (db.session.query(
+                    db.func.date(Order.order_date).label('day'),
+                    db.func.sum(Order.total_amount).label('revenue'),
+                    db.func.count(Order.id).label('orders')
+                )
+                .filter(Order.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
+            if branch_id:
+                q = q.filter(Order.branch_id == int(branch_id))
+            rows = q.group_by(db.func.date(Order.order_date)).order_by(db.func.date(Order.order_date)).all()
+            return {'data': [{'day': str(r.day), 'revenue': float(r.revenue or 0), 'orders': r.orders} for r in rows]}, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+class ReportTopItemsResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id, branch_id, dt_from, dt_to, _ = _report_filters(claims, request.args)
+            q = (db.session.query(
+                    OrderItem.item_id,
+                    db.func.sum(OrderItem.quantity).label('qty'),
+                )
+                .join(Order, Order.id == OrderItem.order_id)
+                .filter(Order.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
+            if branch_id:
+                q = q.filter(Order.branch_id == int(branch_id))
+            rows = q.group_by(OrderItem.item_id).order_by(db.func.sum(OrderItem.quantity).desc()).limit(10).all()
+            result = []
+            for row in rows:
+                item = Item.query.get(row.item_id)
+                result.append({'item_id': row.item_id, 'item_name': item.name if item else str(row.item_id), 'qty': int(row.qty or 0)})
+            return {'data': result}, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+class ReportClientRetentionResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id, branch_id, dt_from, dt_to, q = _report_filters(claims, request.args)
+            orders_in_period = q.all()
+            client_ids_in_period = {o.client_id for o in orders_in_period}
+
+            new_clients = 0
+            recurring_clients = 0
+            for cid in client_ids_in_period:
+                first_order = Order.query.filter_by(client_id=cid).order_by(Order.order_date.asc()).first()
+                if first_order and first_order.order_date >= dt_from:
+                    new_clients += 1
+                else:
+                    recurring_clients += 1
+
+            return {'new': new_clients, 'recurring': recurring_clients, 'total': len(client_ids_in_period)}, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+class ReportByBranchResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            date_from = request.args.get('date_from')
+            date_to = request.args.get('date_to')
+            if not date_from:
+                now = datetime.utcnow()
+                date_from = now.replace(day=1).strftime('%Y-%m-%d')
+            if not date_to:
+                date_to = datetime.utcnow().strftime('%Y-%m-%d')
+            dt_from = datetime.strptime(date_from, '%Y-%m-%d')
+            dt_to = datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+
+            rows = (db.session.query(
+                        Order.branch_id,
+                        db.func.sum(Order.total_amount).label('revenue'),
+                        db.func.count(Order.id).label('orders')
+                    )
+                    .filter(Order.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to)
+                    .group_by(Order.branch_id).all())
+
+            result = []
+            for r in rows:
+                branch = Branch.query.get(r.branch_id)
+                result.append({'branch_id': r.branch_id, 'branch_name': branch.name if branch else str(r.branch_id),
+                                'revenue': float(r.revenue or 0), 'orders': r.orders})
+            return {'data': result}, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+class ReportExpensesSummaryResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            branch_id = request.args.get('branch_id')
+            date_from = request.args.get('date_from')
+            date_to = request.args.get('date_to')
+            if not date_from:
+                now = datetime.utcnow()
+                date_from = now.replace(day=1).strftime('%Y-%m-%d')
+            if not date_to:
+                date_to = datetime.utcnow().strftime('%Y-%m-%d')
+
+            q = (db.session.query(Expense.category, db.func.sum(Expense.total_cost).label('total'))
+                 .filter(Expense.business_id == business_id,
+                         Expense.expense_date >= date_from,
+                         Expense.expense_date <= date_to))
+            if branch_id:
+                q = q.filter(Expense.branch_id == int(branch_id))
+            rows = q.group_by(Expense.category).all()
+            return {'data': [{'category': r.category, 'total': float(r.total or 0)} for r in rows]}, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+class ReportAlertsResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            branch_id = request.args.get('branch_id')
+            now = datetime.utcnow()
+            alerts = []
+
+            cutoff_48h = now - timedelta(hours=48)
+            delay_q = Order.query.filter(
+                Order.business_id == business_id,
+                Order.status.notin_(['Entregada']),
+                Order.order_date <= cutoff_48h,
+            )
+            if branch_id:
+                delay_q = delay_q.filter(Order.branch_id == int(branch_id))
+            delayed_count = delay_q.count()
+            if delayed_count > 0:
+                alerts.append({'level': 'warning', 'message': f'{delayed_count} orden(es) con más de 48h sin entrega'})
+
+            week_start = now - timedelta(days=7)
+            four_weeks_ago = now - timedelta(days=28)
+            exp_q = db.session.query(Expense.category, db.func.sum(Expense.total_cost).label('total'))
+            if branch_id:
+                exp_q = exp_q.filter(Expense.branch_id == int(branch_id))
+            this_week = {r.category: float(r.total or 0) for r in
+                         exp_q.filter(Expense.business_id == business_id,
+                                      Expense.expense_date >= week_start.date()).group_by(Expense.category).all()}
+            prev_weeks = {r.category: float(r.total or 0) for r in
+                          exp_q.filter(Expense.business_id == business_id,
+                                       Expense.expense_date >= four_weeks_ago.date(),
+                                       Expense.expense_date < week_start.date()).group_by(Expense.category).all()}
+            for cat, total in this_week.items():
+                prev = prev_weeks.get(cat, 0)
+                avg_prev = prev / 3 if prev > 0 else 0
+                if avg_prev > 0 and total > avg_prev * 1.2:
+                    pct = round((total / avg_prev - 1) * 100)
+                    alerts.append({'level': 'error', 'message': f'Gasto en {cat} +{pct}% vs promedio de las últimas 3 semanas'})
+
+            if not alerts:
+                alerts.append({'level': 'success', 'message': 'Sin alertas — operación al día'})
+
+            return {'alerts': alerts}, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+api.add_resource(ExpenseListResource, '/api/v1/expenses')
+api.add_resource(ExpenseResource, '/api/v1/expenses/<int:expense_id>')
+api.add_resource(GoalResource, '/api/v1/goals')
+api.add_resource(ReportSummaryResource, '/api/v1/reports/summary')
+api.add_resource(ReportDailyTrendResource, '/api/v1/reports/daily-trend')
+api.add_resource(ReportTopItemsResource, '/api/v1/reports/top-items')
+api.add_resource(ReportClientRetentionResource, '/api/v1/reports/client-retention')
+api.add_resource(ReportByBranchResource, '/api/v1/reports/by-branch')
+api.add_resource(ReportExpensesSummaryResource, '/api/v1/reports/expenses-summary')
+api.add_resource(ReportAlertsResource, '/api/v1/reports/alerts')
 
 if __name__ == '__main__':
     with app.app_context():
