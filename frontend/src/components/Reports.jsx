@@ -148,7 +148,7 @@ export default function Reports() {
       try {
         const claims = JSON.parse(atob(token.split(".")[1]));
         const r = await fetch(`${API}/businesses/${claims.business_id}/branches`, { headers });
-        if (r.ok) setBranches(await r.json());
+        if (r.ok) { const d = await r.json(); setBranches(d.branches || d || []); }
       } catch {}
     };
     loadBranches();
