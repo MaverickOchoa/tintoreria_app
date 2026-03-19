@@ -3214,10 +3214,6 @@ class ReportDailyExpensesResource(Resource):
             q = (db.session.query(
                     Expense.expense_date.label('day'),
                     db.func.sum(Expense.total_cost).label('total'),
-                    db.func.sum(db.case(
-                        (Expense.category.in_(['quimicos', 'utilities']), Expense.total_cost),
-                        else_=0
-                    )).label('quimicos_utilities')
                 )
                 .filter(
                     Expense.business_id == business_id,
@@ -3226,8 +3222,21 @@ class ReportDailyExpensesResource(Resource):
                 ))
             if branch_id:
                 q = q.filter(Expense.branch_id == int(branch_id))
+            q_chem = (db.session.query(
+                    Expense.expense_date.label('day'),
+                    db.func.sum(Expense.total_cost).label('total'),
+                )
+                .filter(
+                    Expense.business_id == business_id,
+                    Expense.expense_date >= date_from,
+                    Expense.expense_date <= date_to,
+                    Expense.category.in_(['quimicos', 'utilities']),
+                ))
+            if branch_id:
+                q_chem = q_chem.filter(Expense.branch_id == int(branch_id))
+            chem_map = {str(r.day): float(r.total or 0) for r in q_chem.group_by(Expense.expense_date).all()}
             rows = q.group_by(Expense.expense_date).order_by(Expense.expense_date).all()
-            return {'data': [{'day': str(r.day), 'total': float(r.total or 0), 'quimicos_utilities': float(r.quimicos_utilities or 0)} for r in rows]}, 200
+            return {'data': [{'day': str(r.day), 'total': float(r.total or 0), 'quimicos_utilities': chem_map.get(str(r.day), 0)} for r in rows]}, 200
         except Exception as e:
             return {'message': str(e)}, 500
 
