@@ -3241,6 +3241,230 @@ class ReportDailyExpensesResource(Resource):
             return {'message': str(e)}, 500
 
 
+class ReportOverviewResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            branch_id = request.args.get('branch_id')
+            now = datetime.utcnow()
+            today = now.date()
+            month_start = today.replace(day=1)
+            cutoff_48h = now - timedelta(hours=48)
+
+            def _b(q):
+                if branch_id:
+                    q = q.filter(Order.branch_id == int(branch_id))
+                return q
+
+            today_rev = float(_b(
+                db.session.query(db.func.sum(Order.total_amount))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, db.func.date(Order.order_date) == today)
+            ).scalar() or 0)
+
+            row = _b(
+                db.session.query(db.func.sum(Order.total_amount), db.func.count(Order.id))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.order_date >= month_start)
+            ).one()
+            month_rev, month_count = float(row[0] or 0), int(row[1] or 0)
+
+            active_count = _b(Order.query.join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.status.notin_(['Entregado', 'Cancelado']))).count()
+            overdue_count = _b(Order.query.join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.status.notin_(['Entregado', 'Cancelado']),
+                        Order.order_date <= cutoff_48h)).count()
+
+            receivable = float(_b(
+                db.session.query(db.func.sum(Order.total_amount - Order.amount_paid))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.payment_status != 'paid')
+            ).scalar() or 0)
+
+            top_row = _b(
+                db.session.query(OrderItem.product_service_id, db.func.sum(OrderItem.quantity).label('qty'))
+                .join(Order, Order.id == OrderItem.order_id)
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.order_date >= month_start)
+            ).group_by(OrderItem.product_service_id).order_by(db.func.sum(OrderItem.quantity).desc()).first()
+            top_service = None
+            if top_row:
+                itm = Item.query.get(top_row.product_service_id)
+                top_service = itm.name if itm else None
+
+            return {
+                'today_revenue': today_rev, 'month_revenue': month_rev,
+                'month_count': month_count,
+                'ticket_avg': month_rev / month_count if month_count > 0 else 0,
+                'active_count': active_count, 'overdue_count': overdue_count,
+                'receivable': receivable, 'top_service': top_service,
+            }, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+class ReportReceivableResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            branch_id = request.args.get('branch_id')
+            now = datetime.utcnow()
+            q = Order.query.join(Branch, Branch.id == Order.branch_id).filter(
+                Branch.business_id == business_id,
+                Order.payment_status != 'paid',
+                Order.total_amount > Order.amount_paid,
+            )
+            if branch_id:
+                q = q.filter(Order.branch_id == int(branch_id))
+            orders = q.order_by(Order.order_date.asc()).limit(200).all()
+            result = []
+            total = 0
+            for o in orders:
+                balance = float(o.total_amount - o.amount_paid)
+                days_old = (now - o.order_date).days
+                client = Client.query.get(o.client_id)
+                branch = Branch.query.get(o.branch_id)
+                result.append({
+                    'folio': o.folio or str(o.id),
+                    'client_name': f"{client.full_name} {client.last_name or ''}".strip() if client else '—',
+                    'client_phone': client.phone if client else '',
+                    'branch_name': branch.name if branch else '',
+                    'order_date': o.order_date.strftime('%Y-%m-%d'),
+                    'total_amount': float(o.total_amount),
+                    'amount_paid': float(o.amount_paid),
+                    'balance': balance, 'days_old': days_old, 'status': o.status,
+                })
+                total += balance
+            aging = {
+                'Hoy': sum(r['balance'] for r in result if r['days_old'] == 0),
+                '1-7 días': sum(r['balance'] for r in result if 1 <= r['days_old'] <= 7),
+                '8-30 días': sum(r['balance'] for r in result if 8 <= r['days_old'] <= 30),
+                '+30 días': sum(r['balance'] for r in result if r['days_old'] > 30),
+            }
+            return {'total': total, 'count': len(result), 'aging': aging, 'orders': result}, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+class ReportClientsDetailResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            branch_id = request.args.get('branch_id')
+            date_from = request.args.get('date_from')
+            date_to = request.args.get('date_to')
+            now = datetime.utcnow()
+            if not date_from:
+                date_from = now.replace(day=1).strftime('%Y-%m-%d')
+            if not date_to:
+                date_to = now.strftime('%Y-%m-%d')
+
+            q = (db.session.query(Order.client_id,
+                    db.func.sum(Order.total_amount).label('total_spend'),
+                    db.func.count(Order.id).label('order_count'))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id,
+                        Order.order_date >= date_from, Order.order_date <= date_to))
+            if branch_id:
+                q = q.filter(Order.branch_id == int(branch_id))
+            rows = q.group_by(Order.client_id).order_by(db.func.sum(Order.total_amount).desc()).limit(10).all()
+            top_clients = []
+            for r in rows:
+                c = Client.query.get(r.client_id)
+                if c:
+                    top_clients.append({
+                        'name': f"{c.full_name} {c.last_name or ''}".strip(),
+                        'phone': c.phone,
+                        'total_spend': float(r.total_spend or 0),
+                        'order_count': int(r.order_count or 0),
+                        'points': float(c.points_balance or 0),
+                    })
+
+            from datetime import date as ddate
+            today = now.date()
+            birthdays = []
+            bday_clients = (db.session.query(Client)
+                .join(Order, Order.client_id == Client.id)
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id,
+                        Client.date_of_birth_day != None,
+                        Client.date_of_birth_month != None)
+                .distinct()).all()
+            for c in bday_clients:
+                try:
+                    bday = ddate(today.year, c.date_of_birth_month, c.date_of_birth_day)
+                except ValueError:
+                    continue
+                days_until = (bday - today).days
+                if days_until < 0:
+                    try:
+                        bday = ddate(today.year + 1, c.date_of_birth_month, c.date_of_birth_day)
+                        days_until = (bday - today).days
+                    except ValueError:
+                        continue
+                if 0 <= days_until <= 30:
+                    birthdays.append({'name': f"{c.full_name} {c.last_name or ''}".strip(),
+                                      'phone': c.phone, 'days_until': days_until,
+                                      'date': bday.strftime('%d/%m')})
+            birthdays.sort(key=lambda x: x['days_until'])
+            return {'top_clients': top_clients, 'upcoming_birthdays': birthdays[:10]}, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+class ReportDiscountsResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            branch_id = request.args.get('branch_id')
+            date_from = request.args.get('date_from')
+            date_to = request.args.get('date_to')
+            now = datetime.utcnow()
+            if not date_from:
+                date_from = now.replace(day=1).strftime('%Y-%m-%d')
+            if not date_to:
+                date_to = now.strftime('%Y-%m-%d')
+            q = Order.query.join(Branch, Branch.id == Order.branch_id).filter(
+                Branch.business_id == business_id,
+                Order.order_date >= date_from, Order.order_date <= date_to)
+            if branch_id:
+                q = q.filter(Order.branch_id == int(branch_id))
+            orders = q.all()
+            total_subtotal = sum(float(o.subtotal) for o in orders)
+            total_discount = sum(float(o.discount) for o in orders)
+            total_revenue = sum(float(o.total_amount) for o in orders)
+            orders_with_discount = sum(1 for o in orders if float(o.discount) > 0)
+            pts_q = (db.session.query(db.func.sum(OrderPayment.points_used))
+                .join(Order, Order.id == OrderPayment.order_id)
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id,
+                        Order.order_date >= date_from, Order.order_date <= date_to,
+                        OrderPayment.points_used > 0))
+            if branch_id:
+                pts_q = pts_q.filter(Order.branch_id == int(branch_id))
+            total_points = float(pts_q.scalar() or 0)
+            promos = Promotion.query.filter_by(business_id=business_id, active=True).all()
+            return {
+                'total_revenue': total_revenue, 'total_discount': total_discount,
+                'total_subtotal': total_subtotal, 'orders_count': len(orders),
+                'orders_with_discount': orders_with_discount,
+                'discount_pct': (total_discount / total_subtotal * 100) if total_subtotal > 0 else 0,
+                'total_points_redeemed': total_points,
+                'active_promos': [{'title': p.title, 'type': p.promo_type,
+                                   'discount_pct': p.discount_pct} for p in promos],
+            }, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
 api.add_resource(ExpenseListResource, '/api/v1/expenses')
 api.add_resource(ExpenseResource, '/api/v1/expenses/<int:expense_id>')
 api.add_resource(GoalResource, '/api/v1/goals')
@@ -3252,6 +3476,10 @@ api.add_resource(ReportByBranchResource, '/api/v1/reports/by-branch')
 api.add_resource(ReportExpensesSummaryResource, '/api/v1/reports/expenses-summary')
 api.add_resource(ReportAlertsResource, '/api/v1/reports/alerts')
 api.add_resource(ReportDailyExpensesResource, '/api/v1/reports/daily-expenses')
+api.add_resource(ReportOverviewResource, '/api/v1/reports/overview')
+api.add_resource(ReportReceivableResource, '/api/v1/reports/receivable')
+api.add_resource(ReportClientsDetailResource, '/api/v1/reports/clients-detail')
+api.add_resource(ReportDiscountsResource, '/api/v1/reports/discounts')
 
 if __name__ == '__main__':
     with app.app_context():
