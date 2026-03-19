@@ -100,7 +100,7 @@ function numberToWords(amount) {
 // ────────────────────────────────────────────────────────────────────────────
 
 function buildCopyHTML(order, b, businessHours, barcodeDataUri, label) { // eslint-disable-line no-unused-vars
-  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.quantity) || 0), 0);
+  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) * (parseInt(i.units) || 1) || 0), 0);
   const subtotal    = parseFloat(order.subtotal || 0);
   const discount    = parseFloat(order.discount || 0);
   const tax         = parseFloat(order.tax || 0);
@@ -257,7 +257,7 @@ function buildCopyHTML(order, b, businessHours, barcodeDataUri, label) { // esli
 
 function buildReceiptHTML(order, businessInfo, businessHours, barcodeDataUri) {
   const b = businessInfo || {};
-  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.quantity) || 0), 0);
+  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) * (parseInt(i.units) || 1) || 0), 0);
   const subtotal    = parseFloat(order.subtotal || 0);
   const discount    = parseFloat(order.discount || 0);
   const tax         = parseFloat(order.tax || 0);
@@ -413,7 +413,7 @@ export default function OrderReceipt({ order, businessInfo, businessHours }) {
 
   if (!order) return null;
   const b = businessInfo || {};
-  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.quantity) || 0), 0);
+  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) * (parseInt(i.units) || 1) || 0), 0);
   const subtotal = parseFloat(order.subtotal || 0);
   const discount = parseFloat(order.discount || 0);
   const tax      = parseFloat(order.tax || 0);
