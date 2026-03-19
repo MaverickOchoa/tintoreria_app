@@ -3045,7 +3045,7 @@ class ReportTopItemsResource(Resource):
             claims = get_jwt()
             business_id, branch_id, dt_from, dt_to, _ = _report_filters(claims, request.args)
             q = (db.session.query(
-                    OrderItem.item_id,
+                    OrderItem.product_service_id,
                     db.func.sum(OrderItem.quantity).label('qty'),
                 )
                 .join(Order, Order.id == OrderItem.order_id)
@@ -3053,11 +3053,11 @@ class ReportTopItemsResource(Resource):
                 .filter(Branch.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
             if branch_id:
                 q = q.filter(Order.branch_id == int(branch_id))
-            rows = q.group_by(OrderItem.item_id).order_by(db.func.sum(OrderItem.quantity).desc()).limit(10).all()
+            rows = q.group_by(OrderItem.product_service_id).order_by(db.func.sum(OrderItem.quantity).desc()).limit(10).all()
             result = []
             for row in rows:
-                item = Item.query.get(row.item_id)
-                result.append({'item_id': row.item_id, 'item_name': item.name if item else str(row.item_id), 'qty': int(row.qty or 0)})
+                item = Item.query.get(row.product_service_id)
+                result.append({'item_id': row.product_service_id, 'item_name': item.name if item else str(row.product_service_id), 'qty': int(row.qty or 0)})
             return {'data': result}, 200
         except Exception as e:
             return {'message': str(e)}, 500
