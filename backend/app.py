@@ -2966,8 +2966,8 @@ def _report_filters(claims, args):
         date_to = datetime.utcnow().strftime('%Y-%m-%d')
     dt_from = datetime.strptime(date_from, '%Y-%m-%d')
     dt_to = datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-    q = Order.query.filter(
-        Order.business_id == business_id,
+    q = Order.query.join(Branch, Branch.id == Order.branch_id).filter(
+        Branch.business_id == business_id,
         Order.order_date >= dt_from,
         Order.order_date <= dt_to,
     )
@@ -2995,7 +2995,8 @@ class ReportSummaryResource(Resource):
 
             pay_q = (db.session.query(OrderPayment.method, db.func.sum(OrderPayment.amount))
                 .join(Order, Order.id == OrderPayment.order_id)
-                .filter(Order.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
             if branch_id:
                 pay_q = pay_q.filter(Order.branch_id == int(branch_id))
             payment_breakdown = {m: float(a or 0) for m, a in pay_q.group_by(OrderPayment.method).all()}
@@ -3027,7 +3028,8 @@ class ReportDailyTrendResource(Resource):
                     db.func.sum(Order.total_amount).label('revenue'),
                     db.func.count(Order.id).label('orders')
                 )
-                .filter(Order.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
             if branch_id:
                 q = q.filter(Order.branch_id == int(branch_id))
             rows = q.group_by(db.func.date(Order.order_date)).order_by(db.func.date(Order.order_date)).all()
@@ -3047,7 +3049,8 @@ class ReportTopItemsResource(Resource):
                     db.func.sum(OrderItem.quantity).label('qty'),
                 )
                 .join(Order, Order.id == OrderItem.order_id)
-                .filter(Order.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
             if branch_id:
                 q = q.filter(Order.branch_id == int(branch_id))
             rows = q.group_by(OrderItem.item_id).order_by(db.func.sum(OrderItem.quantity).desc()).limit(10).all()
@@ -3104,7 +3107,8 @@ class ReportByBranchResource(Resource):
                         db.func.sum(Order.total_amount).label('revenue'),
                         db.func.count(Order.id).label('orders')
                     )
-                    .filter(Order.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to)
+                    .join(Branch, Branch.id == Order.branch_id)
+                    .filter(Branch.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to)
                     .group_by(Order.branch_id).all())
 
             result = []
@@ -3155,8 +3159,8 @@ class ReportAlertsResource(Resource):
             alerts = []
 
             cutoff_48h = now - timedelta(hours=48)
-            delay_q = Order.query.filter(
-                Order.business_id == business_id,
+            delay_q = Order.query.join(Branch, Branch.id == Order.branch_id).filter(
+                Branch.business_id == business_id,
                 Order.status.notin_(['Entregada']),
                 Order.order_date <= cutoff_48h,
             )
