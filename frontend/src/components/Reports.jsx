@@ -6,64 +6,83 @@ import {
   DialogContent, DialogActions, Alert, Divider,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import TuneIcon from "@mui/icons-material/Tune";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import ReceiptIcon from "@mui/icons-material/Receipt";
 import {
-  LineChart, Line, AreaChart, Area,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, ScatterChart, Scatter, RadialBarChart, RadialBar,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, PieChart, Pie, Cell,
+  ScatterChart, Scatter, RadialBarChart, RadialBar,
+  FunnelChart, Funnel, LabelList,
 } from "recharts";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
-const COLORS = ["#1976d2", "#43a047", "#fb8c00", "#e53935", "#8e24aa", "#00acc1"];
-const CAT_LABELS = {
-  quimicos: "Químicos",
-  detergentes: "Detergentes",
-  consumibles: "Consumibles",
-  utilities: "Utilities",
-  otros: "Otros",
-};
 
-const fmtCurrency = (v) =>
-  Number(v || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+const FUNNEL_STAGES = [
+  { key: "Pendiente",      label: "Recepción",         color: "#90a4ae" },
+  { key: "En Proceso",     label: "Lavado",             color: "#42a5f5" },
+  { key: "En Producción",  label: "Planchado/Acabado",  color: "#ab47bc" },
+  { key: "Listo",          label: "Listo para entregar",color: "#66bb6a" },
+  { key: "Entregado",      label: "Entregado",          color: "#1976d2" },
+];
+
+const CAT_LABELS = {
+  quimicos: "Químicos", detergentes: "Detergentes",
+  consumibles: "Consumibles", utilities: "Utilities", otros: "Otros",
+};
 
 const MONTHS = [
   "Enero","Febrero","Marzo","Abril","Mayo","Junio",
   "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
 ];
 
-function KpiCard({ label, value, sub, color }) {
+const fmtCurrency = (v) =>
+  Number(v || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+
+function BigNumber({ label, value, sub, color, icon: Icon }) {
   return (
     <Paper sx={{ p: 2.5, borderRadius: 2, borderTop: `4px solid ${color || "#1976d2"}`, height: "100%" }}>
-      <Typography variant="caption" color="text.secondary">{label}</Typography>
-      <Typography variant="h5" fontWeight={800} sx={{ mt: 0.5, color: color || "text.primary" }}>{value}</Typography>
-      {sub && <Typography variant="caption" color="text.secondary">{sub}</Typography>}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+        {Icon && <Icon sx={{ color: color || "#1976d2", fontSize: 20 }} />}
+        <Typography variant="caption" color="text.secondary">{label}</Typography>
+      </Box>
+      <Typography variant="h4" fontWeight={800} sx={{ color: color || "text.primary", lineHeight: 1 }}>{value}</Typography>
+      {sub && <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>{sub}</Typography>}
     </Paper>
   );
 }
 
 function AlertBadge({ alert }) {
-  const map = { error: "error", warning: "warning", success: "success" };
-  return <Alert severity={map[alert.level] || "info"} sx={{ py: 0.5 }}>{alert.message}</Alert>;
+  return <Alert severity={{ error: "error", warning: "warning", success: "success" }[alert.level] || "info"} sx={{ py: 0.5 }}>{alert.message}</Alert>;
 }
 
-const GaugeChart = ({ value, goal }) => {
+const GaugeCard = ({ value, goal, month }) => {
   const pct = goal > 0 ? Math.min(Math.round((value / goal) * 100), 100) : 0;
-  const data = [{ name: "Avance", value: pct, fill: pct >= 100 ? "#43a047" : pct >= 70 ? "#fb8c00" : "#e53935" }];
+  const color = pct >= 100 ? "#43a047" : pct >= 70 ? "#fb8c00" : "#e53935";
+  const data = [{ value: pct, fill: color }];
   return (
-    <Box sx={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <RadialBarChart width={220} height={130} cx={110} cy={120} innerRadius={80} outerRadius={110}
-        startAngle={180} endAngle={0} data={data} barSize={22}>
-        <RadialBar background dataKey="value" cornerRadius={6} />
-      </RadialBarChart>
-      <Box sx={{ position: "absolute", bottom: 4, textAlign: "center" }}>
-        <Typography variant="h4" fontWeight={800}>{pct}%</Typography>
-        <Typography variant="caption" color="text.secondary">
-          {fmtCurrency(value)} / {fmtCurrency(goal)}
+    <Paper sx={{ p: 2.5, borderRadius: 2, borderTop: `4px solid ${color}`, height: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <Typography variant="caption" color="text.secondary">Meta del mes — {month}</Typography>
+      {goal > 0 ? (
+        <>
+          <RadialBarChart width={200} height={120} cx={100} cy={110} innerRadius={70} outerRadius={98}
+            startAngle={180} endAngle={0} data={data} barSize={20}>
+            <RadialBar background dataKey="value" cornerRadius={6} />
+          </RadialBarChart>
+          <Box sx={{ mt: -2, textAlign: "center" }}>
+            <Typography variant="h4" fontWeight={800} sx={{ color }}>{pct}%</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {fmtCurrency(value)} / {fmtCurrency(goal)}
+            </Typography>
+          </Box>
+        </>
+      ) : (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 3, textAlign: "center" }}>
+          Sin meta. Usa "Configurar Metas".
         </Typography>
-      </Box>
-    </Box>
+      )}
+    </Paper>
   );
 };
 
@@ -72,8 +91,8 @@ export default function Reports() {
   const token = localStorage.getItem("access_token");
   const role = localStorage.getItem("role");
   const branchIdStored = localStorage.getItem("branch_id");
-
   const now = new Date();
+
   const defaultFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const defaultTo = now.toISOString().split("T")[0];
 
@@ -89,8 +108,8 @@ export default function Reports() {
   const [daily, setDaily] = useState([]);
   const [topItems, setTopItems] = useState([]);
   const [retention, setRetention] = useState(null);
-  const [byBranch, setByBranch] = useState([]);
   const [expSummary, setExpSummary] = useState([]);
+  const [dailyExp, setDailyExp] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [goal, setGoal] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,11 +124,7 @@ export default function Reports() {
   const headers = { Authorization: `Bearer ${token}` };
 
   const buildParams = useCallback((extra = {}) => {
-    const p = new URLSearchParams({
-      date_from: applied.from,
-      date_to: applied.to,
-      ...extra,
-    });
+    const p = new URLSearchParams({ date_from: applied.from, date_to: applied.to, ...extra });
     if (applied.branch) p.set("branch_id", applied.branch);
     return p.toString();
   }, [applied]);
@@ -122,47 +137,43 @@ export default function Reports() {
         fetch(`${API}/api/v1/reports/daily-trend?${buildParams()}`, { headers }),
         fetch(`${API}/api/v1/reports/top-items?${buildParams()}`, { headers }),
         fetch(`${API}/api/v1/reports/client-retention?${buildParams()}`, { headers }),
-        fetch(`${API}/api/v1/reports/by-branch?${buildParams()}`, { headers }),
         fetch(`${API}/api/v1/reports/expenses-summary?${buildParams()}`, { headers }),
+        fetch(`${API}/api/v1/reports/daily-expenses?${buildParams()}`, { headers }),
         fetch(`${API}/api/v1/reports/alerts?${applied.branch ? `branch_id=${applied.branch}` : ""}`, { headers }),
         fetch(`${API}/api/v1/goals?year=${now.getFullYear()}&month=${now.getMonth() + 1}${applied.branch ? `&branch_id=${applied.branch}` : ""}`, { headers }),
       ]);
       if (r1.ok) setSummary(await r1.json());
-      if (r2.ok) setDaily((await r2.json()).data);
-      if (r3.ok) setTopItems((await r3.json()).data);
+      if (r2.ok) setDaily((await r2.json()).data || []);
+      if (r3.ok) setTopItems((await r3.json()).data || []);
       if (r4.ok) setRetention(await r4.json());
-      if (r5.ok) setByBranch((await r5.json()).data);
-      if (r6.ok) setExpSummary((await r6.json()).data);
+      if (r5.ok) setExpSummary((await r5.json()).data || []);
+      if (r6.ok) setDailyExp((await r6.json()).data || []);
       if (r7.ok) setAlerts((await r7.json()).alerts || []);
       if (r8.ok) {
         const gd = await r8.json();
-        const active = applied.branch ? gd.branch : gd.global;
-        setGoal(active);
+        setGoal(applied.branch ? gd.branch : gd.global);
       }
     } catch {}
     setLoading(false);
   }, [buildParams, applied]);
 
   useEffect(() => {
-    const loadBranches = async () => {
+    const load = async () => {
       try {
         const claims = JSON.parse(atob(token.split(".")[1]));
         const r = await fetch(`${API}/businesses/${claims.business_id}/branches`, { headers });
-        if (r.ok) { const d = await r.json(); setBranches(d.branches || d || []); }
+        if (r.ok) { const d = await r.json(); setBranches(Array.isArray(d) ? d : d.branches || []); }
       } catch {}
     };
-    loadBranches();
+    load();
   }, []);
 
   useEffect(() => { fetchAll(); }, [applied]);
 
-  const handleApply = () => {
-    setApplied({ branch: selectedBranch, from: dateFrom, to: dateTo });
-  };
-
   const openGoalDialog = async () => {
+    const branchArr = Array.isArray(branches) ? branches : [];
     const init = {};
-    branches.forEach((b) => { init[b.id] = ""; });
+    branchArr.forEach((b) => { init[b.id] = ""; });
     setGoalBranches(init);
     setGoalGlobal("");
     try {
@@ -170,12 +181,9 @@ export default function Reports() {
       if (r.ok) {
         const d = await r.json();
         if (d.global) setGoalGlobal(d.global.goal_amount);
-        for (const b of branches) {
+        for (const b of branchArr) {
           const r2 = await fetch(`${API}/api/v1/goals?year=${goalYear}&month=${goalMonth}&branch_id=${b.id}`, { headers });
-          if (r2.ok) {
-            const d2 = await r2.json();
-            if (d2.branch) setGoalBranches((prev) => ({ ...prev, [b.id]: d2.branch.goal_amount }));
-          }
+          if (r2.ok) { const d2 = await r2.json(); if (d2.branch) setGoalBranches((p) => ({ ...p, [b.id]: d2.branch.goal_amount })); }
         }
       }
     } catch {}
@@ -184,27 +192,33 @@ export default function Reports() {
 
   const saveGoals = async () => {
     setGoalSaving(true);
-    const jheaders = { ...headers, "Content-Type": "application/json" };
+    const jh = { ...headers, "Content-Type": "application/json" };
     try {
-      if (goalGlobal !== "") {
-        await fetch(`${API}/api/v1/goals`, {
-          method: "POST", headers: jheaders,
-          body: JSON.stringify({ year: goalYear, month: goalMonth, branch_id: null, goal_amount: Number(goalGlobal) }),
-        });
-      }
+      if (goalGlobal !== "") await fetch(`${API}/api/v1/goals`, { method: "POST", headers: jh, body: JSON.stringify({ year: goalYear, month: goalMonth, branch_id: null, goal_amount: Number(goalGlobal) }) });
       for (const [bid, amt] of Object.entries(goalBranches)) {
-        if (amt !== "") {
-          await fetch(`${API}/api/v1/goals`, {
-            method: "POST", headers: jheaders,
-            body: JSON.stringify({ year: goalYear, month: goalMonth, branch_id: Number(bid), goal_amount: Number(amt) }),
-          });
-        }
+        if (amt !== "") await fetch(`${API}/api/v1/goals`, { method: "POST", headers: jh, body: JSON.stringify({ year: goalYear, month: goalMonth, branch_id: Number(bid), goal_amount: Number(amt) }) });
       }
       setGoalDialog(false);
       fetchAll();
     } catch {}
     setGoalSaving(false);
   };
+
+  const statuses = summary?.orders_by_status || {};
+  const pendingCount = (statuses["Pendiente"] || 0) + (statuses["En Proceso"] || 0) + (statuses["En Producción"] || 0);
+  const readyCount = (statuses["Listo"] || 0) + (statuses["Entregado"] || 0);
+  const stackedData = [{ name: "Prendas", Pendientes: pendingCount, Listas: readyCount }];
+
+  const funnelData = FUNNEL_STAGES.map((s) => ({
+    name: s.label,
+    value: statuses[s.key] || 0,
+    fill: s.color,
+  })).filter((d) => d.value > 0);
+
+  const scatterData = daily.map((d) => {
+    const expDay = dailyExp.find((e) => e.day === d.day);
+    return { prendas: d.orders, insumos: expDay ? expDay.quimicos_utilities : 0, day: d.day };
+  }).filter((d) => d.prendas > 0);
 
   const retentionData = retention
     ? [
@@ -213,18 +227,11 @@ export default function Reports() {
       ]
     : [];
 
-  const expChartData = expSummary.map((r) => ({
-    name: CAT_LABELS[r.category] || r.category,
-    total: r.total,
-  }));
-
-  const scatterData = daily.map((d) => {
-    const expDay = expSummary.find(() => false); // placeholder — no daily expense data by default
-    return { orders: d.orders, revenue: d.revenue, day: d.day };
-  });
+  const expChartData = expSummary.map((r) => ({ name: CAT_LABELS[r.category] || r.category, total: r.total }));
+  const branchArr = Array.isArray(branches) ? branches : [];
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1300, mx: "auto" }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1300, mx: "auto" }}>
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3, flexWrap: "wrap", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -244,7 +251,7 @@ export default function Reports() {
               <TextField select fullWidth label="Sucursal" size="small" value={selectedBranch}
                 onChange={(e) => setSelectedBranch(e.target.value)}>
                 <MenuItem value="">Todas las sucursales</MenuItem>
-                {branches.map((b) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
+                {branchArr.map((b) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
               </TextField>
             </Grid>
           )}
@@ -257,7 +264,7 @@ export default function Reports() {
               value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </Grid>
           <Grid size={{ xs: 12, sm: 2, md: 1.5 }}>
-            <Button fullWidth variant="contained" startIcon={<SearchIcon />} onClick={handleApply}>
+            <Button fullWidth variant="contained" startIcon={<SearchIcon />} onClick={() => setApplied({ branch: selectedBranch, from: dateFrom, to: dateTo })}>
               Aplicar
             </Button>
           </Grid>
@@ -268,145 +275,148 @@ export default function Reports() {
         <Box sx={{ textAlign: "center", py: 8 }}><CircularProgress size={48} /></Box>
       ) : (
         <>
-          {/* KPI Cards + Gauge */}
+          {/* ── PANEL DE CONTROL ── */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 6, sm: 3, md: 2 }}>
-              <KpiCard label="Venta Total" value={fmtCurrency(summary?.total_revenue)} color="#1976d2" />
-            </Grid>
-            <Grid size={{ xs: 6, sm: 3, md: 2 }}>
-              <KpiCard label="Ticket Promedio" value={fmtCurrency(summary?.ticket_avg)} color="#fb8c00"
-                sub={`${summary?.orders_count || 0} órdenes`} />
-            </Grid>
-            <Grid size={{ xs: 6, sm: 3, md: 2 }}>
-              <KpiCard label="Completadas" value={summary?.completed || 0} color="#43a047"
-                sub="Órdenes entregadas" />
-            </Grid>
-            <Grid size={{ xs: 6, sm: 3, md: 2 }}>
-              <KpiCard label="Pendientes" value={summary?.pending || 0} color="#e53935"
-                sub="En proceso" />
-            </Grid>
+            {/* Gauge */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Paper sx={{ p: 2, borderRadius: 2, height: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <Typography variant="caption" color="text.secondary">Meta del mes — {MONTHS[now.getMonth()]}</Typography>
-                {goal ? (
-                  <GaugeChart value={summary?.total_revenue || 0} goal={Number(goal.goal_amount)} />
-                ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                    Sin meta configurada. Usa "Configurar Metas".
-                  </Typography>
-                )}
+              <GaugeCard value={summary?.total_revenue || 0} goal={goal ? Number(goal.goal_amount) : 0} month={MONTHS[now.getMonth()]} />
+            </Grid>
+
+            {/* Ticket Promedio */}
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <BigNumber
+                label="Ticket Promedio"
+                value={fmtCurrency(summary?.ticket_avg)}
+                sub={`${summary?.orders_count || 0} órdenes en el período`}
+                color="#fb8c00"
+                icon={ReceiptIcon}
+              />
+            </Grid>
+
+            {/* Barras Apiladas: Inventario en tiempo real */}
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Paper sx={{ p: 2.5, borderRadius: 2, borderTop: "4px solid #43a047", height: "100%" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                  <TrendingUpIcon sx={{ color: "#43a047", fontSize: 20 }} />
+                  <Typography variant="caption" color="text.secondary">Inventario en Tiempo Real</Typography>
+                </Box>
+                <ResponsiveContainer width="100%" height={90}>
+                  <BarChart data={stackedData} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
+                    <XAxis type="number" tick={{ fontSize: 10 }} />
+                    <YAxis type="category" dataKey="name" hide />
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="Pendientes" stackId="a" fill="#e53935" radius={[4, 0, 0, 4]} />
+                    <Bar dataKey="Listas" stackId="a" fill="#43a047" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <Box sx={{ display: "flex", gap: 1, mt: 0.5 }}>
+                  <Chip size="small" label={`${pendingCount} en proceso`} sx={{ bgcolor: "#ffebee", color: "#e53935", fontSize: 11 }} />
+                  <Chip size="small" label={`${readyCount} listas`} sx={{ bgcolor: "#e8f5e9", color: "#43a047", fontSize: 11 }} />
+                </Box>
               </Paper>
             </Grid>
           </Grid>
 
-          {/* Payment breakdown */}
-          {summary?.payment_breakdown && (
-            <Box sx={{ mb: 3, display: "flex", gap: 1, flexWrap: "wrap" }}>
-              {Object.entries(summary.payment_breakdown).map(([method, amount]) => (
-                <Chip key={method} label={`${method}: ${fmtCurrency(amount)}`}
-                  color={method === "cash" ? "success" : method === "card" ? "primary" : "default"}
-                  variant="outlined" />
-              ))}
-            </Box>
-          )}
-
-          {/* Line chart: Ingresos por día */}
+          {/* ── FUNNEL: CICLO DE VIDA ── */}
           <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>Ingresos por Día</Typography>
-            {daily.length === 0 ? (
-              <Typography color="text.secondary" align="center" sx={{ py: 4 }}>Sin datos en el período</Typography>
+            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>Ciclo de Vida de la Prenda</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+              Si una sección del embudo se estrecha, ahí se está "atascando" la ropa.
+            </Typography>
+            {funnelData.length === 0 ? (
+              <Typography color="text.secondary" align="center" sx={{ py: 4 }}>Sin órdenes activas en el período</Typography>
             ) : (
-              <ResponsiveContainer width="100%" height={240}>
-                <AreaChart data={daily}>
-                  <defs>
-                    <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1976d2" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#1976d2" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v) => fmtCurrency(v)} />
-                  <Area type="monotone" dataKey="revenue" stroke="#1976d2" fill="url(#rev)" strokeWidth={2} name="Ingresos" />
-                </AreaChart>
+              <ResponsiveContainer width="100%" height={280}>
+                <FunnelChart>
+                  <Tooltip formatter={(v) => [`${v} órdenes`, ""]} />
+                  <Funnel dataKey="value" data={funnelData} isAnimationActive>
+                    <LabelList position="right" fill="#333" stroke="none" dataKey="name"
+                      style={{ fontSize: 12, fontWeight: 600 }} />
+                    <LabelList position="center" fill="#fff" stroke="none" dataKey="value"
+                      style={{ fontSize: 14, fontWeight: 800 }} />
+                  </Funnel>
+                </FunnelChart>
               </ResponsiveContainer>
             )}
           </Paper>
 
-          {/* Donut + By Branch */}
+          {/* ── SCATTER + DONUT ── */}
           <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, md: 4 }}>
+            {/* Scatter: Prendas vs Insumos */}
+            <Grid size={{ xs: 12, md: 7 }}>
               <Paper sx={{ p: 3, borderRadius: 2, height: "100%" }}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>Retención de Clientes</Typography>
-                {retention?.total === 0 ? (
+                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>Eficiencia de Insumos</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+                  Cada punto = un día. Línea diagonal = eficiencia normal. Punto disparado = posible desperdicio o robo.
+                </Typography>
+                {scatterData.length === 0 ? (
+                  <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                    Sin datos. Registra gastos de químicos/utilities para ver este gráfico.
+                  </Typography>
+                ) : (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <ScatterChart margin={{ bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="prendas" name="Órdenes" type="number" tick={{ fontSize: 11 }}
+                        label={{ value: "Órdenes / día", position: "insideBottom", offset: -10, fontSize: 11 }} />
+                      <YAxis dataKey="insumos" name="Químicos+Utilities" type="number" tick={{ fontSize: 11 }}
+                        tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
+                        label={{ value: "Gasto ($)", angle: -90, position: "insideLeft", fontSize: 11 }} />
+                      <Tooltip
+                        cursor={{ strokeDasharray: "3 3" }}
+                        content={({ payload }) => {
+                          if (!payload?.length) return null;
+                          const d = payload[0].payload;
+                          return (
+                            <Paper sx={{ p: 1, fontSize: 12 }}>
+                              <div><b>{d.day}</b></div>
+                              <div>Órdenes: {d.prendas}</div>
+                              <div>Insumos: {fmtCurrency(d.insumos)}</div>
+                            </Paper>
+                          );
+                        }}
+                      />
+                      <Scatter data={scatterData} fill="#ab47bc" opacity={0.8} />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                )}
+              </Paper>
+            </Grid>
+
+            {/* Donut: Retención */}
+            <Grid size={{ xs: 12, md: 5 }}>
+              <Paper sx={{ p: 3, borderRadius: 2, height: "100%" }}>
+                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>Salud del Cliente</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                  Tintorería sana: 70%+ recurrentes. Más nuevos que viejos = posible problema de servicio.
+                </Typography>
+                {!retention || retention.total === 0 ? (
                   <Typography color="text.secondary" align="center" sx={{ py: 4 }}>Sin datos</Typography>
                 ) : (
                   <>
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
                         <Pie data={retentionData} cx="50%" cy="50%" innerRadius={55} outerRadius={80}
-                          dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          dataKey="value" nameKey="name"
+                          label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
                           labelLine={false}>
                           {retentionData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                         </Pie>
                         <Tooltip />
                       </PieChart>
                     </ResponsiveContainer>
-                    <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 1 }}>
-                      <Chip label={`Recurrentes: ${retention?.recurring || 0}`} size="small" sx={{ bgcolor: "#1976d222", color: "#1976d2" }} />
-                      <Chip label={`Nuevos: ${retention?.new || 0}`} size="small" sx={{ bgcolor: "#43a04722", color: "#43a047" }} />
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                      <Chip size="small" label={`Recurrentes: ${retention.recurring}`} sx={{ bgcolor: "#e3f2fd", color: "#1976d2" }} />
+                      <Chip size="small" label={`Nuevos: ${retention.new}`} sx={{ bgcolor: "#e8f5e9", color: "#43a047" }} />
                     </Box>
                   </>
                 )}
               </Paper>
             </Grid>
-            <Grid size={{ xs: 12, md: 8 }}>
-              <Paper sx={{ p: 3, borderRadius: 2, height: "100%" }}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>Ingresos por Sucursal</Typography>
-                {byBranch.length === 0 ? (
-                  <Typography color="text.secondary" align="center" sx={{ py: 4 }}>Sin datos</Typography>
-                ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={byBranch}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="branch_name" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                      <Tooltip formatter={(v) => fmtCurrency(v)} />
-                      <Bar dataKey="revenue" fill="#1976d2" radius={[4, 4, 0, 0]} name="Ingresos">
-                        {byBranch.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
-            </Grid>
           </Grid>
 
-          {/* Scatter: órdenes vs ingresos por día */}
-          <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>Dispersión: Órdenes vs Ingresos por Día</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-              Cada punto es un día. Si sigue una línea diagonal, la operación es estable.
-            </Typography>
-            {daily.length === 0 ? (
-              <Typography color="text.secondary" align="center" sx={{ py: 4 }}>Sin datos en el período</Typography>
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="orders" name="Órdenes" type="number" tick={{ fontSize: 11 }} label={{ value: "Órdenes/día", position: "insideBottom", offset: -2, fontSize: 11 }} />
-                  <YAxis dataKey="revenue" name="Ingresos" type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip cursor={{ strokeDasharray: "3 3" }}
-                    formatter={(v, name) => name === "revenue" ? fmtCurrency(v) : v}
-                    labelFormatter={() => ""} />
-                  <Scatter data={daily} fill="#1976d2" opacity={0.7} />
-                </ScatterChart>
-              </ResponsiveContainer>
-            )}
-          </Paper>
-
-          {/* Top Items + Expenses by category */}
+          {/* ── TOP SERVICIOS + GASTOS ── */}
           <Grid container spacing={3} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 6 }}>
               <Paper sx={{ p: 3, borderRadius: 2 }}>
@@ -420,8 +430,8 @@ export default function Reports() {
                       <XAxis type="number" tick={{ fontSize: 11 }} />
                       <YAxis dataKey="item_name" type="category" width={130} tick={{ fontSize: 11 }} />
                       <Tooltip />
-                      <Bar dataKey="qty" fill="#fb8c00" radius={[0, 4, 4, 0]} name="Cantidad">
-                        {topItems.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      <Bar dataKey="qty" name="Cantidad" radius={[0, 4, 4, 0]}>
+                        {topItems.map((_, i) => <Cell key={i} fill={["#1976d2","#43a047","#fb8c00","#e53935","#8e24aa","#00acc1"][i % 6]} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -432,7 +442,7 @@ export default function Reports() {
               <Paper sx={{ p: 3, borderRadius: 2 }}>
                 <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>Gastos por Categoría</Typography>
                 {expChartData.length === 0 ? (
-                  <Typography color="text.secondary" align="center" sx={{ py: 4 }}>Sin gastos registrados en el período</Typography>
+                  <Typography color="text.secondary" align="center" sx={{ py: 4 }}>Sin gastos en el período</Typography>
                 ) : (
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={expChartData} layout="vertical">
@@ -440,8 +450,8 @@ export default function Reports() {
                       <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                       <Tooltip formatter={(v) => fmtCurrency(v)} />
-                      <Bar dataKey="total" radius={[0, 4, 4, 0]} name="Gasto">
-                        {expChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      <Bar dataKey="total" name="Gasto" radius={[0, 4, 4, 0]}>
+                        {expChartData.map((_, i) => <Cell key={i} fill={["#ab47bc","#42a5f5","#66bb6a","#ffa726","#78909c"][i % 5]} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -450,7 +460,7 @@ export default function Reports() {
             </Grid>
           </Grid>
 
-          {/* Alerts */}
+          {/* ── SEMÁFORO DE ALERTAS ── */}
           <Paper sx={{ p: 3, borderRadius: 2 }}>
             <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>Semáforo de Alertas</Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -462,7 +472,7 @@ export default function Reports() {
         </>
       )}
 
-      {/* Goal Config Dialog */}
+      {/* Goal Dialog */}
       <Dialog open={goalDialog} onClose={() => setGoalDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Configurar Metas de Venta</DialogTitle>
         <DialogContent>
@@ -484,20 +494,18 @@ export default function Reports() {
               <Divider sx={{ my: 1 }} />
               <Typography variant="subtitle2" sx={{ mb: 1 }}>Meta Global (todo el negocio)</Typography>
               <TextField fullWidth label="Meta global ($)" type="number" size="small" value={goalGlobal}
-                onChange={(e) => setGoalGlobal(e.target.value)}
-                InputProps={{ startAdornment: <Typography sx={{ mr: 1 }}>$</Typography> }} />
+                onChange={(e) => setGoalGlobal(e.target.value)} />
             </Grid>
-            {branches.length > 0 && (
+            {branchArr.length > 0 && (
               <Grid size={{ xs: 12 }}>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>Meta por Sucursal</Typography>
                 <Grid container spacing={1.5}>
-                  {branches.map((b) => (
+                  {branchArr.map((b) => (
                     <Grid key={b.id} size={{ xs: 12, sm: 6 }}>
                       <TextField fullWidth label={b.name} type="number" size="small"
                         value={goalBranches[b.id] || ""}
-                        onChange={(e) => setGoalBranches((prev) => ({ ...prev, [b.id]: e.target.value }))}
-                        InputProps={{ startAdornment: <Typography sx={{ mr: 1 }}>$</Typography> }} />
+                        onChange={(e) => setGoalBranches((p) => ({ ...p, [b.id]: e.target.value }))} />
                     </Grid>
                   ))}
                 </Grid>

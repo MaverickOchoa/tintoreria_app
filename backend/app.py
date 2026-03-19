@@ -3197,6 +3197,41 @@ class ReportAlertsResource(Resource):
             return {'message': str(e)}, 500
 
 
+class ReportDailyExpensesResource(Resource):
+    @jwt_required()
+    def get(self):
+        try:
+            claims = get_jwt()
+            business_id = claims.get('business_id')
+            branch_id = request.args.get('branch_id')
+            date_from = request.args.get('date_from')
+            date_to = request.args.get('date_to')
+            if not date_from:
+                now = datetime.utcnow()
+                date_from = now.replace(day=1).strftime('%Y-%m-%d')
+            if not date_to:
+                date_to = datetime.utcnow().strftime('%Y-%m-%d')
+            q = (db.session.query(
+                    Expense.expense_date.label('day'),
+                    db.func.sum(Expense.total_cost).label('total'),
+                    db.func.sum(db.case(
+                        (Expense.category.in_(['quimicos', 'utilities']), Expense.total_cost),
+                        else_=0
+                    )).label('quimicos_utilities')
+                )
+                .filter(
+                    Expense.business_id == business_id,
+                    Expense.expense_date >= date_from,
+                    Expense.expense_date <= date_to,
+                ))
+            if branch_id:
+                q = q.filter(Expense.branch_id == int(branch_id))
+            rows = q.group_by(Expense.expense_date).order_by(Expense.expense_date).all()
+            return {'data': [{'day': str(r.day), 'total': float(r.total or 0), 'quimicos_utilities': float(r.quimicos_utilities or 0)} for r in rows]}, 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
 api.add_resource(ExpenseListResource, '/api/v1/expenses')
 api.add_resource(ExpenseResource, '/api/v1/expenses/<int:expense_id>')
 api.add_resource(GoalResource, '/api/v1/goals')
@@ -3207,6 +3242,7 @@ api.add_resource(ReportClientRetentionResource, '/api/v1/reports/client-retentio
 api.add_resource(ReportByBranchResource, '/api/v1/reports/by-branch')
 api.add_resource(ReportExpensesSummaryResource, '/api/v1/reports/expenses-summary')
 api.add_resource(ReportAlertsResource, '/api/v1/reports/alerts')
+api.add_resource(ReportDailyExpensesResource, '/api/v1/reports/daily-expenses')
 
 if __name__ == '__main__':
     with app.app_context():
