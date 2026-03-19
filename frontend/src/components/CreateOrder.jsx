@@ -414,6 +414,7 @@ export default function CreateOrder() {
               service_name: selectedService?.name ?? "",
               unit_price: parseFloat((selectedItem.price * getUrgencyMultiplier(urgency)).toFixed(2)),
               quantity: 1,
+              units: selectedItem.units || 1,
               ...cfg,
             }];
           }
@@ -669,7 +670,7 @@ export default function CreateOrder() {
                 <Typography variant="subtitle1" fontWeight="bold" mb={1} display="flex" alignItems="center" gap={1}>
                   <ShoppingCartIcon fontSize="small" />
                   Artículos
-                  <Chip label={cart.reduce((s, i) => s + i.quantity, 0)} size="small" color="primary" />
+                  <Chip label={cart.reduce((s, i) => s + i.quantity * (i.units || 1), 0)} size="small" color="primary" />
                 </Typography>
                 <Divider sx={{ mb: 1 }} />
                 <List dense disablePadding>
@@ -689,7 +690,7 @@ export default function CreateOrder() {
                               {item.defect_name && <Chip label={item.defect_name} size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}
                             </Box>
                           }
-                          secondary={`$${item.unit_price.toFixed(2)} × ${item.quantity} = $${(item.unit_price * item.quantity).toFixed(2)}`}
+                          secondary={`$${item.unit_price.toFixed(2)} × ${item.quantity}${(item.units || 1) > 1 ? ` (${item.quantity * item.units} prendas)` : ""} = $${(item.unit_price * item.quantity).toFixed(2)}`}
                         />
                         <ListItemSecondaryAction>
                           <IconButton size="small" onClick={() => updateQty(item.cartKey, -1)}><RemoveIcon sx={{ fontSize: 14 }} /></IconButton>

@@ -107,7 +107,7 @@ export default function OrderDetail() {
   const total    = parseFloat(order.total_amount || 0);
   const paid     = parseFloat(order.amount_paid || 0);
   const pending  = total - paid;
-  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.quantity) || 0), 0);
+  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) || 0), 0);
 
   const deliveryDay = order.delivery_date
     ? DAYS_ES[new Date(order.delivery_date + "T12:00:00").getDay()]
@@ -222,7 +222,7 @@ export default function OrderDetail() {
           {(order.items || []).map((item, i) => (
             <Box key={i} display="grid" sx={{ gridTemplateColumns: "1fr 60px 90px 90px", px: 2, py: 1, borderBottom: i < order.items.length - 1 ? "1px solid" : "none", borderColor: "divider", fontSize: "0.875rem" }}>
               <span>{item.product_name}{item.service_name ? <Typography component="span" variant="caption" color="text.secondary"> ({item.service_name})</Typography> : ""}</span>
-              <span style={{ textAlign: "center" }}>{item.quantity}</span>
+              <span style={{ textAlign: "center" }}>{item.quantity}{(item.units || 1) > 1 ? <Typography component="span" variant="caption" color="text.secondary"> ({item.total_pieces || item.quantity * item.units} pzas)</Typography> : ""}</span>
               <span style={{ textAlign: "right" }}>${parseFloat(item.unit_price || 0).toFixed(2)}</span>
               <span style={{ textAlign: "right" }}>${parseFloat(item.line_total || 0).toFixed(2)}</span>
             </Box>
