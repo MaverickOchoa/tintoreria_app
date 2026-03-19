@@ -19,6 +19,7 @@ export default function EditItemBusiness() {
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [units, setUnits] = useState(1);
   const [categoryId, setCategoryId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -41,6 +42,7 @@ export default function EditItemBusiness() {
       .then(([itemData, overrideData]) => {
         const item = itemData.item || itemData;
         setName(toTitleCase(item.name || ""));
+        setUnits(item.units || 1);
         // Use branch override price if it exists, otherwise global price
         const overridePrice = overrideData?.price;
         setPrice(String(overridePrice !== null && overridePrice !== undefined ? overridePrice : (item.price ?? "")));
@@ -61,7 +63,7 @@ export default function EditItemBusiness() {
       const resName = await fetch(`${API}/items/${itemId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: toTitleCase(name.trim()) }),
+        body: JSON.stringify({ name: toTitleCase(name.trim()), units: parseInt(units) || 1 }),
       });
       if (!resName.ok) {
         const d = await resName.json().catch(() => ({}));
@@ -130,6 +132,17 @@ export default function EditItemBusiness() {
                   </InputAdornment>
                 ),
               }}
+            />
+
+            <TextField
+              fullWidth
+              label="Número de prendas por unidad"
+              type="number"
+              inputProps={{ min: 1, step: 1 }}
+              value={units}
+              onChange={e => setUnits(e.target.value)}
+              disabled={saving}
+              helperText="Ej: 2 para traje 2 piezas, 3 para traje 3 piezas"
             />
 
             <Box display="flex" gap={2}>

@@ -64,6 +64,7 @@ export default function CreateItemBusiness() {
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [units, setUnits] = useState(1);
   const [isActive, setIsActive] = useState(true);
 
   // ✅ Mostrar nombre de categoría
@@ -140,6 +141,7 @@ export default function CreateItemBusiness() {
     const payload = {
       name: toTitleCase(name.trim()),
       price: parseFloat(price),
+      units: parseInt(units) || 1,
       is_active: isActive,
       business_id: claims.business_id || undefined,
     };
@@ -291,6 +293,17 @@ export default function CreateItemBusiness() {
                     </InputAdornment>
                   ),
                 }}
+              />
+
+              <TextField
+                fullWidth
+                label="Número de prendas por unidad"
+                type="number"
+                inputProps={{ min: 1, step: 1 }}
+                value={units}
+                onChange={(e) => setUnits(e.target.value)}
+                disabled={isSubmitting}
+                helperText="Ej: 2 para traje 2 piezas, 3 para traje 3 piezas, 1 para artículos simples"
               />
 
               <FormControlLabel
