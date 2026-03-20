@@ -673,8 +673,10 @@ class OrderItem(db.Model):
         service_name = None
         if self.product_service and self.product_service.category and self.product_service.category.service:
             service_name = self.product_service.category.service.name
+        units = self.product_service.units if self.product_service else 1
         return {'id': self.id, 'order_id': self.order_id, 'product_service_id': self.product_service_id,
                 'product_name': product_name, 'service_name': service_name, 'quantity': self.quantity,
+                'units': units, 'total_pieces': self.quantity * (units or 1),
                 'unit_price': str(self.unit_price), 'line_total': str(self.line_total)}
 
 class OrderGarmentTicket(db.Model):
@@ -3057,7 +3059,8 @@ class ReportTopItemsResource(Resource):
             result = []
             for row in rows:
                 item = Item.query.get(row.product_service_id)
-                result.append({'item_id': row.product_service_id, 'item_name': item.name if item else str(row.product_service_id), 'qty': int(row.qty or 0)})
+                units = item.units if item else 1
+                result.append({'item_id': row.product_service_id, 'item_name': item.name if item else str(row.product_service_id), 'qty': int(row.qty or 0), 'pieces': int(row.qty or 0) * (units or 1)})
             return {'data': result}, 200
         except Exception as e:
             return {'message': str(e)}, 500
