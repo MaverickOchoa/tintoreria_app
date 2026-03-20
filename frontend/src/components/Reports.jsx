@@ -419,17 +419,17 @@ export default function Reports() {
                       <Grid item xs={12} sm={5}>
                         <SectionTitle>Nuevos vs Recurrentes</SectionTitle>
                         {clientsData.new_clients + clientsData.returning_clients > 0 ? (
-                          <ResponsiveContainer width="100%" height={240}>
-                            <PieChart>
+                          <ResponsiveContainer width="100%" height={300}>
+                            <PieChart margin={{ top: 0, right: 20, bottom: 20, left: 20 }}>
                               <Pie data={[
                                 { name: "Recurrentes", value: clientsData.returning_clients },
                                 { name: "Nuevos", value: clientsData.new_clients },
-                              ]} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={4} dataKey="value">
+                              ]} cx="50%" cy="45%" innerRadius={65} outerRadius={100} paddingAngle={4} dataKey="value">
                                 <Cell fill="#1976d2" />
                                 <Cell fill="#43a047" />
                               </Pie>
                               <Tooltip formatter={v => fmtNum(v)} />
-                              <Legend />
+                              <Legend verticalAlign="bottom" height={36} />
                             </PieChart>
                           </ResponsiveContainer>
                         ) : <EmptyState />}

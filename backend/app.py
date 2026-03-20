@@ -3096,13 +3096,27 @@ class ReportTopItemsResource(Resource):
                 .filter(Branch.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to))
             if branch_id:
                 q = q.filter(Order.branch_id == int(branch_id))
-            rows = q.group_by(OrderItem.product_service_id).order_by(db.func.sum(OrderItem.quantity).desc()).limit(10).all()
+            rows = q.group_by(OrderItem.product_service_id).order_by(db.func.sum(OrderItem.quantity).desc()).limit(20).all()
             result = []
             for row in rows:
                 item = Item.query.get(row.product_service_id)
                 units = item.units if item else 1
-                result.append({'item_id': row.product_service_id, 'item_name': item.name if item else str(row.product_service_id), 'qty': int(row.qty or 0), 'pieces': int(row.qty or 0) * (units or 1)})
-            return {'data': result}, 200
+                total_qty = int(row.qty or 0)
+                total_pieces = total_qty * (units or 1)
+                rev_row = db.session.query(db.func.sum(OrderItem.subtotal)).filter(
+                    OrderItem.product_service_id == row.product_service_id,
+                    OrderItem.order_id.in_(
+                        db.session.query(Order.id).join(Branch, Branch.id == Order.branch_id)
+                        .filter(Branch.business_id == business_id, Order.order_date >= dt_from, Order.order_date <= dt_to)
+                    )
+                ).scalar() or 0
+                result.append({
+                    'item_id': row.product_service_id,
+                    'item_name': item.name if item else str(row.product_service_id),
+                    'total_qty': total_pieces,
+                    'total_revenue': float(rev_row),
+                })
+            return result, 200
         except Exception as e:
             return {'message': str(e)}, 500
 
@@ -3350,7 +3364,7 @@ class ReportOverviewResource(Resource):
                 itm = Item.query.get(top_row.product_service_id)
                 top_service = itm.name if itm else None
 
-            funnel_statuses = ['Creada', 'En proceso', 'En produccion', 'Listo para posicionar', 'Listo', 'Entregada']
+            funnel_statuses = ['Creada', 'En proceso', 'En produccion', 'Listo para posicionar', 'Listo', 'Entregado']
             funnel = []
             base_q = Order.query.join(Branch, Branch.id == Order.branch_id).filter(Branch.business_id == business_id)
             for st in funnel_statuses:
@@ -3358,7 +3372,7 @@ class ReportOverviewResource(Resource):
                 if cnt > 0:
                     funnel.append({'name': st, 'value': cnt})
 
-            delivered = _b(base_q.filter(Order.status == 'Entregada')).count()
+            delivered = _b(base_q.filter(Order.status == 'Entregado')).count()
             in_process = _b(base_q.filter(Order.status.in_(['En proceso', 'En produccion', 'Listo para posicionar']))).count()
             ready = _b(base_q.filter(Order.status == 'Listo')).count()
             total_orders_count = _b(base_q).count()
@@ -3438,8 +3452,9 @@ class ReportReceivableResource(Resource):
                 '+30 días': sum(r['balance'] for r in result if r['days_old'] > 30),
             }
             partial_orders = sum(1 for r in result if r['amount_paid'] > 0)
-            paid_on_receive = sum(1 for o in orders if float(o.amount_paid) >= float(o.total_amount))
-            pct = round(paid_on_receive / len(orders) * 100, 1) if orders else 0
+            total_all = db.session.query(db.func.count(Order.id)).join(Branch, Branch.id == Order.branch_id).filter(Branch.business_id == business_id).scalar() or 1
+            total_paid = db.session.query(db.func.count(Order.id)).join(Branch, Branch.id == Order.branch_id).filter(Branch.business_id == business_id, Order.payment_status == 'paid').scalar() or 0
+            pct = round(total_paid / total_all * 100, 1)
             return {
                 'total_pending': total, 'pending_orders': len(result),
                 'partial_orders': partial_orders, 'pct_paid_on_receive': pct,
