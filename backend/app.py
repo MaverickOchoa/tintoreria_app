@@ -1203,6 +1203,30 @@ class BranchConfigResource(Resource):
         cfg['branch_id'] = branch_id
         return cfg, 200
 
+class BranchScanConfigResource(Resource):
+    @jwt_required()
+    def get(self, branch_id):
+        claims = get_jwt()
+        branch = Branch.query.get_or_404(branch_id)
+        if not claims.get('is_super_admin') and claims.get('business_id') != branch.business_id:
+            return {"message": "Permiso denegado"}, 403
+        db.session.refresh(branch)
+        val = branch.require_scan
+        return {"require_scan": bool(val) if val is not None else True, "branch_id": branch_id}, 200
+
+    @jwt_required()
+    def put(self, branch_id):
+        claims = get_jwt()
+        branch = Branch.query.get_or_404(branch_id)
+        if not claims.get('is_super_admin') and claims.get('business_id') != branch.business_id:
+            return {"message": "Permiso denegado"}, 403
+        data = request.get_json() or {}
+        new_val = data.get('require_scan')
+        branch.require_scan = bool(new_val) if new_val is not None else True
+        db.session.commit()
+        db.session.refresh(branch)
+        return {"require_scan": bool(branch.require_scan), "branch_id": branch_id}, 200
+
 class BranchFolioResource(Resource):
     @jwt_required()
     def put(self, branch_id):
@@ -2605,6 +2629,7 @@ api.add_resource(BusinessToggleResource, '/businesses/<int:business_id>/toggle')
 api.add_resource(BranchToggleResource, '/branches/<int:branch_id>/toggle')
 api.add_resource(BranchFolioResource, '/branches/<int:branch_id>/folio')
 api.add_resource(BranchConfigResource, '/branches/<int:branch_id>/config')
+api.add_resource(BranchScanConfigResource, '/branches/<int:branch_id>/scan-config')
 api.add_resource(BusinessConfigResource, '/businesses/<int:business_id>/config')
 api.add_resource(ClientListResource, '/api/v1/clients')
 api.add_resource(ClientResource, '/api/v1/clients/<int:client_id>')

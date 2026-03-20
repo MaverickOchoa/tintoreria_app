@@ -114,17 +114,17 @@ export default function BusinessAdminDashboard() {
         });
         setFolioEdits(edits);
         list.forEach(b => {
-          fetch(`${API}/branches/${b.id}/config`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-            .then(r => r.json())
-            .then(cfg => {
+          Promise.all([
+            fetch(`${API}/branches/${b.id}/config`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+            fetch(`${API}/branches/${b.id}/scan-config`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+          ])
+            .then(([cfg, scanCfg]) => {
               setBranchConfigs(prev => ({
                 ...prev,
                 [b.id]: {
                   ...DEFAULT_BRANCH_CONFIG,
                   ...cfg,
-                  require_scan: cfg.require_scan !== undefined ? Boolean(cfg.require_scan) : true,
+                  require_scan: scanCfg.require_scan !== undefined ? Boolean(scanCfg.require_scan) : true,
                 },
               }));
             })
@@ -174,41 +174,50 @@ export default function BusinessAdminDashboard() {
     setBranchConfigMsg(p => ({ ...p, [branchId]: null }));
     const cfg = branchConfigs[branchId] || DEFAULT_BRANCH_CONFIG;
     try {
-      const res = await fetch(`${API}/branches/${branchId}/config`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          uses_iva: cfg.uses_iva,
-          payment_cash: cfg.payment_cash,
-          payment_card: cfg.payment_card,
-          payment_points: cfg.payment_points,
-          allow_deferred: cfg.allow_deferred,
-          points_per_peso: cfg.points_per_peso,
-          peso_per_point: cfg.peso_per_point,
-          discount_enabled: cfg.discount_enabled,
-          max_discount_pct: cfg.max_discount_pct,
-          normal_days: cfg.normal_days,
-          urgent_days: cfg.urgent_days,
-          extra_urgent_days: cfg.extra_urgent_days,
-          urgent_pct: cfg.urgent_pct,
-          extra_urgent_pct: cfg.extra_urgent_pct,
-          carousel_format_hint: cfg.carousel_format_hint,
-          require_scan: cfg.require_scan,
+      const [res1, res2] = await Promise.all([
+        fetch(`${API}/branches/${branchId}/config`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            uses_iva: cfg.uses_iva,
+            payment_cash: cfg.payment_cash,
+            payment_card: cfg.payment_card,
+            payment_points: cfg.payment_points,
+            allow_deferred: cfg.allow_deferred,
+            points_per_peso: cfg.points_per_peso,
+            peso_per_point: cfg.peso_per_point,
+            discount_enabled: cfg.discount_enabled,
+            max_discount_pct: cfg.max_discount_pct,
+            normal_days: cfg.normal_days,
+            urgent_days: cfg.urgent_days,
+            extra_urgent_days: cfg.extra_urgent_days,
+            urgent_pct: cfg.urgent_pct,
+            extra_urgent_pct: cfg.extra_urgent_pct,
+            carousel_format_hint: cfg.carousel_format_hint,
+            require_scan: cfg.require_scan,
+          }),
         }),
-      });
-      const data = await res.json();
-      if (res.ok) {
+        fetch(`${API}/branches/${branchId}/scan-config`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ require_scan: Boolean(cfg.require_scan) }),
+        }),
+      ]);
+      const data = await res1.json().catch(() => ({}));
+      const scanData = await res2.json().catch(() => ({}));
+      if (res1.ok && res2.ok) {
         setBranchConfigMsg(p => ({ ...p, [branchId]: { type: "success", text: "Configuración guardada" } }));
         setBranchConfigs(prev => ({
           ...prev,
           [branchId]: {
             ...DEFAULT_BRANCH_CONFIG,
             ...data,
-            require_scan: data.require_scan !== undefined ? Boolean(data.require_scan) : true,
+            require_scan: scanData.require_scan !== undefined ? Boolean(scanData.require_scan) : Boolean(cfg.require_scan),
           },
         }));
       } else {
-        setBranchConfigMsg(p => ({ ...p, [branchId]: { type: "error", text: data.message || "Error al guardar" } }));
+        const errMsg = (!res1.ok ? (data.message || "Error config") : "") + (!res2.ok ? (scanData.message || " Error escaneo") : "");
+        setBranchConfigMsg(p => ({ ...p, [branchId]: { type: "error", text: errMsg || "Error al guardar" } }));
       }
     } catch {
       setBranchConfigMsg(p => ({ ...p, [branchId]: { type: "error", text: "Error de conexión" } }));

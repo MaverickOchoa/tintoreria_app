@@ -54,8 +54,15 @@ export default function ProductionView() {
         headers: { Authorization: `Bearer ${token}` },
       }).then(r => r.json()).then(d => {
         if (d.carousel_format_hint) setCarouselHint(d.carousel_format_hint);
-        setRequireScan(d.require_scan !== undefined ? d.require_scan : true);
       }).catch(() => {});
+
+      fetch(`${API}/branches/${branchId}/scan-config`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.json()).then(d => {
+        setRequireScan(d.require_scan !== false);
+      }).catch(() => {
+        setRequireScan(true);
+      });
     }
   }, []);
 
