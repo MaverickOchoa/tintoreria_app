@@ -519,7 +519,7 @@ export default function BusinessAdminDashboard() {
               />
             </Grid>
             <Grid item xs={12}>
-              {jwtRole === "business_admin" && (
+              {claims.role !== "branch_manager" && (
                 <>
                   <FormControlLabel
                     control={<Switch checked={requireScan} onChange={e => setRequireScan(e.target.checked)} color="primary" />}
