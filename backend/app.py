@@ -3103,7 +3103,7 @@ class ReportTopItemsResource(Resource):
                 units = item.units if item else 1
                 total_qty = int(row.qty or 0)
                 total_pieces = total_qty * (units or 1)
-                rev_row = db.session.query(db.func.sum(OrderItem.subtotal)).filter(
+                rev_row = db.session.query(db.func.sum(OrderItem.line_total)).filter(
                     OrderItem.product_service_id == row.product_service_id,
                     OrderItem.order_id.in_(
                         db.session.query(Order.id).join(Branch, Branch.id == Order.branch_id)
@@ -3364,7 +3364,7 @@ class ReportOverviewResource(Resource):
                 itm = Item.query.get(top_row.product_service_id)
                 top_service = itm.name if itm else None
 
-            funnel_statuses = ['Creada', 'En proceso', 'En produccion', 'Listo para posicionar', 'Listo', 'Entregado']
+            funnel_statuses = ['Creada', 'En proceso', 'En Producción', 'Listo para posicionar', 'Listo', 'Entregado']
             funnel = []
             base_q = Order.query.join(Branch, Branch.id == Order.branch_id).filter(Branch.business_id == business_id)
             for st in funnel_statuses:
@@ -3373,7 +3373,7 @@ class ReportOverviewResource(Resource):
                     funnel.append({'name': st, 'value': cnt})
 
             delivered = _b(base_q.filter(Order.status == 'Entregado')).count()
-            in_process = _b(base_q.filter(Order.status.in_(['En proceso', 'En produccion', 'Listo para posicionar']))).count()
+            in_process = _b(base_q.filter(Order.status.in_(['En proceso', 'En Producción', 'Listo para posicionar']))).count()
             ready = _b(base_q.filter(Order.status == 'Listo')).count()
             total_orders_count = _b(base_q).count()
 

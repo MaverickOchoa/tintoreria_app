@@ -416,25 +416,25 @@ export default function Reports() {
                     </Grid>
 
                     <Grid container spacing={3} sx={{ mb: 4 }}>
-                      <Grid item xs={12} sm={5}>
+                      <Grid item xs={12} md={6}>
                         <SectionTitle>Nuevos vs Recurrentes</SectionTitle>
                         {clientsData.new_clients + clientsData.returning_clients > 0 ? (
-                          <ResponsiveContainer width="100%" height={300}>
-                            <PieChart margin={{ top: 0, right: 20, bottom: 20, left: 20 }}>
+                          <ResponsiveContainer width="100%" height={340}>
+                            <PieChart>
                               <Pie data={[
                                 { name: "Recurrentes", value: clientsData.returning_clients },
                                 { name: "Nuevos", value: clientsData.new_clients },
-                              ]} cx="50%" cy="45%" innerRadius={65} outerRadius={100} paddingAngle={4} dataKey="value">
+                              ]} cx="50%" cy="42%" innerRadius={80} outerRadius={120} paddingAngle={4} dataKey="value">
                                 <Cell fill="#1976d2" />
                                 <Cell fill="#43a047" />
                               </Pie>
                               <Tooltip formatter={v => fmtNum(v)} />
-                              <Legend verticalAlign="bottom" height={36} />
+                              <Legend verticalAlign="bottom" height={40} />
                             </PieChart>
                           </ResponsiveContainer>
                         ) : <EmptyState />}
                       </Grid>
-                      <Grid item xs={12} sm={7}>
+                      <Grid item xs={12} md={6}>
                         <SectionTitle>Top clientes por gasto</SectionTitle>
                         {clientsData.top_clients && clientsData.top_clients.length > 0 ? (
                           <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid #e0e0e0", borderRadius: 2 }}>
