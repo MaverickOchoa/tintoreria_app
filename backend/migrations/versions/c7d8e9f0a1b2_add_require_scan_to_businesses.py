@@ -1,15 +1,15 @@
 """add require_scan to businesses
 
-Revision ID: a1b2c3d4e5f6
-Revises: ff0bf9f178fd
+Revision ID: c7d8e9f0a1b2
+Revises: 56493a8df0dc
 Create Date: 2026-03-19
 
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'a1b2c3d4e5f6'
-down_revision = 'ff0bf9f178fd'
+revision = 'c7d8e9f0a1b2'
+down_revision = '56493a8df0dc'
 branch_labels = None
 depends_on = None
 
