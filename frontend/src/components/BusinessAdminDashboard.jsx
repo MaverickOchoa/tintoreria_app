@@ -29,6 +29,15 @@ export default function BusinessAdminDashboard() {
   const navigate = useNavigate();
   const token = localStorage.getItem("access_token");
   const claims = JSON.parse(localStorage.getItem("user_claims") || "{}");
+  const getJwtRole = () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.role || null;
+    } catch { return null; }
+  };
+  const jwtRole = getJwtRole() || claims.role;
   const activeBranchId = claims.active_branch_id || claims.branch_id || localStorage.getItem("branch_id");
 
   const [branches, setBranches] = useState([]);
@@ -204,19 +213,24 @@ export default function BusinessAdminDashboard() {
   const handleSaveUrgency = async () => {
     setSavingUrgency(true); setUrgencyMsg(null);
     try {
-      const [resUrgency, resScan] = await Promise.all([
+      const requests = [
         fetch(`${API}/branches/${activeBranchId}/config`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ ...urgencyConfig, ...discountConfig, carousel_format_hint: carouselHint }),
         }),
-        fetch(`${API}/businesses/${claims.business_id}/config`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ require_scan: requireScan }),
-        }),
-      ]);
-      if (resUrgency.ok && resScan.ok) setUrgencyMsg({ type: "success", text: "Configuración guardada" });
+      ];
+      if (jwtRole === "business_admin") {
+        requests.push(
+          fetch(`${API}/businesses/${claims.business_id}/config`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ require_scan: requireScan }),
+          })
+        );
+      }
+      const results = await Promise.all(requests);
+      if (results.every(r => r.ok)) setUrgencyMsg({ type: "success", text: "Configuración guardada" });
       else setUrgencyMsg({ type: "error", text: "Error al guardar" });
     } catch { setUrgencyMsg({ type: "error", text: "Error de conexión" }); }
     finally { setSavingUrgency(false); }
@@ -505,7 +519,7 @@ export default function BusinessAdminDashboard() {
               />
             </Grid>
             <Grid item xs={12}>
-              {claims.role === "business_admin" && (
+              {jwtRole === "business_admin" && (
                 <>
                   <FormControlLabel
                     control={<Switch checked={requireScan} onChange={e => setRequireScan(e.target.checked)} color="primary" />}
