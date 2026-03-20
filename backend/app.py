@@ -2467,8 +2467,10 @@ class LoginResource(Resource):
             if admin.is_super_admin:
                 role = "super_admin"
             elif admin.business_id:
-                primary = Admin.query.filter_by(business_id=admin.business_id).order_by(Admin.id).first()
-                role = "business_admin" if (primary and primary.id == admin.id) else "branch_manager"
+                if admin.branch_id:
+                    role = "branch_manager"
+                else:
+                    role = "business_admin"
             else:
                 role = "business_admin"
             token = create_access_token(identity=str(admin.id), additional_claims={
