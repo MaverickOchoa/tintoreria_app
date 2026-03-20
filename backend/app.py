@@ -319,6 +319,7 @@ class Branch(db.Model):
     urgent_pct = db.Column(db.Float, nullable=True)
     extra_urgent_pct = db.Column(db.Float, nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    require_scan = db.Column(db.Boolean, nullable=True)
     users = db.relationship('Admin', back_populates='branch', lazy=True)
 
     def get_config(self):
@@ -340,6 +341,7 @@ class Branch(db.Model):
             'extra_urgent_days': cv(self.extra_urgent_days, biz.extra_urgent_days if biz else 0),
             'urgent_pct': cv(self.urgent_pct, biz.urgent_pct if biz else 20.0),
             'extra_urgent_pct': cv(self.extra_urgent_pct, biz.extra_urgent_pct if biz else 50.0),
+            'require_scan': cv(self.require_scan, biz.require_scan if biz else True),
         }
 
     def to_dict(self):
@@ -1183,7 +1185,7 @@ class BranchConfigResource(Resource):
             return {"message": "Sin permiso"}, 403
         data = request.get_json() or {}
         bool_fields = ['uses_iva', 'payment_cash', 'payment_card', 'payment_points',
-                       'allow_deferred', 'discount_enabled']
+                       'allow_deferred', 'discount_enabled', 'require_scan']
         float_fields = ['points_per_peso', 'peso_per_point', 'max_discount_pct',
                         'urgent_pct', 'extra_urgent_pct']
         int_fields = ['normal_days', 'urgent_days', 'extra_urgent_days']
@@ -2310,8 +2312,9 @@ class OrderAssignCarouselResource(Resource):
         if not claims.get('is_super_admin') and order.branch.business_id != claims.get('business_id'):
             return {"message": "Acceso denegado"}, 403
         tickets = OrderGarmentTicket.query.filter_by(order_id=order_id).all()
-        business = order.branch.owner_business if order.branch else None
-        require_scan = business.require_scan if business and business.require_scan is not None else True
+        branch = order.branch
+        branch_cfg = branch.get_config() if branch else {}
+        require_scan = branch_cfg.get('require_scan', True)
         if require_scan and tickets and not all(t.scanned for t in tickets):
             return {"message": "Debes escanear todas las prendas antes de asignar posición"}, 400
         data = request.get_json()

@@ -106,15 +106,6 @@ export default function BusinessAdminDashboard() {
       })
       .catch(console.error);
 
-    fetch(`${API}/businesses/${claims.business_id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(d => {
-        setRequireScan(d.require_scan !== undefined ? d.require_scan : true);
-      })
-      .catch(console.error);
-
     const branchId = activeBranchId;
     if (!branchId) return;
     fetch(`${API}/branches/${branchId}/config`, {
@@ -138,6 +129,7 @@ export default function BusinessAdminDashboard() {
           urgent_pct: d.urgent_pct ?? 20,
           extra_urgent_pct: d.extra_urgent_pct ?? 50,
         });
+        setRequireScan(d.require_scan !== undefined ? d.require_scan : true);
         setDiscountConfig({
           discount_enabled: d.discount_enabled ?? true,
           max_discount_pct: d.max_discount_pct ?? 50,
@@ -225,18 +217,9 @@ export default function BusinessAdminDashboard() {
         fetch(`${API}/branches/${activeBranchId}/config`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ ...urgencyConfig, ...discountConfig, carousel_format_hint: carouselHint }),
+          body: JSON.stringify({ ...urgencyConfig, ...discountConfig, carousel_format_hint: carouselHint, require_scan: requireScan }),
         }),
       ];
-      if (jwtRole === "business_admin") {
-        requests.push(
-          fetch(`${API}/businesses/${claims.business_id}/config`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ require_scan: requireScan }),
-          })
-        );
-      }
       const results = await Promise.all(requests);
       if (results.every(r => r.ok)) setUrgencyMsg({ type: "success", text: "Configuración guardada" });
       else setUrgencyMsg({ type: "error", text: "Error al guardar" });

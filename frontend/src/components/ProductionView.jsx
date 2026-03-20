@@ -48,8 +48,9 @@ export default function ProductionView() {
 
   useEffect(() => {
     if (folioRef.current) folioRef.current.focus();
-    if (claims.business_id) {
-      fetch(`${API}/businesses/${claims.business_id}`, {
+    const branchId = claims.active_branch_id || claims.branch_id;
+    if (branchId) {
+      fetch(`${API}/branches/${branchId}/config`, {
         headers: { Authorization: `Bearer ${token}` },
       }).then(r => r.json()).then(d => {
         if (d.carousel_format_hint) setCarouselHint(d.carousel_format_hint);
