@@ -15,7 +15,8 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('branches', sa.Column('require_scan', sa.Boolean(), nullable=True))
+    op.add_column('branches', sa.Column('require_scan', sa.Boolean(), nullable=False, server_default=sa.true()))
+    op.execute("UPDATE branches SET require_scan = TRUE WHERE require_scan IS NULL")
 
 
 def downgrade():

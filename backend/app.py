@@ -341,7 +341,7 @@ class Branch(db.Model):
             'extra_urgent_days': cv(self.extra_urgent_days, biz.extra_urgent_days if biz else 0),
             'urgent_pct': cv(self.urgent_pct, biz.urgent_pct if biz else 20.0),
             'extra_urgent_pct': cv(self.extra_urgent_pct, biz.extra_urgent_pct if biz else 50.0),
-            'require_scan': cv(self.require_scan, biz.require_scan if biz else True),
+            'require_scan': self.require_scan if self.require_scan is not None else True,
         }
 
     def to_dict(self):
