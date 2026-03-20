@@ -48,6 +48,7 @@ export default function BusinessAdminDashboard() {
   const [urgencyConfig, setUrgencyConfig] = useState({ normal_days: 3, urgent_days: 1, extra_urgent_days: 0, urgent_pct: 20, extra_urgent_pct: 50 });
   const [discountConfig, setDiscountConfig] = useState({ discount_enabled: true, max_discount_pct: 50 });
   const [carouselHint, setCarouselHint] = useState("");
+  const [requireScan, setRequireScan] = useState(true);
   const [savingUrgency, setSavingUrgency] = useState(false);
   const [urgencyMsg, setUrgencyMsg] = useState(null);
 
@@ -124,6 +125,7 @@ export default function BusinessAdminDashboard() {
           max_discount_pct: d.max_discount_pct ?? 50,
         });
         if (d.carousel_format_hint) setCarouselHint(d.carousel_format_hint);
+        setRequireScan(d.require_scan !== undefined ? d.require_scan : true);
       })
       .catch(console.error);
   }, []);
@@ -202,12 +204,19 @@ export default function BusinessAdminDashboard() {
   const handleSaveUrgency = async () => {
     setSavingUrgency(true); setUrgencyMsg(null);
     try {
-      const res = await fetch(`${API}/branches/${activeBranchId}/config`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...urgencyConfig, ...discountConfig, carousel_format_hint: carouselHint }),
-      });
-      if (res.ok) setUrgencyMsg({ type: "success", text: "Configuración guardada" });
+      const [resUrgency, resScan] = await Promise.all([
+        fetch(`${API}/branches/${activeBranchId}/config`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ ...urgencyConfig, ...discountConfig, carousel_format_hint: carouselHint }),
+        }),
+        fetch(`${API}/businesses/${claims.business_id}/config`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ require_scan: requireScan }),
+        }),
+      ]);
+      if (resUrgency.ok && resScan.ok) setUrgencyMsg({ type: "success", text: "Configuración guardada" });
       else setUrgencyMsg({ type: "error", text: "Error al guardar" });
     } catch { setUrgencyMsg({ type: "error", text: "Error de conexión" }); }
     finally { setSavingUrgency(false); }
@@ -494,6 +503,17 @@ export default function BusinessAdminDashboard() {
                 placeholder="Ej. A-01, 105, B-07..."
                 helperText="Muestra el formato esperado al asignar posición en Producción"
               />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={<Switch checked={requireScan} onChange={e => setRequireScan(e.target.checked)} color="primary" />}
+                label={requireScan ? "Escaneo de prendas requerido (activado)" : "Escaneo de prendas desactivado — botón Listo directo"}
+              />
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 6.5, mt: -0.5 }}>
+                {requireScan
+                  ? "Se deben escanear todas las prendas antes de marcar como Listo y asignar posición."
+                  : "El operador puede marcar la orden como Lista directamente sin escanear tickets."}
+              </Typography>
             </Grid>
           </Grid>
           <Box mt={2}>

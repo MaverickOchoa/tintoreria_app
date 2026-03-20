@@ -185,6 +185,8 @@ class Business(db.Model):
     discount_enabled = db.Column(db.Boolean, nullable=False, default=True)
     max_discount_pct = db.Column(db.Float, nullable=False, default=50.0)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    # Production settings
+    require_scan = db.Column(db.Boolean, nullable=False, default=True)
     # Urgency settings
     normal_days = db.Column(db.Integer, nullable=False, default=3)
     urgent_days = db.Column(db.Integer, nullable=False, default=1)
@@ -209,6 +211,7 @@ class Business(db.Model):
             'payment_points': self.payment_points, 'allow_deferred': self.allow_deferred,
             'points_per_peso': self.points_per_peso, 'peso_per_point': self.peso_per_point,
             'discount_enabled': self.discount_enabled, 'max_discount_pct': self.max_discount_pct,
+            'require_scan': self.require_scan if self.require_scan is not None else True,
             'normal_days': self.normal_days, 'urgent_days': self.urgent_days,
             'extra_urgent_days': self.extra_urgent_days,
             'urgent_pct': self.urgent_pct, 'extra_urgent_pct': self.extra_urgent_pct,
@@ -1006,6 +1009,8 @@ class BusinessConfigResource(Resource):
             business.extra_urgent_pct = max(0, float(data["extra_urgent_pct"]))
         if "carousel_format_hint" in data:
             business.carousel_format_hint = data["carousel_format_hint"]
+        if "require_scan" in data:
+            business.require_scan = bool(data["require_scan"])
         for f in ("portal_primary_color", "portal_bg_color", "portal_slogan", "portal_logo_url"):
             if f in data:
                 setattr(business, f, data[f])
@@ -2305,7 +2310,9 @@ class OrderAssignCarouselResource(Resource):
         if not claims.get('is_super_admin') and order.branch.business_id != claims.get('business_id'):
             return {"message": "Acceso denegado"}, 403
         tickets = OrderGarmentTicket.query.filter_by(order_id=order_id).all()
-        if tickets and not all(t.scanned for t in tickets):
+        business = order.branch.owner_business if order.branch else None
+        require_scan = business.require_scan if business and business.require_scan is not None else True
+        if require_scan and tickets and not all(t.scanned for t in tickets):
             return {"message": "Debes escanear todas las prendas antes de asignar posición"}, 400
         data = request.get_json()
         carousel_position = data.get('carousel_position', '').strip()

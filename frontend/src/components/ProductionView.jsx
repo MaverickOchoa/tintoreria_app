@@ -39,6 +39,7 @@ export default function ProductionView() {
 
   const [carouselInput, setCarouselInput] = useState("");
   const [carouselHint, setCarouselHint] = useState("");
+  const [requireScan, setRequireScan] = useState(true);
   const [assigningCarousel, setAssigningCarousel] = useState(false);
   const [carouselMsg, setCarouselMsg] = useState(null);
 
@@ -52,6 +53,7 @@ export default function ProductionView() {
         headers: { Authorization: `Bearer ${token}` },
       }).then(r => r.json()).then(d => {
         if (d.carousel_format_hint) setCarouselHint(d.carousel_format_hint);
+        setRequireScan(d.require_scan !== undefined ? d.require_scan : true);
       }).catch(() => {});
     }
   }, []);
@@ -257,140 +259,187 @@ export default function ProductionView() {
 
           {/* SCAN PANEL */}
           <Paper elevation={2} sx={{ p: 3, borderRadius: 3, flex: 1, minWidth: 300 }}>
-            <Typography variant="subtitle1" fontWeight={700} mb={2}>
-              Escaneo de prendas
-            </Typography>
-
-            <Box display="flex" gap={1} mb={2}>
-              <TextField
-                inputRef={ticketRef}
-                size="small"
-                placeholder="Escanear o ingresar código de ticket..."
-                value={ticketInput}
-                onChange={e => setTicketInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") scanTicket(); }}
-                fullWidth
-                disabled={order.status === "Listo" || order.status === "Entregado"}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <QrCodeScannerIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Button
-                variant="contained"
-                onClick={scanTicket}
-                disabled={scanning || !ticketInput.trim() || order.status === "Listo" || order.status === "Entregado"}
-              >
-                {scanning ? <CircularProgress size={16} /> : "OK"}
-              </Button>
-            </Box>
-
-            {scanError && (
-              <Alert severity="error" icon={<WarningAmberIcon />} sx={{ mb: 1 }} onClose={() => setScanError(null)}>
-                {scanError}
-              </Alert>
-            )}
-            {scanSuccess && (
-              <Alert severity="success" sx={{ mb: 1 }} onClose={() => setScanSuccess(null)}>
-                {scanSuccess}
-              </Alert>
-            )}
-
-            <Box mb={2}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
-                <Typography variant="body2" color="text.secondary">
-                  Progreso: {scannedCount} / {totalCount} prendas
-                </Typography>
-                <Typography variant="body2" fontWeight={600} color={allScanned ? "success.main" : "text.secondary"}>
-                  {totalCount > 0 ? Math.round((scannedCount / totalCount) * 100) : 0}%
-                </Typography>
-              </Box>
-              <LinearProgress
-                variant="determinate"
-                value={totalCount > 0 ? (scannedCount / totalCount) * 100 : 0}
-                color={allScanned ? "success" : "primary"}
-                sx={{ height: 8, borderRadius: 4 }}
-              />
-            </Box>
-
-<TableContainer sx={{ overflowX: "auto" }}>
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Prenda</TableCell>
-                    <TableCell>Código</TableCell>
-                    <TableCell align="center">Estado</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {tickets.map(t => (
-                    <TableRow
-                      key={t.id}
-                      sx={{ bgcolor: t.scanned ? "success.50" : "inherit" }}
-                    >
-                      <TableCell>{t.quantity_index}</TableCell>
-                      <TableCell>{t.item_name}</TableCell>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: "11px" }}>{t.ticket_code}</TableCell>
-                      <TableCell align="center">
-                        {t.scanned
-                          ? <CheckCircleIcon color="success" fontSize="small" />
-                          : <RadioButtonUncheckedIcon color="disabled" fontSize="small" />
-                        }
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
-            {allScanned && order.status !== "Listo" && order.status !== "Entregado" && (
+            {requireScan ? (
               <>
-                <Divider sx={{ my: 2 }} />
-                <Box display="flex" alignItems="center" gap={1} mb={1}>
-                  <CelebrationIcon color="success" />
-                  <Typography fontWeight={700} color="success.main">
-                    ¡Todas las prendas escaneadas!
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary" mb={1}>
-                  Asigna la posición en el carrusel para marcar la orden como lista.
+                <Typography variant="subtitle1" fontWeight={700} mb={2}>
+                  Escaneo de prendas
                 </Typography>
-                <Box display="flex" gap={1}>
+
+                <Box display="flex" gap={1} mb={2}>
                   <TextField
+                    inputRef={ticketRef}
                     size="small"
-                    placeholder={carouselHint || "Ej. A-42, 105, B-7..."}
-                    value={carouselInput}
-                    onChange={e => setCarouselInput(e.target.value.toUpperCase())}
-                    onKeyDown={e => { if (e.key === "Enter") assignCarousel(); }}
+                    placeholder="Escanear o ingresar código de ticket..."
+                    value={ticketInput}
+                    onChange={e => setTicketInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") scanTicket(); }}
                     fullWidth
-                    label="Posición en carrusel"
-                    autoFocus
+                    disabled={order.status === "Listo" || order.status === "Entregado"}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <QrCodeScannerIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                   <Button
                     variant="contained"
-                    color="success"
-                    onClick={assignCarousel}
-                    disabled={assigningCarousel || !carouselInput.trim()}
+                    onClick={scanTicket}
+                    disabled={scanning || !ticketInput.trim() || order.status === "Listo" || order.status === "Entregado"}
                   >
-                    {assigningCarousel ? <CircularProgress size={16} /> : "Asignar"}
+                    {scanning ? <CircularProgress size={16} /> : "OK"}
                   </Button>
                 </Box>
-                {carouselMsg && (
-                  <Alert severity={carouselMsg.type} sx={{ mt: 1 }}>
-                    {carouselMsg.text}
+
+                {scanError && (
+                  <Alert severity="error" icon={<WarningAmberIcon />} sx={{ mb: 1 }} onClose={() => setScanError(null)}>
+                    {scanError}
+                  </Alert>
+                )}
+                {scanSuccess && (
+                  <Alert severity="success" sx={{ mb: 1 }} onClose={() => setScanSuccess(null)}>
+                    {scanSuccess}
+                  </Alert>
+                )}
+
+                <Box mb={2}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+                    <Typography variant="body2" color="text.secondary">
+                      Progreso: {scannedCount} / {totalCount} prendas
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600} color={allScanned ? "success.main" : "text.secondary"}>
+                      {totalCount > 0 ? Math.round((scannedCount / totalCount) * 100) : 0}%
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={totalCount > 0 ? (scannedCount / totalCount) * 100 : 0}
+                    color={allScanned ? "success" : "primary"}
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                </Box>
+
+                <TableContainer sx={{ overflowX: "auto" }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>#</TableCell>
+                        <TableCell>Prenda</TableCell>
+                        <TableCell>Código</TableCell>
+                        <TableCell align="center">Estado</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {tickets.map(t => (
+                        <TableRow
+                          key={t.id}
+                          sx={{ bgcolor: t.scanned ? "success.50" : "inherit" }}
+                        >
+                          <TableCell>{t.quantity_index}</TableCell>
+                          <TableCell>{t.item_name}</TableCell>
+                          <TableCell sx={{ fontFamily: "monospace", fontSize: "11px" }}>{t.ticket_code}</TableCell>
+                          <TableCell align="center">
+                            {t.scanned
+                              ? <CheckCircleIcon color="success" fontSize="small" />
+                              : <RadioButtonUncheckedIcon color="disabled" fontSize="small" />
+                            }
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                {allScanned && order.status !== "Listo" && order.status !== "Entregado" && (
+                  <>
+                    <Divider sx={{ my: 2 }} />
+                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                      <CelebrationIcon color="success" />
+                      <Typography fontWeight={700} color="success.main">
+                        ¡Todas las prendas escaneadas!
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" mb={1}>
+                      Asigna la posición en el carrusel para marcar la orden como lista.
+                    </Typography>
+                    <Box display="flex" gap={1}>
+                      <TextField
+                        size="small"
+                        placeholder={carouselHint || "Ej. A-42, 105, B-7..."}
+                        value={carouselInput}
+                        onChange={e => setCarouselInput(e.target.value.toUpperCase())}
+                        onKeyDown={e => { if (e.key === "Enter") assignCarousel(); }}
+                        fullWidth
+                        label="Posición en carrusel"
+                        autoFocus
+                      />
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={assignCarousel}
+                        disabled={assigningCarousel || !carouselInput.trim()}
+                      >
+                        {assigningCarousel ? <CircularProgress size={16} /> : "Asignar"}
+                      </Button>
+                    </Box>
+                    {carouselMsg && (
+                      <Alert severity={carouselMsg.type} sx={{ mt: 1 }}>
+                        {carouselMsg.text}
+                      </Alert>
+                    )}
+                  </>
+                )}
+
+                {order.status === "Listo" && (
+                  <Alert severity="success" icon={<CelebrationIcon />} sx={{ mt: 2 }}>
+                    Orden en posición <strong>{order.carousel_position}</strong> — Lista para entrega
                   </Alert>
                 )}
               </>
-            )}
-
-            {order.status === "Listo" && (
-              <Alert severity="success" icon={<CelebrationIcon />} sx={{ mt: 2 }}>
-                Orden en posición <strong>{order.carousel_position}</strong> — Lista para entrega
-              </Alert>
+            ) : (
+              <>
+                <Typography variant="subtitle1" fontWeight={700} mb={2}>
+                  Asignar posición
+                </Typography>
+                {order.status !== "Listo" && order.status !== "Entregado" ? (
+                  <>
+                    <Typography variant="body2" color="text.secondary" mb={2}>
+                      El escaneo de prendas está desactivado. Asigna la posición en el carrusel para marcar la orden como lista.
+                    </Typography>
+                    <Box display="flex" gap={1} mb={1}>
+                      <TextField
+                        size="small"
+                        placeholder={carouselHint || "Ej. A-42, 105, B-7..."}
+                        value={carouselInput}
+                        onChange={e => setCarouselInput(e.target.value.toUpperCase())}
+                        onKeyDown={e => { if (e.key === "Enter") assignCarousel(); }}
+                        fullWidth
+                        label="Posición en carrusel"
+                        autoFocus
+                      />
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={assignCarousel}
+                        disabled={assigningCarousel || !carouselInput.trim()}
+                        startIcon={assigningCarousel ? <CircularProgress size={16} color="inherit" /> : <CelebrationIcon />}
+                      >
+                        Listo
+                      </Button>
+                    </Box>
+                    {carouselMsg && (
+                      <Alert severity={carouselMsg.type} sx={{ mt: 1 }}>
+                        {carouselMsg.text}
+                      </Alert>
+                    )}
+                  </>
+                ) : (
+                  <Alert severity="success" icon={<CelebrationIcon />}>
+                    Orden en posición <strong>{order.carousel_position}</strong> — Lista para entrega
+                  </Alert>
+                )}
+              </>
             )}
           </Paper>
         </Box>
