@@ -3040,12 +3040,16 @@ class ReportSummaryResource(Resource):
                 pay_q = pay_q.filter(Order.branch_id == int(branch_id))
             payment_breakdown = {m: float(a or 0) for m, a in pay_q.group_by(OrderPayment.method).all()}
 
+            total_collected = sum(float(o.amount_paid) for o in orders)
+            total_pending_amt = sum(float(o.total_amount - o.amount_paid) for o in orders)
             return {
                 'total_revenue': total_revenue,
                 'orders_count': orders_count,
                 'ticket_avg': ticket_avg,
                 'completed': completed,
                 'pending': pending,
+                'total_collected': total_collected,
+                'total_pending': total_pending_amt,
                 'orders_by_status': statuses,
                 'payment_breakdown': payment_breakdown,
                 'date_from': dt_from.strftime('%Y-%m-%d'),
@@ -3072,7 +3076,7 @@ class ReportDailyTrendResource(Resource):
             if branch_id:
                 q = q.filter(Order.branch_id == int(branch_id))
             rows = q.group_by(db.func.date(Order.order_date)).order_by(db.func.date(Order.order_date)).all()
-            return {'data': [{'day': str(r.day), 'revenue': float(r.revenue or 0), 'orders': r.orders} for r in rows]}, 200
+            return [{'date': str(r.day), 'revenue': float(r.revenue or 0), 'orders': r.orders} for r in rows], 200
         except Exception as e:
             return {'message': str(e)}, 500
 
@@ -3154,9 +3158,21 @@ class ReportByBranchResource(Resource):
             result = []
             for r in rows:
                 branch = Branch.query.get(r.branch_id)
-                result.append({'branch_id': r.branch_id, 'branch_name': branch.name if branch else str(r.branch_id),
-                                'revenue': float(r.revenue or 0), 'orders': r.orders})
-            return {'data': result}, 200
+                delivered = Order.query.filter(
+                    Order.branch_id == r.branch_id,
+                    Order.status == 'Entregada',
+                    Order.order_date >= dt_from, Order.order_date <= dt_to
+                ).count()
+                rev = float(r.revenue or 0)
+                cnt = int(r.orders or 0)
+                result.append({
+                    'branch_id': r.branch_id,
+                    'branch_name': branch.name if branch else str(r.branch_id),
+                    'revenue': rev, 'orders': cnt,
+                    'avg_ticket': round(rev / cnt, 2) if cnt > 0 else 0,
+                    'delivered': delivered,
+                })
+            return result, 200
         except Exception as e:
             return {'message': str(e)}, 500
 
@@ -3334,12 +3350,48 @@ class ReportOverviewResource(Resource):
                 itm = Item.query.get(top_row.product_service_id)
                 top_service = itm.name if itm else None
 
+            funnel_statuses = ['Creada', 'En proceso', 'En produccion', 'Listo para posicionar', 'Listo', 'Entregada']
+            funnel = []
+            base_q = Order.query.join(Branch, Branch.id == Order.branch_id).filter(Branch.business_id == business_id)
+            for st in funnel_statuses:
+                cnt = _b(base_q.filter(Order.status == st)).count()
+                if cnt > 0:
+                    funnel.append({'name': st, 'value': cnt})
+
+            delivered = _b(base_q.filter(Order.status == 'Entregada')).count()
+            in_process = _b(base_q.filter(Order.status.in_(['En proceso', 'En produccion', 'Listo para posicionar']))).count()
+            ready = _b(base_q.filter(Order.status == 'Listo')).count()
+            total_orders_count = _b(base_q).count()
+
+            avg_cycle = _b(
+                db.session.query(db.func.avg(
+                    db.func.extract('epoch', Order.delivered_at - Order.order_date) / 3600
+                )).join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.delivered_at != None)
+            ).scalar()
+
+            svc_rows = _b(
+                db.session.query(Item.name, db.func.count(OrderItem.id).label('orders'))
+                .join(OrderItem, OrderItem.product_service_id == Item.id)
+                .join(Order, Order.id == OrderItem.order_id)
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id, Order.order_date >= month_start)
+            ).group_by(Item.name).order_by(db.func.count(OrderItem.id).desc()).limit(8).all()
+
             return {
                 'today_revenue': today_rev, 'month_revenue': month_rev,
                 'month_count': month_count,
                 'ticket_avg': month_rev / month_count if month_count > 0 else 0,
                 'active_count': active_count, 'overdue_count': overdue_count,
                 'receivable': receivable, 'top_service': top_service,
+                'total_orders': total_orders_count,
+                'in_process': in_process,
+                'ready': ready,
+                'delivered': delivered,
+                'overdue': overdue_count,
+                'avg_cycle_hours': round(float(avg_cycle), 1) if avg_cycle else None,
+                'funnel': funnel,
+                'by_service': [{'service': r.name, 'orders': r.orders} for r in svc_rows],
             }, 200
         except Exception as e:
             return {'message': str(e)}, 500
@@ -3385,7 +3437,14 @@ class ReportReceivableResource(Resource):
                 '8-30 días': sum(r['balance'] for r in result if 8 <= r['days_old'] <= 30),
                 '+30 días': sum(r['balance'] for r in result if r['days_old'] > 30),
             }
-            return {'total': total, 'count': len(result), 'aging': aging, 'orders': result}, 200
+            partial_orders = sum(1 for r in result if r['amount_paid'] > 0)
+            paid_on_receive = sum(1 for o in orders if float(o.amount_paid) >= float(o.total_amount))
+            pct = round(paid_on_receive / len(orders) * 100, 1) if orders else 0
+            return {
+                'total_pending': total, 'pending_orders': len(result),
+                'partial_orders': partial_orders, 'pct_paid_on_receive': pct,
+                'aging': aging, 'pending_list': result,
+            }, 200
         except Exception as e:
             return {'message': str(e)}, 500
 
@@ -3414,20 +3473,75 @@ class ReportClientsDetailResource(Resource):
             if branch_id:
                 q = q.filter(Order.branch_id == int(branch_id))
             rows = q.group_by(Order.client_id).order_by(db.func.sum(Order.total_amount).desc()).limit(10).all()
-            top_clients = []
+            top_clients_out = []
+            all_client_ids = set()
             for r in rows:
                 c = Client.query.get(r.client_id)
                 if c:
-                    top_clients.append({
-                        'name': f"{c.full_name} {c.last_name or ''}".strip(),
+                    all_client_ids.add(r.client_id)
+                    top_clients_out.append({
+                        'client_id': r.client_id,
+                        'client_name': f"{c.full_name} {c.last_name or ''}".strip(),
                         'phone': c.phone,
-                        'total_spend': float(r.total_spend or 0),
-                        'order_count': int(r.order_count or 0),
+                        'orders': int(r.order_count or 0),
+                        'total': float(r.total_spend or 0),
                         'points': float(c.points_balance or 0),
                     })
 
+            total_in_period = (db.session.query(db.func.count(db.distinct(Order.client_id)))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id,
+                        Order.order_date >= date_from, Order.order_date <= date_to)).scalar() or 0
+
+            new_q = (db.session.query(db.func.count(db.distinct(Order.client_id)))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id,
+                        Order.order_date >= date_from, Order.order_date <= date_to))
+            if branch_id:
+                new_q = new_q.filter(Order.branch_id == int(branch_id))
+            all_ids_period = [r[0] for r in
+                db.session.query(db.distinct(Order.client_id))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id,
+                        Order.order_date >= date_from, Order.order_date <= date_to).all()]
+            new_clients_count = 0
+            for cid in all_ids_period:
+                first = (Order.query.join(Branch, Branch.id == Order.branch_id)
+                    .filter(Branch.business_id == business_id, Order.client_id == cid)
+                    .order_by(Order.order_date.asc()).first())
+                if first and first.order_date.strftime('%Y-%m-%d') >= date_from:
+                    new_clients_count += 1
+            returning = len(all_ids_period) - new_clients_count
+
+            avg_ticket_val = (db.session.query(db.func.avg(Order.total_amount))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id,
+                        Order.order_date >= date_from, Order.order_date <= date_to)).scalar() or 0
+
+            sixty_ago = (now - timedelta(days=60)).strftime('%Y-%m-%d')
+            inactive_rows = (db.session.query(Order.client_id,
+                    db.func.max(Order.order_date).label('last_order'),
+                    db.func.count(Order.id).label('total_orders'))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id)
+                .group_by(Order.client_id)
+                .having(db.func.max(Order.order_date) < sixty_ago)
+                .order_by(db.func.max(Order.order_date).asc())
+                .limit(30).all())
+            inactive_clients = []
+            for r in inactive_rows:
+                c = Client.query.get(r.client_id)
+                if c:
+                    inactive_clients.append({
+                        'client_id': r.client_id,
+                        'client_name': f"{c.full_name} {c.last_name or ''}".strip(),
+                        'phone': c.phone,
+                        'last_order': r.last_order.strftime('%Y-%m-%d') if r.last_order else None,
+                        'total_orders': int(r.total_orders or 0),
+                    })
+
             from datetime import date as ddate
-            today = now.date()
+            today_d = now.date()
             birthdays = []
             bday_clients = (db.session.query(Client)
                 .join(Order, Order.client_id == Client.id)
@@ -3438,14 +3552,14 @@ class ReportClientsDetailResource(Resource):
                 .distinct()).all()
             for c in bday_clients:
                 try:
-                    bday = ddate(today.year, c.date_of_birth_month, c.date_of_birth_day)
+                    bday = ddate(today_d.year, c.date_of_birth_month, c.date_of_birth_day)
                 except ValueError:
                     continue
-                days_until = (bday - today).days
+                days_until = (bday - today_d).days
                 if days_until < 0:
                     try:
-                        bday = ddate(today.year + 1, c.date_of_birth_month, c.date_of_birth_day)
-                        days_until = (bday - today).days
+                        bday = ddate(today_d.year + 1, c.date_of_birth_month, c.date_of_birth_day)
+                        days_until = (bday - today_d).days
                     except ValueError:
                         continue
                 if 0 <= days_until <= 30:
@@ -3453,7 +3567,14 @@ class ReportClientsDetailResource(Resource):
                                       'phone': c.phone, 'days_until': days_until,
                                       'date': bday.strftime('%d/%m')})
             birthdays.sort(key=lambda x: x['days_until'])
-            return {'top_clients': top_clients, 'upcoming_birthdays': birthdays[:10]}, 200
+            return {
+                'new_clients': new_clients_count,
+                'returning_clients': returning,
+                'avg_ticket': float(avg_ticket_val),
+                'top_clients': top_clients_out,
+                'inactive_clients': inactive_clients,
+                'upcoming_birthdays': birthdays[:10],
+            }, 200
         except Exception as e:
             return {'message': str(e)}, 500
 
@@ -3492,14 +3613,25 @@ class ReportDiscountsResource(Resource):
                 pts_q = pts_q.filter(Order.branch_id == int(branch_id))
             total_points = float(pts_q.scalar() or 0)
             promos = Promotion.query.filter_by(business_id=business_id, active=True).all()
+            by_promo = []
+            for p in promos:
+                p_orders = [o for o in orders if float(o.discount or 0) > 0]
+                by_promo.append({
+                    'promo_id': p.id, 'promo_title': p.title,
+                    'times_used': len(p_orders),
+                    'total_discount': sum(float(o.discount or 0) for o in p_orders),
+                    'revenue': sum(float(o.total_amount or 0) for o in p_orders),
+                })
             return {
-                'total_revenue': total_revenue, 'total_discount': total_discount,
-                'total_subtotal': total_subtotal, 'orders_count': len(orders),
+                'gross_revenue': total_subtotal,
+                'total_discounted': total_discount,
+                'total_revenue': total_revenue,
+                'orders_count': len(orders),
                 'orders_with_discount': orders_with_discount,
                 'discount_pct': (total_discount / total_subtotal * 100) if total_subtotal > 0 else 0,
-                'total_points_redeemed': total_points,
-                'active_promos': [{'title': p.title, 'type': p.promo_type,
-                                   'discount_pct': p.discount_pct} for p in promos],
+                'points_redeemed': total_points,
+                'points_value': total_points,
+                'by_promotion': by_promo,
             }, 200
         except Exception as e:
             return {'message': str(e)}, 500

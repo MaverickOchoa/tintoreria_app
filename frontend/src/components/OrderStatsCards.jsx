@@ -37,29 +37,14 @@ const STAT_CARDS = [
 
 function useRealTime() {
   const [now, setNow] = useState(new Date());
-  const [clockAlert, setClockAlert] = useState(false);
-  const checkedRef = useRef(false);
+  const clockAlert = false;
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(tick);
   }, []);
 
-  useEffect(() => {
-    if (checkedRef.current) return;
-    checkedRef.current = true;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 7000);
-    fetch("https://worldtimeapi.org/api/ip", { signal: controller.signal })
-      .then(r => r.json())
-      .then(d => {
-        const realTime = new Date(d.datetime);
-        const diff = Math.abs(realTime - new Date());
-        if (diff > 5 * 60 * 1000) setClockAlert(true);
-      })
-      .catch(() => {})
-      .finally(() => clearTimeout(timer));
-  }, []);
+
 
   return { now, clockAlert };
 }
