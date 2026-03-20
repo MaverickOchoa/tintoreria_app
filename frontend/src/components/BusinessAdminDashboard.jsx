@@ -505,15 +505,19 @@ export default function BusinessAdminDashboard() {
               />
             </Grid>
             <Grid item xs={12}>
-              <FormControlLabel
-                control={<Switch checked={requireScan} onChange={e => setRequireScan(e.target.checked)} color="primary" />}
-                label={requireScan ? "Escaneo de prendas requerido (activado)" : "Escaneo de prendas desactivado — botón Listo directo"}
-              />
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 6.5, mt: -0.5 }}>
-                {requireScan
-                  ? "Se deben escanear todas las prendas antes de marcar como Listo y asignar posición."
-                  : "El operador puede marcar la orden como Lista directamente sin escanear tickets."}
-              </Typography>
+              {claims.role === "business_admin" && (
+                <>
+                  <FormControlLabel
+                    control={<Switch checked={requireScan} onChange={e => setRequireScan(e.target.checked)} color="primary" />}
+                    label={requireScan ? "Escaneo de prendas requerido (activado)" : "Escaneo de prendas desactivado — botón Listo directo"}
+                  />
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 6.5, mt: -0.5 }}>
+                    {requireScan
+                      ? "Se deben escanear todas las prendas antes de marcar como Listo y asignar posición."
+                      : "El operador puede marcar la orden como Lista directamente sin escanear tickets."}
+                  </Typography>
+                </>
+              )}
             </Grid>
           </Grid>
           <Box mt={2}>
