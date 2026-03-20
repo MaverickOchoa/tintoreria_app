@@ -106,6 +106,15 @@ export default function BusinessAdminDashboard() {
       })
       .catch(console.error);
 
+    fetch(`${API}/businesses/${claims.business_id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => {
+        setRequireScan(d.require_scan !== undefined ? d.require_scan : true);
+      })
+      .catch(console.error);
+
     const branchId = activeBranchId;
     if (!branchId) return;
     fetch(`${API}/branches/${branchId}/config`, {
@@ -134,7 +143,6 @@ export default function BusinessAdminDashboard() {
           max_discount_pct: d.max_discount_pct ?? 50,
         });
         if (d.carousel_format_hint) setCarouselHint(d.carousel_format_hint);
-        setRequireScan(d.require_scan !== undefined ? d.require_scan : true);
       })
       .catch(console.error);
   }, []);
