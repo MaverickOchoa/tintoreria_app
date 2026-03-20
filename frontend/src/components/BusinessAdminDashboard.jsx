@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Button, Paper, Stack, Divider,
+  Box, Typography, Button, Paper,
   TextField, Alert, CircularProgress, Chip,
   Switch, FormControlLabel, Grid, InputAdornment,
   Dialog, DialogTitle, DialogContent, DialogActions,
+  Accordion, AccordionSummary, AccordionDetails, Divider,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import LogoutIcon from "@mui/icons-material/Logout";
 import StoreIcon from "@mui/icons-material/Store";
-import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SaveIcon from "@mui/icons-material/Save";
 import PercentIcon from "@mui/icons-material/Percent";
@@ -22,8 +23,28 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import PeopleIcon from "@mui/icons-material/People";
 import LockIcon from "@mui/icons-material/Lock";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 
-const API = import.meta.env.VITE_API_URL || API;
+const API = import.meta.env.VITE_API_URL || "";
+
+const DEFAULT_BRANCH_CONFIG = {
+  uses_iva: true,
+  payment_cash: true,
+  payment_card: true,
+  payment_points: false,
+  allow_deferred: true,
+  points_per_peso: 1,
+  peso_per_point: 1,
+  discount_enabled: true,
+  max_discount_pct: 50,
+  normal_days: 3,
+  urgent_days: 1,
+  extra_urgent_days: 0,
+  urgent_pct: 20,
+  extra_urgent_pct: 50,
+  carousel_format_hint: "",
+  require_scan: true,
+};
 
 export default function BusinessAdminDashboard() {
   const navigate = useNavigate();
@@ -31,10 +52,9 @@ export default function BusinessAdminDashboard() {
   const claims = JSON.parse(localStorage.getItem("user_claims") || "{}");
   const getJwtRole = () => {
     try {
-      const token = localStorage.getItem("access_token");
-      if (!token) return null;
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.role || null;
+      const t = localStorage.getItem("access_token");
+      if (!t) return null;
+      return JSON.parse(atob(t.split(".")[1])).role || null;
     } catch { return null; }
   };
   const jwtRole = getJwtRole() || claims.role;
@@ -44,22 +64,12 @@ export default function BusinessAdminDashboard() {
   const [folioEdits, setFolioEdits] = useState({});
   const [savingFolio, setSavingFolio] = useState({});
   const [folioMsg, setFolioMsg] = useState({});
-  const [usesIva, setUsesIva] = useState(true);
-  const [savingIva, setSavingIva] = useState(false);
-  const [ivaMsg, setIvaMsg] = useState(null);
-  const [savingDiscount, setSavingDiscount] = useState(false);
-  const [discountMsg, setDiscountMsg] = useState(null);
 
-  const [payConfig, setPayConfig] = useState({ payment_cash: true, payment_card: true, payment_points: false, allow_deferred: true, points_per_peso: 1, peso_per_point: 1 });
-  const [savingPay, setSavingPay] = useState(false);
-  const [payMsg, setPayMsg] = useState(null);
+  const [branchConfigs, setBranchConfigs] = useState({});
+  const [savingBranchConfig, setSavingBranchConfig] = useState({});
+  const [branchConfigMsg, setBranchConfigMsg] = useState({});
 
-  const [urgencyConfig, setUrgencyConfig] = useState({ normal_days: 3, urgent_days: 1, extra_urgent_days: 0, urgent_pct: 20, extra_urgent_pct: 50 });
-  const [discountConfig, setDiscountConfig] = useState({ discount_enabled: true, max_discount_pct: 50 });
-  const [carouselHint, setCarouselHint] = useState("");
-  const [requireScan, setRequireScan] = useState(true);
-  const [savingUrgency, setSavingUrgency] = useState(false);
-  const [urgencyMsg, setUrgencyMsg] = useState(null);
+  const [expandedBranch, setExpandedBranch] = useState(activeBranchId ? String(activeBranchId) : false);
 
   const [showPwDialog, setShowPwDialog] = useState(false);
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
@@ -103,43 +113,28 @@ export default function BusinessAdminDashboard() {
           edits[b.id] = { prefix: b.folio_prefix || "", counter: b.folio_counter ?? 0 };
         });
         setFolioEdits(edits);
+        list.forEach(b => {
+          fetch(`${API}/branches/${b.id}/config`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then(r => r.json())
+            .then(cfg => {
+              setBranchConfigs(prev => ({
+                ...prev,
+                [b.id]: {
+                  ...DEFAULT_BRANCH_CONFIG,
+                  ...cfg,
+                  require_scan: cfg.require_scan !== undefined ? Boolean(cfg.require_scan) : true,
+                },
+              }));
+            })
+            .catch(() => {
+              setBranchConfigs(prev => ({ ...prev, [b.id]: { ...DEFAULT_BRANCH_CONFIG } }));
+            });
+        });
       })
       .catch(console.error);
   }, []);
-
-  useEffect(() => {
-    const branchId = activeBranchId;
-    if (!branchId) return;
-    fetch(`${API}/branches/${branchId}/config`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(d => {
-        if (d.uses_iva !== undefined) setUsesIva(d.uses_iva);
-        setPayConfig({
-          payment_cash: d.payment_cash ?? true,
-          payment_card: d.payment_card ?? true,
-          payment_points: d.payment_points ?? false,
-          allow_deferred: d.allow_deferred ?? true,
-          points_per_peso: d.points_per_peso ?? 1,
-          peso_per_point: d.peso_per_point ?? 1,
-        });
-        setUrgencyConfig({
-          normal_days: d.normal_days ?? 3,
-          urgent_days: d.urgent_days ?? 1,
-          extra_urgent_days: d.extra_urgent_days ?? 0,
-          urgent_pct: d.urgent_pct ?? 20,
-          extra_urgent_pct: d.extra_urgent_pct ?? 50,
-        });
-        setRequireScan(d.require_scan !== undefined ? d.require_scan : true);
-        setDiscountConfig({
-          discount_enabled: d.discount_enabled ?? true,
-          max_discount_pct: d.max_discount_pct ?? 50,
-        });
-        if (d.carousel_format_hint) setCarouselHint(d.carousel_format_hint);
-      })
-      .catch(console.error);
-  }, [activeBranchId]);
 
   const handleSaveFolio = async (branchId) => {
     setSavingFolio(p => ({ ...p, [branchId]: true }));
@@ -155,7 +150,7 @@ export default function BusinessAdminDashboard() {
       });
       const data = await res.json();
       if (res.ok) {
-        setFolioMsg(p => ({ ...p, [branchId]: { type: "success", text: "Guardado correctamente" } }));
+        setFolioMsg(p => ({ ...p, [branchId]: { type: "success", text: "Guardado" } }));
         setBranches(prev => prev.map(b => b.id === branchId ? { ...b, ...data } : b));
       } else {
         setFolioMsg(p => ({ ...p, [branchId]: { type: "error", text: data.message || "Error" } }));
@@ -167,66 +162,59 @@ export default function BusinessAdminDashboard() {
     }
   };
 
-  const handleSaveIva = async () => {
-    setSavingIva(true); setIvaMsg(null);
-    try {
-      const res = await fetch(`${API}/branches/${activeBranchId}/config`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ uses_iva: usesIva }),
-      });
-      const data = await res.json();
-      if (res.ok) setIvaMsg({ type: "success", text: "Configuración de IVA guardada" });
-      else setIvaMsg({ type: "error", text: data.message || "Error al guardar" });
-    } catch { setIvaMsg({ type: "error", text: "Error de conexión" }); }
-    finally { setSavingIva(false); }
+  const updateBranchConfig = (branchId, field, value) => {
+    setBranchConfigs(prev => ({
+      ...prev,
+      [branchId]: { ...(prev[branchId] || DEFAULT_BRANCH_CONFIG), [field]: value },
+    }));
   };
 
-  const handleSaveDiscount = async () => {
-    setSavingDiscount(true); setDiscountMsg(null);
+  const handleSaveBranchConfig = async (branchId) => {
+    setSavingBranchConfig(p => ({ ...p, [branchId]: true }));
+    setBranchConfigMsg(p => ({ ...p, [branchId]: null }));
+    const cfg = branchConfigs[branchId] || DEFAULT_BRANCH_CONFIG;
     try {
-      const res = await fetch(`${API}/branches/${activeBranchId}/config`, {
+      const res = await fetch(`${API}/branches/${branchId}/config`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ discount_enabled: discountConfig.discount_enabled, max_discount_pct: discountConfig.max_discount_pct }),
-      });
-      const data = await res.json();
-      if (res.ok) setDiscountMsg({ type: "success", text: "Configuración de descuentos guardada" });
-      else setDiscountMsg({ type: "error", text: data.message || "Error al guardar" });
-    } catch { setDiscountMsg({ type: "error", text: "Error de conexión" }); }
-    finally { setSavingDiscount(false); }
-  };
-
-  const handleSavePayConfig = async () => {
-    setSavingPay(true); setPayMsg(null);
-    try {
-      const res = await fetch(`${API}/branches/${activeBranchId}/config`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payConfig),
-      });
-      const data = await res.json();
-      if (res.ok) setPayMsg({ type: "success", text: "Configuración de pagos guardada" });
-      else setPayMsg({ type: "error", text: data.message || "Error al guardar" });
-    } catch { setPayMsg({ type: "error", text: "Error de conexión" }); }
-    finally { setSavingPay(false); }
-  };
-
-  const handleSaveUrgency = async () => {
-    setSavingUrgency(true); setUrgencyMsg(null);
-    try {
-      const requests = [
-        fetch(`${API}/branches/${activeBranchId}/config`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ ...urgencyConfig, ...discountConfig, carousel_format_hint: carouselHint, require_scan: requireScan }),
+        body: JSON.stringify({
+          uses_iva: cfg.uses_iva,
+          payment_cash: cfg.payment_cash,
+          payment_card: cfg.payment_card,
+          payment_points: cfg.payment_points,
+          allow_deferred: cfg.allow_deferred,
+          points_per_peso: cfg.points_per_peso,
+          peso_per_point: cfg.peso_per_point,
+          discount_enabled: cfg.discount_enabled,
+          max_discount_pct: cfg.max_discount_pct,
+          normal_days: cfg.normal_days,
+          urgent_days: cfg.urgent_days,
+          extra_urgent_days: cfg.extra_urgent_days,
+          urgent_pct: cfg.urgent_pct,
+          extra_urgent_pct: cfg.extra_urgent_pct,
+          carousel_format_hint: cfg.carousel_format_hint,
+          require_scan: cfg.require_scan,
         }),
-      ];
-      const results = await Promise.all(requests);
-      if (results.every(r => r.ok)) setUrgencyMsg({ type: "success", text: "Configuración guardada" });
-      else setUrgencyMsg({ type: "error", text: "Error al guardar" });
-    } catch { setUrgencyMsg({ type: "error", text: "Error de conexión" }); }
-    finally { setSavingUrgency(false); }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBranchConfigMsg(p => ({ ...p, [branchId]: { type: "success", text: "Configuración guardada" } }));
+        setBranchConfigs(prev => ({
+          ...prev,
+          [branchId]: {
+            ...DEFAULT_BRANCH_CONFIG,
+            ...data,
+            require_scan: data.require_scan !== undefined ? Boolean(data.require_scan) : true,
+          },
+        }));
+      } else {
+        setBranchConfigMsg(p => ({ ...p, [branchId]: { type: "error", text: data.message || "Error al guardar" } }));
+      }
+    } catch {
+      setBranchConfigMsg(p => ({ ...p, [branchId]: { type: "error", text: "Error de conexión" } }));
+    } finally {
+      setSavingBranchConfig(p => ({ ...p, [branchId]: false }));
+    }
   };
 
   const handleLogout = () => {
@@ -236,8 +224,6 @@ export default function BusinessAdminDashboard() {
     localStorage.removeItem("user_claims");
     navigate("/login");
   };
-
-  const currentBranch = branches.find(b => b.id === activeBranchId);
 
   const btnSx = { py: 2.5, borderRadius: 2, fontWeight: 600, height: "100%" };
 
@@ -249,7 +235,7 @@ export default function BusinessAdminDashboard() {
           Gestiona las operaciones, configuración y personal de tu negocio.
         </Typography>
 
-        {/* === 8 BOTONES EN 4 COLUMNAS === */}
+        {/* === BOTONES DE NAVEGACIÓN === */}
         <Box
           display="grid"
           sx={{ gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 2, mb: 4 }}
@@ -289,7 +275,7 @@ export default function BusinessAdminDashboard() {
             onClick={() => navigate("/business-schedule")} sx={btnSx}>
             Horarios y Festivos
           </Button>
-          {claims.role !== "branch_manager" && (
+          {jwtRole !== "branch_manager" && (
             <Button fullWidth variant="outlined" color="inherit" size="large"
               startIcon={<StoreIcon />}
               onClick={() => { localStorage.removeItem("business_id"); navigate("/select-branch"); }}
@@ -299,240 +285,270 @@ export default function BusinessAdminDashboard() {
           )}
         </Box>
 
-        {/* === NÚMERO DE NOTA (solo sucursal activa) === */}
+        {/* === CONFIGURACIÓN POR SUCURSAL === */}
         <Paper elevation={2} sx={{ p: 3, borderRadius: 3, mb: 3 }}>
           <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-            <ReceiptLongIcon color="primary" />
-            <Typography variant="h6" fontWeight={700}>Número de Nota</Typography>
+            <StoreIcon color="primary" />
+            <Typography variant="h6" fontWeight={700}>Configuración por Sucursal</Typography>
           </Box>
-          <Typography variant="body2" color="text.secondary" mb={3}>
-            Configura el prefijo y número inicial de nota para esta sucursal.
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            Cada sucursal tiene ajustes independientes. Expande la sucursal que quieres configurar.
           </Typography>
-          {!currentBranch ? (
-            <Typography variant="body2" color="text.secondary">Cargando sucursal...</Typography>
+
+          {branches.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">Cargando sucursales...</Typography>
           ) : (
-            <Box>
-              <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <StoreIcon fontSize="small" color="action" />
-                <Typography variant="subtitle1" fontWeight={700}>{currentBranch.name}</Typography>
-                <Chip
-                  label={`Próximo folio: ${(folioEdits[currentBranch.id]?.prefix || "") + String((parseInt(folioEdits[currentBranch.id]?.counter) || 0) + 1).padStart(4, "0")}`}
-                  size="small" color="primary" variant="outlined"
-                />
-              </Box>
-              <Grid container spacing={2} alignItems="flex-start">
-                <Grid item xs={12} sm={4}>
-                  <TextField fullWidth label="Prefijo" size="medium"
-                    placeholder="Ej. A, TIN, 2024-"
-                    value={folioEdits[currentBranch.id]?.prefix || ""}
-                    onChange={e => setFolioEdits(p => ({ ...p, [currentBranch.id]: { ...p[currentBranch.id], prefix: e.target.value } }))}
-                    inputProps={{ maxLength: 20 }}
-                    helperText="Letras o números antes del folio"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <TextField fullWidth label="Número inicial" size="medium" type="number"
-                    value={folioEdits[currentBranch.id]?.counter ?? 0}
-                    onChange={e => setFolioEdits(p => ({ ...p, [currentBranch.id]: { ...p[currentBranch.id], counter: e.target.value } }))}
-                    inputProps={{ min: 0 }}
-                    helperText="La próxima nota será este número + 1"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Button fullWidth variant="contained" size="large"
-                    startIcon={savingFolio[currentBranch.id] ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-                    onClick={() => handleSaveFolio(currentBranch.id)}
-                    disabled={savingFolio[currentBranch.id]}
-                    sx={{ mt: 0.5, py: 1.6 }}>
-                    Guardar
-                  </Button>
-                </Grid>
-              </Grid>
-              {folioMsg[currentBranch.id] && (
-                <Alert severity={folioMsg[currentBranch.id].type} sx={{ mt: 1.5 }}>
-                  {folioMsg[currentBranch.id].text}
-                </Alert>
-              )}
-            </Box>
+            branches.map(branch => {
+              const cfg = branchConfigs[branch.id] || DEFAULT_BRANCH_CONFIG;
+              const isActive = String(branch.id) === String(activeBranchId);
+              const saving = savingBranchConfig[branch.id] || false;
+              const msg = branchConfigMsg[branch.id] || null;
+
+              return (
+                <Accordion
+                  key={branch.id}
+                  expanded={expandedBranch === String(branch.id)}
+                  onChange={(_, open) => setExpandedBranch(open ? String(branch.id) : false)}
+                  sx={{ mb: 1, borderRadius: 2, "&:before": { display: "none" }, border: "1px solid", borderColor: isActive ? "primary.main" : "divider" }}
+                  elevation={0}
+                >
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Box display="flex" alignItems="center" gap={1.5}>
+                      <StoreIcon fontSize="small" color={isActive ? "primary" : "action"} />
+                      <Typography fontWeight={700}>{branch.name}</Typography>
+                      {isActive && <Chip label="Sucursal activa" size="small" color="primary" />}
+                      {branchConfigs[branch.id] ? (
+                        <Chip
+                          icon={<QrCodeScannerIcon />}
+                          label={cfg.require_scan ? "Escaneo ON" : "Escaneo OFF"}
+                          size="small"
+                          color={cfg.require_scan ? "success" : "default"}
+                          variant="outlined"
+                        />
+                      ) : (
+                        <CircularProgress size={14} />
+                      )}
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ pt: 0 }}>
+                    {!branchConfigs[branch.id] ? (
+                      <Box display="flex" justifyContent="center" py={3}><CircularProgress /></Box>
+                    ) : (
+                      <Box>
+                        {/* Número de nota */}
+                        <Typography variant="subtitle2" fontWeight={700} mb={1.5} color="text.secondary">
+                          NÚMERO DE NOTA
+                        </Typography>
+                        <Grid container spacing={2} mb={3}>
+                          <Grid item xs={12} sm={4}>
+                            <Box display="flex" gap={1} alignItems="center" mb={1}>
+                              <Chip
+                                label={`Próximo: ${(folioEdits[branch.id]?.prefix || "") + String((parseInt(folioEdits[branch.id]?.counter) || 0) + 1).padStart(4, "0")}`}
+                                size="small" color="primary" variant="outlined"
+                              />
+                            </Box>
+                            <TextField fullWidth label="Prefijo" size="small"
+                              placeholder="Ej. A, TIN-"
+                              value={folioEdits[branch.id]?.prefix || ""}
+                              onChange={e => setFolioEdits(p => ({ ...p, [branch.id]: { ...p[branch.id], prefix: e.target.value } }))}
+                              inputProps={{ maxLength: 20 }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField fullWidth label="Número inicial" size="small" type="number"
+                              value={folioEdits[branch.id]?.counter ?? 0}
+                              onChange={e => setFolioEdits(p => ({ ...p, [branch.id]: { ...p[branch.id], counter: e.target.value } }))}
+                              inputProps={{ min: 0 }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <Button fullWidth variant="outlined" size="medium"
+                              startIcon={savingFolio[branch.id] ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
+                              onClick={() => handleSaveFolio(branch.id)}
+                              disabled={savingFolio[branch.id]}>
+                              Guardar folio
+                            </Button>
+                          </Grid>
+                          {folioMsg[branch.id] && (
+                            <Grid item xs={12}>
+                              <Alert severity={folioMsg[branch.id].type} sx={{ py: 0 }}>{folioMsg[branch.id].text}</Alert>
+                            </Grid>
+                          )}
+                        </Grid>
+
+                        <Divider sx={{ mb: 2 }} />
+
+                        {/* IVA y Descuentos */}
+                        <Typography variant="subtitle2" fontWeight={700} mb={1.5} color="text.secondary">
+                          IVA Y DESCUENTOS
+                        </Typography>
+                        <Grid container spacing={2} mb={2}>
+                          <Grid item xs={12} sm={6}>
+                            <FormControlLabel
+                              control={<Switch checked={cfg.uses_iva} onChange={e => updateBranchConfig(branch.id, "uses_iva", e.target.checked)} color="primary" />}
+                              label={cfg.uses_iva ? "IVA activado (16%)" : "Sin IVA"}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <FormControlLabel
+                              control={<Switch checked={cfg.discount_enabled} onChange={e => updateBranchConfig(branch.id, "discount_enabled", e.target.checked)} color="primary" />}
+                              label="Descuentos habilitados"
+                            />
+                          </Grid>
+                          {cfg.discount_enabled && (
+                            <Grid item xs={12} sm={6}>
+                              <TextField label="Descuento máximo (%)" type="number" size="small" fullWidth
+                                value={cfg.max_discount_pct}
+                                onChange={e => updateBranchConfig(branch.id, "max_discount_pct", parseFloat(e.target.value) || 0)}
+                                helperText="Sobre este % se pide aprobación del gerente"
+                                InputProps={{ endAdornment: <InputAdornment position="end"><PercentIcon fontSize="small" /></InputAdornment>, inputProps: { min: 0, max: 100 } }}
+                              />
+                            </Grid>
+                          )}
+                        </Grid>
+
+                        <Divider sx={{ mb: 2 }} />
+
+                        {/* Métodos de pago */}
+                        <Typography variant="subtitle2" fontWeight={700} mb={1.5} color="text.secondary">
+                          MÉTODOS DE PAGO
+                        </Typography>
+                        <Grid container spacing={1} mb={2}>
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel control={<Switch checked={cfg.payment_cash} onChange={e => updateBranchConfig(branch.id, "payment_cash", e.target.checked)} size="small" />} label="Efectivo" />
+                          </Grid>
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel control={<Switch checked={cfg.payment_card} onChange={e => updateBranchConfig(branch.id, "payment_card", e.target.checked)} size="small" />} label="Tarjeta" />
+                          </Grid>
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel control={<Switch checked={cfg.payment_points} onChange={e => updateBranchConfig(branch.id, "payment_points", e.target.checked)} size="small" />} label="Puntos" />
+                          </Grid>
+                          <Grid item xs={6} sm={3}>
+                            <FormControlLabel control={<Switch checked={cfg.allow_deferred} onChange={e => updateBranchConfig(branch.id, "allow_deferred", e.target.checked)} size="small" />} label="Pago posterior" />
+                          </Grid>
+                          {cfg.payment_points && (
+                            <>
+                              <Grid item xs={12} sm={6}>
+                                <TextField label="Puntos por $1 gastado" type="number" size="small" fullWidth
+                                  value={cfg.points_per_peso}
+                                  onChange={e => updateBranchConfig(branch.id, "points_per_peso", parseFloat(e.target.value) || 1)}
+                                  InputProps={{ inputProps: { min: 0.01, step: 0.1 } }}
+                                />
+                              </Grid>
+                              <Grid item xs={12} sm={6}>
+                                <TextField label="Valor de 1 punto en $" type="number" size="small" fullWidth
+                                  value={cfg.peso_per_point}
+                                  onChange={e => updateBranchConfig(branch.id, "peso_per_point", parseFloat(e.target.value) || 1)}
+                                  InputProps={{ inputProps: { min: 0.01, step: 0.1 } }}
+                                />
+                              </Grid>
+                            </>
+                          )}
+                        </Grid>
+
+                        <Divider sx={{ mb: 2 }} />
+
+                        {/* Tiempos y Urgencia */}
+                        <Typography variant="subtitle2" fontWeight={700} mb={1.5} color="text.secondary">
+                          TIEMPOS DE ENTREGA Y URGENCIA
+                        </Typography>
+                        <Grid container spacing={2} mb={2}>
+                          <Grid item xs={12} sm={4}>
+                            <TextField label="Normal (días hábiles)" type="number" size="small" fullWidth
+                              value={cfg.normal_days}
+                              onChange={e => updateBranchConfig(branch.id, "normal_days", parseInt(e.target.value) || 0)}
+                              InputProps={{ inputProps: { min: 0 } }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField label="Urgente (días)" type="number" size="small" fullWidth
+                              value={cfg.urgent_days}
+                              onChange={e => updateBranchConfig(branch.id, "urgent_days", parseInt(e.target.value) || 0)}
+                              InputProps={{ inputProps: { min: 0 } }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField label="Extra urgente (días, 0=mismo día)" type="number" size="small" fullWidth
+                              value={cfg.extra_urgent_days}
+                              onChange={e => updateBranchConfig(branch.id, "extra_urgent_days", parseInt(e.target.value) || 0)}
+                              InputProps={{ inputProps: { min: 0 } }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField label="% incremento Urgente" type="number" size="small" fullWidth
+                              value={cfg.urgent_pct}
+                              onChange={e => updateBranchConfig(branch.id, "urgent_pct", parseFloat(e.target.value) || 0)}
+                              InputProps={{ endAdornment: <InputAdornment position="end"><PercentIcon fontSize="small" /></InputAdornment>, inputProps: { min: 0 } }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField label="% incremento Extra urgente" type="number" size="small" fullWidth
+                              value={cfg.extra_urgent_pct}
+                              onChange={e => updateBranchConfig(branch.id, "extra_urgent_pct", parseFloat(e.target.value) || 0)}
+                              InputProps={{ endAdornment: <InputAdornment position="end"><PercentIcon fontSize="small" /></InputAdornment>, inputProps: { min: 0 } }}
+                            />
+                          </Grid>
+                          <Grid item xs={12}>
+                            <TextField label="Formato del carrusel (ejemplo orientativo)" fullWidth size="small"
+                              value={cfg.carousel_format_hint}
+                              onChange={e => updateBranchConfig(branch.id, "carousel_format_hint", e.target.value)}
+                              placeholder="Ej. A-01, 105, B-07..."
+                              helperText="Muestra el formato esperado al asignar posición en Producción"
+                            />
+                          </Grid>
+                        </Grid>
+
+                        <Divider sx={{ mb: 2 }} />
+
+                        {/* Escaneo de prendas */}
+                        <Typography variant="subtitle2" fontWeight={700} mb={1.5} color="text.secondary">
+                          ESCANEO DE PRENDAS EN PRODUCCIÓN
+                        </Typography>
+                        <Box sx={{ bgcolor: cfg.require_scan ? "success.50" : "grey.50", borderRadius: 2, p: 2, mb: 2, border: "1px solid", borderColor: cfg.require_scan ? "success.200" : "divider" }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={Boolean(cfg.require_scan)}
+                                onChange={e => updateBranchConfig(branch.id, "require_scan", e.target.checked)}
+                                color="success"
+                              />
+                            }
+                            label={
+                              <Box>
+                                <Typography variant="body2" fontWeight={600}>
+                                  {cfg.require_scan ? "Escaneo requerido (activado)" : "Escaneo desactivado — botón Listo directo"}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {cfg.require_scan
+                                    ? "Se deben escanear todas las prendas antes de marcar la orden como Lista."
+                                    : "El operador puede marcar la orden como Lista directamente sin escanear tickets."}
+                                </Typography>
+                              </Box>
+                            }
+                          />
+                        </Box>
+
+                        {/* Botón guardar toda la config */}
+                        <Box display="flex" alignItems="center" gap={2}>
+                          <Button
+                            variant="contained"
+                            size="large"
+                            startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />}
+                            onClick={() => handleSaveBranchConfig(branch.id)}
+                            disabled={saving}
+                            sx={{ px: 4 }}
+                          >
+                            Guardar configuración de {branch.name}
+                          </Button>
+                        </Box>
+                        {msg && <Alert severity={msg.type} sx={{ mt: 1.5 }}>{msg.text}</Alert>}
+                      </Box>
+                    )}
+                  </AccordionDetails>
+                </Accordion>
+              );
+            })
           )}
-        </Paper>
-
-        {/* === IVA + DESCUENTO EN MISMO RENGLÓN === */}
-        <Paper elevation={2} sx={{ p: 3, borderRadius: 3, mb: 3 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                <PercentIcon color="primary" />
-                <Typography variant="h6" fontWeight={700}>Configuración de IVA</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Activa o desactiva el IVA (16%) en las notas de esta sucursal.
-              </Typography>
-              <FormControlLabel
-                control={<Switch checked={usesIva} onChange={e => setUsesIva(e.target.checked)} color="primary" size="medium" />}
-                label={<Typography variant="body1" fontWeight={500}>{usesIva ? "IVA activado (16%)" : "Sin IVA"}</Typography>}
-              />
-              <Box mt={1.5}>
-                <Button variant="contained" size="medium"
-                  startIcon={savingIva ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-                  onClick={handleSaveIva} disabled={savingIva}>
-                  Guardar
-                </Button>
-              </Box>
-              {ivaMsg && <Alert severity={ivaMsg.type} sx={{ mt: 1.5 }}>{ivaMsg.text}</Alert>}
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                <PercentIcon color="secondary" />
-                <Typography variant="h6" fontWeight={700}>Configuración de Descuentos</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Define si los cajeros pueden aplicar descuentos y hasta qué porcentaje.
-              </Typography>
-              <FormControlLabel
-                control={<Switch checked={discountConfig.discount_enabled} onChange={e => setDiscountConfig(p => ({ ...p, discount_enabled: e.target.checked }))} color="primary" />}
-                label="Descuentos habilitados" />
-              <TextField label="Descuento máximo sin aprobación (%)" type="number" size="small" fullWidth
-                value={discountConfig.max_discount_pct}
-                onChange={e => setDiscountConfig(p => ({ ...p, max_discount_pct: parseFloat(e.target.value) || 0 }))}
-                disabled={!discountConfig.discount_enabled}
-                helperText="Sobre este % se pide código del gerente/dueño"
-                InputProps={{ endAdornment: <InputAdornment position="end"><PercentIcon fontSize="small" /></InputAdornment>, inputProps: { min: 0, max: 100 } }}
-                sx={{ mt: 1.5 }}
-              />
-              <Box mt={1.5}>
-                <Button variant="contained" size="medium"
-                  startIcon={savingDiscount ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-                  onClick={handleSaveDiscount} disabled={savingDiscount}>
-                  Guardar
-                </Button>
-              </Box>
-              {discountMsg && <Alert severity={discountMsg.type} sx={{ mt: 1.5 }}>{discountMsg.text}</Alert>}
-            </Grid>
-          </Grid>
-        </Paper>
-
-        {/* === MÉTODOS DE PAGO === */}
-        <Paper elevation={2} sx={{ p: 3, borderRadius: 3, mb: 3 }}>
-          <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-            <PaymentsIcon color="primary" />
-            <Typography variant="h6" fontWeight={700}>Métodos de Pago</Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Activa los métodos de pago disponibles para tus cajeros y configura el programa de puntos.
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel control={<Switch checked={payConfig.payment_cash} onChange={e => setPayConfig(p => ({ ...p, payment_cash: e.target.checked }))} color="primary" />} label="Efectivo" />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel control={<Switch checked={payConfig.payment_card} onChange={e => setPayConfig(p => ({ ...p, payment_card: e.target.checked }))} color="primary" />} label="Tarjeta" />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel control={<Switch checked={payConfig.payment_points} onChange={e => setPayConfig(p => ({ ...p, payment_points: e.target.checked }))} color="primary" />} label="Puntos de lealtad" />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel control={<Switch checked={payConfig.allow_deferred} onChange={e => setPayConfig(p => ({ ...p, allow_deferred: e.target.checked }))} color="primary" />} label="Permitir pago posterior" />
-            </Grid>
-            {payConfig.payment_points && (<>
-              <Grid item xs={12} sm={6}>
-                <TextField label="Puntos por cada $1 gastado" type="number" size="small" fullWidth
-                  value={payConfig.points_per_peso}
-                  onChange={e => setPayConfig(p => ({ ...p, points_per_peso: parseFloat(e.target.value) || 1 }))}
-                  InputProps={{ inputProps: { min: 0.01, step: 0.1 } }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField label="Valor de 1 punto en $" type="number" size="small" fullWidth
-                  value={payConfig.peso_per_point}
-                  onChange={e => setPayConfig(p => ({ ...p, peso_per_point: parseFloat(e.target.value) || 1 }))}
-                  InputProps={{ inputProps: { min: 0.01, step: 0.1 } }}
-                />
-              </Grid>
-            </>)}
-          </Grid>
-          <Box mt={2}>
-            <Button variant="contained" size="medium"
-              startIcon={savingPay ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-              onClick={handleSavePayConfig} disabled={savingPay}>
-              Guardar
-            </Button>
-          </Box>
-          {payMsg && <Alert severity={payMsg.type} sx={{ mt: 2 }}>{payMsg.text}</Alert>}
-        </Paper>
-
-        {/* === URGENCIA Y TIEMPOS DE ENTREGA === */}
-        <Paper elevation={2} sx={{ p: 3, borderRadius: 3, mb: 3 }}>
-          <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-            <AccessTimeIcon color="primary" />
-            <Typography variant="h6" fontWeight={700}>Tiempos de Entrega y Urgencia</Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Define los días hábiles de entrega y el incremento de precio por urgencia.
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <TextField label="Normal (días hábiles)" type="number" size="small" fullWidth
-                value={urgencyConfig.normal_days}
-                onChange={e => setUrgencyConfig(p => ({ ...p, normal_days: parseInt(e.target.value) || 0 }))}
-                InputProps={{ inputProps: { min: 0 } }} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField label="Urgente (días hábiles)" type="number" size="small" fullWidth
-                value={urgencyConfig.urgent_days}
-                onChange={e => setUrgencyConfig(p => ({ ...p, urgent_days: parseInt(e.target.value) || 0 }))}
-                InputProps={{ inputProps: { min: 0 } }} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField label="Extra urgente (días hábiles)" type="number" size="small" fullWidth
-                value={urgencyConfig.extra_urgent_days}
-                onChange={e => setUrgencyConfig(p => ({ ...p, extra_urgent_days: parseInt(e.target.value) || 0 }))}
-                InputProps={{ inputProps: { min: 0 }, endAdornment: <InputAdornment position="end">0=mismo día</InputAdornment> }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField label="% incremento Urgente" type="number" size="small" fullWidth
-                value={urgencyConfig.urgent_pct}
-                onChange={e => setUrgencyConfig(p => ({ ...p, urgent_pct: parseFloat(e.target.value) || 0 }))}
-                InputProps={{ endAdornment: <InputAdornment position="end"><PercentIcon fontSize="small" /></InputAdornment>, inputProps: { min: 0 } }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField label="% incremento Extra urgente" type="number" size="small" fullWidth
-                value={urgencyConfig.extra_urgent_pct}
-                onChange={e => setUrgencyConfig(p => ({ ...p, extra_urgent_pct: parseFloat(e.target.value) || 0 }))}
-                InputProps={{ endAdornment: <InputAdornment position="end"><PercentIcon fontSize="small" /></InputAdornment>, inputProps: { min: 0 } }} />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Formato del carrusel (ejemplo orientativo)"
-                fullWidth size="small"
-                value={carouselHint}
-                onChange={e => setCarouselHint(e.target.value)}
-                placeholder="Ej. A-01, 105, B-07..."
-                helperText="Muestra el formato esperado al asignar posición en Producción"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              {claims.role !== "branch_manager" && (
-                <>
-                  <FormControlLabel
-                    control={<Switch checked={requireScan} onChange={e => setRequireScan(e.target.checked)} color="primary" />}
-                    label={requireScan ? "Escaneo de prendas requerido (activado)" : "Escaneo de prendas desactivado — botón Listo directo"}
-                  />
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 6.5, mt: -0.5 }}>
-                    {requireScan
-                      ? "Se deben escanear todas las prendas antes de marcar como Listo y asignar posición."
-                      : "El operador puede marcar la orden como Lista directamente sin escanear tickets."}
-                  </Typography>
-                </>
-              )}
-            </Grid>
-          </Grid>
-          <Box mt={2}>
-            <Button variant="contained" size="medium"
-              startIcon={savingUrgency ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-              onClick={handleSaveUrgency} disabled={savingUrgency}>Guardar</Button>
-          </Box>
-          {urgencyMsg && <Alert severity={urgencyMsg.type} sx={{ mt: 2 }}>{urgencyMsg.text}</Alert>}
         </Paper>
 
         {/* === CERRAR SESIÓN === */}
@@ -560,7 +576,7 @@ export default function BusinessAdminDashboard() {
           <DialogActions>
             <Button onClick={() => setShowPwDialog(false)}>Cancelar</Button>
             <Button variant="contained" onClick={handleChangePw} disabled={pwSaving}>
-              {pwSaving ? <CircularProgress size={18} /> : "Guardar"}
+              {pwSaving ? <CircularProgress size={18} color="inherit" /> : "Actualizar"}
             </Button>
           </DialogActions>
         </Dialog>
