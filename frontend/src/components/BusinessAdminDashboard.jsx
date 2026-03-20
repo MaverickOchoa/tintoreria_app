@@ -105,7 +105,9 @@ export default function BusinessAdminDashboard() {
         setFolioEdits(edits);
       })
       .catch(console.error);
+  }, []);
 
+  useEffect(() => {
     const branchId = activeBranchId;
     if (!branchId) return;
     fetch(`${API}/branches/${branchId}/config`, {
@@ -137,7 +139,7 @@ export default function BusinessAdminDashboard() {
         if (d.carousel_format_hint) setCarouselHint(d.carousel_format_hint);
       })
       .catch(console.error);
-  }, []);
+  }, [activeBranchId]);
 
   const handleSaveFolio = async (branchId) => {
     setSavingFolio(p => ({ ...p, [branchId]: true }));
