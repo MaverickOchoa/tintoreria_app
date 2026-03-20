@@ -2109,12 +2109,14 @@ class OrderListResource(Resource):
             branch.folio_counter = counter
             new_order.folio = f"{prefix}{str(counter).zfill(4)}" if prefix else str(counter).zfill(4)
 
-        # Generar tickets de prenda (uno por prenda individual)
+        # Generar tickets de prenda (uno por pieza individual, considerando units)
         ticket_seq = 1
         for i in items_data:
             item_obj = Item.query.get(i.get('product_service_id'))
             item_name = item_obj.name if item_obj else 'Prenda'
-            for _ in range(int(i.get('quantity', 1))):
+            units = item_obj.units if item_obj else 1
+            total_tickets = int(i.get('quantity', 1)) * (units or 1)
+            for _ in range(total_tickets):
                 code = f"{new_order.folio}-{ticket_seq}"
                 db.session.add(OrderGarmentTicket(
                     order_id=new_order.id,
