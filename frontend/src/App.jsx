@@ -69,6 +69,9 @@ import ClinicLayout from "./components/clinic/ClinicLayout.jsx";
 import ClinicKanban from "./components/clinic/ClinicKanban.jsx";
 import ClinicPatients from "./components/clinic/ClinicPatients.jsx";
 import ClinicPatientProfile from "./components/clinic/ClinicPatientProfile.jsx";
+import ClinicCalendar from "./components/clinic/ClinicCalendar.jsx";
+import ClinicServices from "./components/clinic/ClinicServices.jsx";
+import ClinicPayments from "./components/clinic/ClinicPayments.jsx";
 import ManageAgencies from "./components/ManageAgencies.jsx";
 import AgencyAdminDashboard from "./components/AgencyAdminDashboard.jsx";
 
@@ -245,6 +248,9 @@ function App() {
               <Route path="kanban" element={<ClinicKanban />} />
               <Route path="patients" element={<ClinicPatients />} />
               <Route path="patients/:patientId" element={<ClinicPatientProfile />} />
+              <Route path="calendar" element={<ClinicCalendar />} />
+              <Route path="services" element={<ClinicServices />} />
+              <Route path="payments" element={<ClinicPayments />} />
             </Route>
           </Route>
         </Routes>

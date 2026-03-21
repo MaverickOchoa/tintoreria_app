@@ -2618,10 +2618,12 @@ class LoginResource(Resource):
                 "role": role,
                 "username": admin.username,
                 "full_name": admin.username,
+                "vertical_type": biz.vertical_type if (not admin.is_super_admin and biz) else "laundry",
             })
             return {"access_token": token, "role": role, "business_id": admin.business_id,
                     "branch_id": admin.branch_id, "user_id": admin.id, "agency_id": admin.agency_id,
-                    "username": admin.username, "is_superadmin": admin.is_super_admin}, 200
+                    "username": admin.username, "is_superadmin": admin.is_super_admin,
+                    "vertical_type": biz.vertical_type if (not admin.is_super_admin and biz) else "laundry"}, 200
         employee = Employee.query.filter_by(username=username).first()
         if employee and check_password_hash(employee.password, password):
             role_names = [r.name for r in employee.roles]
@@ -2629,6 +2631,7 @@ class LoginResource(Resource):
             emp_full = employee.full_name or employee.username
             if getattr(employee, 'last_name', None):
                 emp_full += f" {employee.last_name}"
+            emp_biz = Business.query.get(employee.business_id) if employee.business_id else None
             token = create_access_token(identity=str(employee.id), additional_claims={
                 "is_super_admin": False,
                 "business_id": employee.business_id,
@@ -2638,10 +2641,12 @@ class LoginResource(Resource):
                 "roles": role_names,
                 "username": employee.username,
                 "full_name": emp_full,
+                "vertical_type": emp_biz.vertical_type if emp_biz else "laundry",
             })
             return {"access_token": token, "role": role, "business_id": employee.business_id,
                     "branch_id": employee.branch_id, "user_id": employee.id,
-                    "username": employee.username, "is_superadmin": False}, 200
+                    "username": employee.username, "is_superadmin": False,
+                    "vertical_type": emp_biz.vertical_type if emp_biz else "laundry"}, 200
         return {"message": "Credenciales invalidas"}, 401
 
 class ProtectedResource(Resource):

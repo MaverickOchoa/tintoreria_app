@@ -14,6 +14,8 @@ import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 
+import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+
 const SIDEBAR_W = 220;
 const SIDEBAR_COLLAPSED = 64;
 
@@ -21,7 +23,8 @@ const NAV = [
   { icon: <DashboardIcon />, label: "Tablero",   path: "/clinic/kanban" },
   { icon: <PeopleIcon />,    label: "Pacientes",  path: "/clinic/patients" },
   { icon: <CalendarMonthIcon />, label: "Agenda", path: "/clinic/calendar" },
-  { icon: <ReceiptIcon />,   label: "Pagos",      path: "/clinic/payments" },
+  { icon: <MedicalServicesIcon />, label: "Servicios", path: "/clinic/services" },
+  { icon: <ReceiptIcon />,   label: "Caja",       path: "/clinic/payments" },
 ];
 
 export default function ClinicLayout() {

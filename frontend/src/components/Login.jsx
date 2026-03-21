@@ -84,10 +84,14 @@ const Login = () => {
         user_id: data.user_id ?? null,
         username: data.username ?? username,
         agency_id: data.agency_id ?? null,
+        vertical_type: data.vertical_type || "laundry",
       };
 
       localStorage.setItem("user_claims", JSON.stringify(claimsPayload));
       localStorage.setItem("role", data.role || "");
+      localStorage.setItem("vertical_type", data.vertical_type || "laundry");
+
+      const isClinic = data.vertical_type === "clinic";
 
       // 4) redirect por rol
       switch (data.role) {
@@ -100,15 +104,15 @@ const Login = () => {
           break;
 
         case "business_admin":
-          navigate("/select-branch");
+          navigate(isClinic ? "/clinic/kanban" : "/select-branch");
           break;
 
         case "branch_manager":
-          navigate("/business-admin-dashboard");
+          navigate(isClinic ? "/clinic/kanban" : "/business-admin-dashboard");
           break;
 
         case "employee":
-          navigate("/panel-operativo");
+          navigate(isClinic ? "/clinic/kanban" : "/panel-operativo");
           break;
 
         default:
