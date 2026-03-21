@@ -95,7 +95,7 @@ export default function ClinicLayout() {
             </Typography>
           )}
           <Box sx={{ ml: "auto" }}>
-            <IconButton size="small" onClick={() => setCollapsed(v => !v)} sx={{ color: "#aaa" }}>
+            <IconButton size="small" onClick={() => setCollapsed(v => !v)} sx={{ color: "#cdd0e0" }}>
               {collapsed ? <MenuIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
             </IconButton>
           </Box>
@@ -117,8 +117,8 @@ export default function ClinicLayout() {
                     mx: 1, mb: 0.5, borderRadius: 2,
                     cursor: "pointer",
                     bgcolor: active ? "rgba(67,97,238,0.2)" : "transparent",
-                    color: active ? "#4361ee" : "#9ea3b0",
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.06)", color: "#fff" },
+                    color: active ? "#7b9fff" : "#d0d4e8",
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.1)", color: "#fff" },
                     transition: "all 0.15s",
                     justifyContent: collapsed ? "center" : "flex-start",
                   }}
@@ -146,12 +146,12 @@ export default function ClinicLayout() {
           {!collapsed && (
             <Box sx={{ flex: 1, overflow: "hidden" }}>
               <Typography fontSize={12} fontWeight={600} noWrap>{claims.username || claims.full_name || "Usuario"}</Typography>
-              <Typography fontSize={10} color="#9ea3b0" noWrap>{claims.role === "business_admin" ? "Administrador" : claims.role === "branch_manager" ? "Gerente" : claims.role || ""}</Typography>
+              <Typography fontSize={10} color="#b0b8d8" noWrap>{claims.role === "business_admin" ? "Administrador" : claims.role === "branch_manager" ? "Gerente" : claims.role || ""}</Typography>
             </Box>
           )}
           {!collapsed && (
             <Tooltip title="Cerrar sesión">
-              <IconButton size="small" sx={{ color: "#9ea3b0" }} onClick={handleLogout}>
+              <IconButton size="small" sx={{ color: "#cdd0e0" }} onClick={handleLogout}>
                 <LogoutIcon fontSize="small" />
               </IconButton>
             </Tooltip>
