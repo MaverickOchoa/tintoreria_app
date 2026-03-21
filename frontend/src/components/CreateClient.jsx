@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box, TextField, Button, Typography, Paper, Snackbar, Alert,
-  MenuItem, Divider,
+  MenuItem, Divider, FormControlLabel, Checkbox, FormGroup,
 } from "@mui/material";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import EmailIcon from "@mui/icons-material/Email";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { toTitleCase, isValidPhone, isValidEmail } from "../utils";
 
@@ -30,6 +32,7 @@ const CreateClient = () => {
     date_of_birth_day: "", date_of_birth_month: "",
     street_number: "", neighborhood: "", zip_code: "", notes: "",
     client_type_id: "", username: "", password: "",
+    whatsapp_consent: false, email_consent: false,
   });
   const [clientTypes, setClientTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -135,6 +138,38 @@ const CreateClient = () => {
               ))}
             </TextField>
             <Box sx={{ flex: 1 }} />
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+              Permisos de comunicación
+            </Typography>
+            <FormGroup row>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={clientData.whatsapp_consent}
+                    onChange={e => setClientData({ ...clientData, whatsapp_consent: e.target.checked })}
+                    color="success"
+                    icon={<WhatsAppIcon sx={{ color: "action.disabled" }} />}
+                    checkedIcon={<WhatsAppIcon sx={{ color: "#25D366" }} />}
+                  />
+                }
+                label="Acepta recibir mensajes por WhatsApp"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={clientData.email_consent}
+                    onChange={e => setClientData({ ...clientData, email_consent: e.target.checked })}
+                    color="primary"
+                    icon={<EmailIcon sx={{ color: "action.disabled" }} />}
+                    checkedIcon={<EmailIcon sx={{ color: "primary.main" }} />}
+                  />
+                }
+                label="Acepta recibir correos electrónicos"
+              />
+            </FormGroup>
           </Box>
 
           <Box sx={{ ...rowStyle, flexDirection: "column" }}>

@@ -8,6 +8,10 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import EmailIcon from "@mui/icons-material/Email";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import LockIcon from "@mui/icons-material/Lock";
@@ -187,6 +191,37 @@ export default function ClientProfile() {
               <Typography variant="body2"><b>Teléfono:</b> {client.phone || "—"}</Typography>
               <Typography variant="body2"><b>Email:</b> {client.email || "—"}</Typography>
               <Typography variant="body2"><b>Usuario portal:</b> {client.username || "—"}</Typography>
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                  Permisos de comunicación
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip
+                    size="small"
+                    icon={<WhatsAppIcon sx={{ fontSize: 16 }} />}
+                    label="WhatsApp"
+                    color={client.whatsapp_consent ? "success" : "default"}
+                    variant={client.whatsapp_consent ? "filled" : "outlined"}
+                    deleteIcon={client.whatsapp_consent
+                      ? <CheckCircleIcon sx={{ fontSize: 14 }} />
+                      : <CancelIcon sx={{ fontSize: 14 }} />}
+                    onDelete={() => {}}
+                    sx={{ cursor: "default" }}
+                  />
+                  <Chip
+                    size="small"
+                    icon={<EmailIcon sx={{ fontSize: 16 }} />}
+                    label="Email"
+                    color={client.email_consent ? "primary" : "default"}
+                    variant={client.email_consent ? "filled" : "outlined"}
+                    deleteIcon={client.email_consent
+                      ? <CheckCircleIcon sx={{ fontSize: 14 }} />
+                      : <CancelIcon sx={{ fontSize: 14 }} />}
+                    onDelete={() => {}}
+                    sx={{ cursor: "default" }}
+                  />
+                </Stack>
+              </Box>
               {client.date_of_birth_month && client.date_of_birth_day && (
                 <Typography variant="body2"><b>Cumpleaños:</b> {MONTHS[client.date_of_birth_month]} {client.date_of_birth_day}</Typography>
               )}

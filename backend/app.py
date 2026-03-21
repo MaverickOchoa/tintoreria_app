@@ -373,6 +373,8 @@ class Client(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=True)
     password = db.Column(db.String(255), nullable=True)
     points_balance = db.Column(db.Float, nullable=False, default=0.0)
+    whatsapp_consent = db.Column(db.Boolean, nullable=False, default=False)
+    email_consent = db.Column(db.Boolean, nullable=False, default=False)
     __table_args__ = (db.UniqueConstraint('phone', name='_phone_uc'),)
     def to_dict(self):
         return {'id': self.id, 'full_name': self.full_name, 'last_name': self.last_name,
@@ -384,6 +386,8 @@ class Client(db.Model):
                 'client_type_name': self.client_type.name if self.client_type else None,
                 'username': self.username,
                 'points_balance': self.points_balance,
+                'whatsapp_consent': self.whatsapp_consent,
+                'email_consent': self.email_consent,
                 'has_portal_access': bool(self.username and self.password)}
 
 class ClientType(db.Model):
@@ -1840,6 +1844,8 @@ class ClientListResource(Resource):
             client_type_id=data.get('client_type_id') or None,
             username=(data.get('username') or '').strip() or None,
             password=generate_password_hash(data['password']) if data.get('password') else None,
+            whatsapp_consent=bool(data.get('whatsapp_consent', False)),
+            email_consent=bool(data.get('email_consent', False)),
         )
         db.session.add(new_client)
         db.session.commit()
@@ -1913,6 +1919,10 @@ class ClientResource(Resource):
             client.username = new_uname
         if data.get('password'):
             client.password = generate_password_hash(data['password'])
+        if 'whatsapp_consent' in data:
+            client.whatsapp_consent = bool(data['whatsapp_consent'])
+        if 'email_consent' in data:
+            client.email_consent = bool(data['email_consent'])
         db.session.commit()
         return {"message": "Cliente actualizado", "client": client.to_dict()}, 200
 
