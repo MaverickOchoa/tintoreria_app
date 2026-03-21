@@ -1,6 +1,8 @@
 import psycopg2
+import os
 
-conn = psycopg2.connect('postgresql://postgres:YoYo158087@localhost/tintoreria_db')
+db_url = os.environ.get('DATABASE_URL', 'postgresql://postgres:YoYo158087@localhost/tintoreria_db')
+conn = psycopg2.connect(db_url)
 cur = conn.cursor()
 
 tables_sql = [

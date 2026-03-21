@@ -27,3 +27,18 @@ services:
     envVars:
       - key: VITE_API_URL
         sync: false
+
+  - type: web
+    name: saas-platform-api
+    env: python
+    region: oregon
+    rootDir: platform
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
