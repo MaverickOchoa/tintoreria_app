@@ -881,7 +881,7 @@ class BusinessCreation(Resource):
         new_business = Business(name=(data.get('business_name') or '').title(),
                                 address=(data.get('business_address') or '').title(),
                                 phone=data.get('business_phone') or '',
-                                email=data.get('business_email') or '',
+                                email=data.get('business_email') or None,
                                 vertical_type=data.get('vertical_type') or 'laundry',
                                 admin_user=new_admin)
         try:
