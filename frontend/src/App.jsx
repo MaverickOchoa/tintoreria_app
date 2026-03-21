@@ -64,6 +64,12 @@ import CashCut from "./components/CashCut.jsx";
 import Reports from "./components/Reports.jsx";
 import Expenses from "./components/Expenses.jsx";
 
+// Clinic vertical
+import ClinicLayout from "./components/clinic/ClinicLayout.jsx";
+import ClinicKanban from "./components/clinic/ClinicKanban.jsx";
+import ClinicPatients from "./components/clinic/ClinicPatients.jsx";
+import ClinicPatientProfile from "./components/clinic/ClinicPatientProfile.jsx";
+
 const inputGlobalStyles = (
   <GlobalStyles
     styles={{
@@ -219,6 +225,16 @@ function App() {
 
           {/* fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
+
+          {/* CLINIC VERTICAL */}
+          <Route element={<ProtectedRoute allowedRoles={["business_admin", "branch_manager", "employee"]} />}>
+            <Route path="/clinic" element={<ClinicLayout />}>
+              <Route index element={<Navigate to="/clinic/kanban" replace />} />
+              <Route path="kanban" element={<ClinicKanban />} />
+              <Route path="patients" element={<ClinicPatients />} />
+              <Route path="patients/:patientId" element={<ClinicPatientProfile />} />
+            </Route>
+          </Route>
         </Routes>
       </Box>
     </ThemeProvider>
