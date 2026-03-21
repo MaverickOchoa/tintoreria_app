@@ -1,3 +1,4 @@
 #!/bin/bash
 flask db upgrade
-gunicorn app:app
+gunicorn --workers=1 --threads=2 app:app
+

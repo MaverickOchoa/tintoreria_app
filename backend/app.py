@@ -3698,8 +3698,11 @@ def auto_advance_orders():
 
 _scheduler = BackgroundScheduler(timezone="UTC")
 _scheduler.add_job(auto_advance_orders, 'interval', minutes=5)
-_scheduler.start()
-atexit.register(lambda: _scheduler.shutdown(wait=False))
+try:
+    _scheduler.start()
+    atexit.register(lambda: _scheduler.shutdown(wait=False) if _scheduler.running else None)
+except Exception:
+    pass
 
 
 if __name__ == '__main__':
