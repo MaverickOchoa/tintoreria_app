@@ -94,6 +94,10 @@ const Login = () => {
           navigate("/super-admin-dashboard");
           break;
 
+        case "agency_admin":
+          navigate("/agency-admin-dashboard");
+          break;
+
         case "business_admin":
           navigate("/select-branch");
           break;

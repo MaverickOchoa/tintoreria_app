@@ -175,6 +175,29 @@ class Role(db.Model):
     def to_dict(self):
         return {'id': self.id, 'name': self.name, 'description': self.description}
 
+class Agency(db.Model):
+    __tablename__ = 'agencies'
+    id           = db.Column(db.Integer, primary_key=True)
+    name         = db.Column(db.String(120), nullable=False)
+    contact_name = db.Column(db.String(150), nullable=True)
+    email        = db.Column(db.String(120), nullable=True)
+    phone        = db.Column(db.String(20), nullable=True)
+    is_active    = db.Column(db.Boolean, nullable=False, default=True)
+    notes        = db.Column(db.Text, nullable=True)
+    created_at   = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    businesses   = db.relationship('Business', backref='agency', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'name': self.name, 'contact_name': self.contact_name,
+            'email': self.email, 'phone': self.phone, 'is_active': self.is_active,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'business_count': len(self.businesses),
+        }
+
+
 class Business(db.Model):
     __tablename__ = 'businesses'
     id = db.Column(db.Integer, primary_key=True)
@@ -213,6 +236,9 @@ class Business(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     # Production settings
     require_scan = db.Column(db.Boolean, nullable=False, default=True)
+    # Vertical & agency
+    vertical_type = db.Column(db.String(30), nullable=False, default='laundry')
+    agency_id     = db.Column(db.Integer, db.ForeignKey('agencies.id'), nullable=True)
     # Urgency settings
     normal_days = db.Column(db.Integer, nullable=False, default=3)
     urgent_days = db.Column(db.Integer, nullable=False, default=1)
@@ -242,6 +268,8 @@ class Business(db.Model):
             'extra_urgent_days': self.extra_urgent_days,
             'urgent_pct': self.urgent_pct, 'extra_urgent_pct': self.extra_urgent_pct,
             'is_active': self.is_active,
+            'vertical_type': self.vertical_type or 'laundry',
+            'agency_id': self.agency_id,
             'carousel_format_hint': self.carousel_format_hint,
             'portal_primary_color': self.portal_primary_color,
             'portal_bg_color': self.portal_bg_color,
@@ -296,14 +324,17 @@ class BranchItemOverride(db.Model):
 
 class Admin(db.Model):
     __tablename__ = 'admins'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    is_super_admin = db.Column(db.Boolean, default=False)
-    business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=True)
-    business = db.relationship('Business', back_populates='admin_user')
-    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
-    branch = db.relationship('Branch', back_populates='users')
+    id              = db.Column(db.Integer, primary_key=True)
+    username        = db.Column(db.String(80), unique=True, nullable=False)
+    password        = db.Column(db.String(255), nullable=False)
+    is_super_admin  = db.Column(db.Boolean, default=False)
+    business_id     = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=True)
+    business        = db.relationship('Business', back_populates='admin_user')
+    branch_id       = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    branch          = db.relationship('Branch', back_populates='users')
+    is_agency_admin = db.Column(db.Boolean, default=False)
+    agency_id       = db.Column(db.Integer, db.ForeignKey('agencies.id'), nullable=True)
+    agency          = db.relationship('Agency', backref='admin_users', foreign_keys=[agency_id])
 
 class Employee(db.Model):
     __tablename__ = 'employees'
@@ -2567,6 +2598,8 @@ class LoginResource(Resource):
                     return {"message": "Esta sucursal está bloqueada. Contacta al administrador."}, 403
             if admin.is_super_admin:
                 role = "super_admin"
+            elif admin.is_agency_admin:
+                role = "agency_admin"
             elif admin.business_id:
                 primary = Admin.query.filter_by(business_id=admin.business_id).order_by(Admin.id).first()
                 role = "business_admin" if (primary and primary.id == admin.id) else "branch_manager"
@@ -2574,15 +2607,17 @@ class LoginResource(Resource):
                 role = "business_admin"
             token = create_access_token(identity=str(admin.id), additional_claims={
                 "is_super_admin": admin.is_super_admin,
+                "is_agency_admin": admin.is_agency_admin or False,
                 "business_id": admin.business_id,
                 "branch_id": admin.branch_id,
+                "agency_id": admin.agency_id,
                 "user_type": "Admin",
                 "role": role,
                 "username": admin.username,
                 "full_name": admin.username,
             })
             return {"access_token": token, "role": role, "business_id": admin.business_id,
-                    "branch_id": admin.branch_id, "user_id": admin.id,
+                    "branch_id": admin.branch_id, "user_id": admin.id, "agency_id": admin.agency_id,
                     "username": admin.username, "is_superadmin": admin.is_super_admin}, 200
         employee = Employee.query.filter_by(username=username).first()
         if employee and check_password_hash(employee.password, password):
@@ -3884,6 +3919,129 @@ class WhatsappTemplateResource(Resource):
 
 api.add_resource(WhatsappTemplateListResource, '/api/v1/whatsapp-templates')
 api.add_resource(WhatsappTemplateResource, '/api/v1/whatsapp-templates/<int:template_id>')
+
+
+class AgencyListResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        if not claims.get('is_super_admin'):
+            return {"message": "Solo super admin"}, 403
+        agencies = Agency.query.order_by(Agency.name).all()
+        return [a.to_dict() for a in agencies], 200
+
+    @jwt_required()
+    def post(self):
+        claims = get_jwt()
+        if not claims.get('is_super_admin'):
+            return {"message": "Solo super admin"}, 403
+        data = request.get_json() or {}
+        if not data.get('name'):
+            return {"message": "name requerido"}, 400
+        a = Agency(
+            name=data['name'].strip(),
+            contact_name=data.get('contact_name', '').strip() or None,
+            email=data.get('email', '').strip() or None,
+            phone=data.get('phone', '').strip() or None,
+            notes=data.get('notes', '').strip() or None,
+        )
+        db.session.add(a)
+        db.session.commit()
+        return a.to_dict(), 201
+
+
+class AgencyResource(Resource):
+    @jwt_required()
+    def get(self, agency_id):
+        claims = get_jwt()
+        if not claims.get('is_super_admin') and claims.get('agency_id') != agency_id:
+            return {"message": "Acceso denegado"}, 403
+        a = Agency.query.get_or_404(agency_id)
+        d = a.to_dict()
+        d['businesses'] = [b.to_dict() for b in a.businesses]
+        d['admins'] = [{'id': adm.id, 'username': adm.username} for adm in a.admin_users]
+        return d, 200
+
+    @jwt_required()
+    def put(self, agency_id):
+        claims = get_jwt()
+        if not claims.get('is_super_admin'):
+            return {"message": "Solo super admin"}, 403
+        a = Agency.query.get_or_404(agency_id)
+        data = request.get_json() or {}
+        for f in ('name', 'contact_name', 'email', 'phone', 'notes'):
+            if f in data:
+                setattr(a, f, data[f])
+        if 'is_active' in data:
+            a.is_active = bool(data['is_active'])
+        db.session.commit()
+        return a.to_dict(), 200
+
+    @jwt_required()
+    def delete(self, agency_id):
+        claims = get_jwt()
+        if not claims.get('is_super_admin'):
+            return {"message": "Solo super admin"}, 403
+        a = Agency.query.get_or_404(agency_id)
+        db.session.delete(a)
+        db.session.commit()
+        return {"message": "Agencia eliminada"}, 200
+
+
+class AgencyAssignBusinessResource(Resource):
+    @jwt_required()
+    def post(self, agency_id):
+        claims = get_jwt()
+        if not claims.get('is_super_admin'):
+            return {"message": "Solo super admin"}, 403
+        data = request.get_json() or {}
+        business_id = data.get('business_id')
+        b = Business.query.get_or_404(business_id)
+        b.agency_id = agency_id
+        db.session.commit()
+        return {"message": "Negocio asignado a la agencia"}, 200
+
+
+class AgencyAdminCreateResource(Resource):
+    @jwt_required()
+    def post(self, agency_id):
+        claims = get_jwt()
+        if not claims.get('is_super_admin'):
+            return {"message": "Solo super admin"}, 403
+        data = request.get_json() or {}
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        if not username or not password:
+            return {"message": "username y password requeridos"}, 400
+        if Admin.query.filter_by(username=username).first():
+            return {"message": "Username ya existe"}, 400
+        a = Admin(
+            username=username,
+            password=generate_password_hash(password),
+            is_super_admin=False,
+            is_agency_admin=True,
+            agency_id=agency_id,
+        )
+        db.session.add(a)
+        db.session.commit()
+        return {"message": "Agency admin creado", "id": a.id, "username": a.username}, 201
+
+
+class AgencyBusinessesResource(Resource):
+    @jwt_required()
+    def get(self, agency_id):
+        claims = get_jwt()
+        if not claims.get('is_super_admin') and claims.get('agency_id') != agency_id:
+            return {"message": "Acceso denegado"}, 403
+        businesses = Business.query.filter_by(agency_id=agency_id, is_active=True).all()
+        return [b.to_dict(include_branches=True) for b in businesses], 200
+
+
+api.add_resource(AgencyListResource, '/api/v1/agencies')
+api.add_resource(AgencyResource, '/api/v1/agencies/<int:agency_id>')
+api.add_resource(AgencyAssignBusinessResource, '/api/v1/agencies/<int:agency_id>/assign-business')
+api.add_resource(AgencyAdminCreateResource, '/api/v1/agencies/<int:agency_id>/create-admin')
+api.add_resource(AgencyBusinessesResource, '/api/v1/agencies/<int:agency_id>/businesses')
 
 
 if __name__ == '__main__':

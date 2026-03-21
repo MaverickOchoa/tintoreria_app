@@ -69,6 +69,8 @@ import ClinicLayout from "./components/clinic/ClinicLayout.jsx";
 import ClinicKanban from "./components/clinic/ClinicKanban.jsx";
 import ClinicPatients from "./components/clinic/ClinicPatients.jsx";
 import ClinicPatientProfile from "./components/clinic/ClinicPatientProfile.jsx";
+import ManageAgencies from "./components/ManageAgencies.jsx";
+import AgencyAdminDashboard from "./components/AgencyAdminDashboard.jsx";
 
 const inputGlobalStyles = (
   <GlobalStyles
@@ -226,8 +228,18 @@ function App() {
           {/* fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
 
+          {/* AGENCY ADMIN */}
+          <Route element={<ProtectedRoute allowedRoles={["agency_admin"]} />}>
+            <Route path="/agency-admin-dashboard" element={<AgencyAdminDashboard />} />
+          </Route>
+
+          {/* SUPER ADMIN — Agencies management */}
+          <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
+            <Route path="/manage-agencies" element={<ManageAgencies />} />
+          </Route>
+
           {/* CLINIC VERTICAL */}
-          <Route element={<ProtectedRoute allowedRoles={["business_admin", "branch_manager", "employee"]} />}>
+          <Route element={<ProtectedRoute allowedRoles={["business_admin", "branch_manager", "employee", "super_admin"]} />}>
             <Route path="/clinic" element={<ClinicLayout />}>
               <Route index element={<Navigate to="/clinic/kanban" replace />} />
               <Route path="kanban" element={<ClinicKanban />} />

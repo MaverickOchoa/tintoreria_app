@@ -64,6 +64,14 @@ const dashboardActions = [
     color: "secondary",
     enabled: true,
   },
+  {
+    label: "Gestión de Agencias",
+    path: "/manage-agencies",
+    icon: <BusinessIcon />,
+    variant: "outlined",
+    color: "secondary",
+    enabled: true,
+  },
 ];
 
 function SuperAdminDashboard() {
