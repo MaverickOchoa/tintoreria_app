@@ -117,8 +117,8 @@ export default function ClinicLayout() {
                     mx: 1, mb: 0.5, borderRadius: 2,
                     cursor: "pointer",
                     bgcolor: active ? "rgba(67,97,238,0.2)" : "transparent",
-                    color: active ? "#7b9fff" : "#d0d4e8",
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.1)", color: "#fff" },
+                    color: active ? "#ffffff" : "#c8cfe8",
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.12)", color: "#ffffff" },
                     transition: "all 0.15s",
                     justifyContent: collapsed ? "center" : "flex-start",
                   }}
@@ -146,7 +146,7 @@ export default function ClinicLayout() {
           {!collapsed && (
             <Box sx={{ flex: 1, overflow: "hidden" }}>
               <Typography fontSize={12} fontWeight={600} noWrap>{claims.username || claims.full_name || "Usuario"}</Typography>
-              <Typography fontSize={10} color="#b0b8d8" noWrap>{claims.role === "business_admin" ? "Administrador" : claims.role === "branch_manager" ? "Gerente" : claims.role || ""}</Typography>
+              <Typography fontSize={10} color="#8892b0" noWrap>{claims.role === "business_admin" ? "Administrador" : claims.role === "branch_manager" ? "Gerente" : claims.role || ""}</Typography>
             </Box>
           )}
           {!collapsed && (
