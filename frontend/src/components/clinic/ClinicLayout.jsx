@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Box, Typography, IconButton, Tooltip, Avatar, Divider,
-  Menu, MenuItem,
+  Menu, MenuItem, Select, FormControl, Chip,
 } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
@@ -13,7 +13,12 @@ import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import GroupIcon from "@mui/icons-material/Group";
+import StoreIcon from "@mui/icons-material/Store";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { BRAND } from "../../brand";
+
+const API = import.meta.env.VITE_API_URL || "";
 
 const SIDEBAR_W = 220;
 const SIDEBAR_COLLAPSED = 64;
@@ -24,6 +29,7 @@ const NAV = [
   { icon: <CalendarMonthIcon />, label: "Agenda", path: "/clinic/calendar" },
   { icon: <MedicalServicesIcon />, label: "Servicios", path: "/clinic/services" },
   { icon: <ReceiptIcon />,   label: "Caja",       path: "/clinic/payments" },
+  { icon: <GroupIcon />,     label: "Equipo",     path: "/clinic/users" },
 ];
 
 export default function ClinicLayout() {
@@ -33,7 +39,35 @@ export default function ClinicLayout() {
   const [anchorEl, setAnchorEl] = useState(null);
   const token = localStorage.getItem("access_token");
   const claims = JSON.parse(localStorage.getItem("user_claims") || "{}");
+  const [branches, setBranches] = useState([]);
+  const [activeBranchId, setActiveBranchId] = useState(
+    localStorage.getItem("branch_id") || claims.branch_id || ""
+  );
   const w = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_W;
+
+  useEffect(() => {
+    if (!claims.business_id) return;
+    fetch(`${API}/businesses/${claims.business_id}/branches`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => {
+        const list = d.branches || [];
+        setBranches(list);
+        if (!activeBranchId && list.length > 0) {
+          const firstId = String(list[0].id);
+          setActiveBranchId(firstId);
+          localStorage.setItem("branch_id", firstId);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleBranchChange = (e) => {
+    const id = String(e.target.value);
+    setActiveBranchId(id);
+    localStorage.setItem("branch_id", id);
+  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -107,12 +141,12 @@ export default function ClinicLayout() {
             sx={{ width: 34, height: 34, bgcolor: "#4361ee", fontSize: 14, cursor: "pointer", flexShrink: 0 }}
             onClick={e => setAnchorEl(e.currentTarget)}
           >
-            {(claims.sub || "U")[0].toUpperCase()}
+            {(claims.username || claims.full_name || "U")[0].toUpperCase()}
           </Avatar>
           {!collapsed && (
             <Box sx={{ flex: 1, overflow: "hidden" }}>
-              <Typography fontSize={12} fontWeight={600} noWrap>{claims.sub || "Usuario"}</Typography>
-              <Typography fontSize={10} color="#9ea3b0" noWrap>{claims.role || ""}</Typography>
+              <Typography fontSize={12} fontWeight={600} noWrap>{claims.username || claims.full_name || "Usuario"}</Typography>
+              <Typography fontSize={10} color="#9ea3b0" noWrap>{claims.role === "business_admin" ? "Administrador" : claims.role === "branch_manager" ? "Gerente" : claims.role || ""}</Typography>
             </Box>
           )}
           {!collapsed && (
@@ -130,8 +164,34 @@ export default function ClinicLayout() {
 
       {/* ── MAIN CONTENT ── */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* Topbar con selector de sucursal */}
+        <Box sx={{ height: 52, bgcolor: "#fff", borderBottom: "1px solid #e0e0e0", display: "flex", alignItems: "center", px: 2.5, gap: 2, flexShrink: 0 }}>
+          <StoreIcon sx={{ color: "#4361ee", fontSize: 20 }} />
+          {branches.length > 1 ? (
+            <Select
+              value={activeBranchId}
+              onChange={handleBranchChange}
+              size="small"
+              variant="outlined"
+              sx={{ minWidth: 200, fontSize: 13, "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e0e0e0" } }}
+            >
+              {branches.map(b => (
+                <MenuItem key={b.id} value={String(b.id)}>
+                  {b.name}
+                </MenuItem>
+              ))}
+            </Select>
+          ) : (
+            <Typography fontSize={13} fontWeight={600} color="text.secondary">
+              {branches[0]?.name || "Sucursal"}
+            </Typography>
+          )}
+          <Box sx={{ flex: 1 }} />
+          <Typography variant="caption" color="text.disabled">{claims.username || ""}</Typography>
+        </Box>
+
         <Box sx={{ flex: 1, overflow: "auto", p: 0 }}>
-          <Outlet context={{ token, claims }} />
+          <Outlet context={{ token, claims, activeBranchId }} />
         </Box>
         <Box sx={{ borderTop: "1px solid #e0e0e0", px: 3, py: 1, display: "flex", justifyContent: "space-between", bgcolor: "#fff" }}>
           <Typography variant="caption" color="text.secondary" fontWeight={600}>{BRAND.verticals.clinic.name}</Typography>

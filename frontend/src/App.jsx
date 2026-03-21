@@ -72,6 +72,7 @@ import ClinicPatientProfile from "./components/clinic/ClinicPatientProfile.jsx";
 import ClinicCalendar from "./components/clinic/ClinicCalendar.jsx";
 import ClinicServices from "./components/clinic/ClinicServices.jsx";
 import ClinicPayments from "./components/clinic/ClinicPayments.jsx";
+import ClinicUsers from "./components/clinic/ClinicUsers.jsx";
 import ManageAgencies from "./components/ManageAgencies.jsx";
 import AgencyAdminDashboard from "./components/AgencyAdminDashboard.jsx";
 
@@ -251,6 +252,7 @@ function App() {
               <Route path="calendar" element={<ClinicCalendar />} />
               <Route path="services" element={<ClinicServices />} />
               <Route path="payments" element={<ClinicPayments />} />
+              <Route path="users" element={<ClinicUsers />} />
             </Route>
           </Route>
         </Routes>
