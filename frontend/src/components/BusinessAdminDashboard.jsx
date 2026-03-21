@@ -326,7 +326,8 @@ export default function BusinessAdminDashboard() {
                       <StoreIcon fontSize="small" color={isActive ? "primary" : "action"} />
                       <Typography fontWeight={700}>{branch.name}</Typography>
                       {isActive && <Chip label="Sucursal activa" size="small" color="primary" />}
-                      {branchConfigs[branch.id] ? (
+                      <Chip label={branch.vertical_type === "clinic" ? "Clínica" : "Tintorería"} size="small" color={branch.vertical_type === "clinic" ? "secondary" : "default"} variant="outlined" />
+                      {branch.vertical_type !== "clinic" && (branchConfigs[branch.id] ? (
                         <Chip
                           icon={<QrCodeScannerIcon />}
                           label={cfg.require_scan ? "Escaneo ON" : "Escaneo OFF"}
@@ -336,7 +337,7 @@ export default function BusinessAdminDashboard() {
                         />
                       ) : (
                         <CircularProgress size={14} />
-                      )}
+                      ))}
                     </Box>
                   </AccordionSummary>
                   <AccordionDetails sx={{ pt: 0 }}>
@@ -344,7 +345,8 @@ export default function BusinessAdminDashboard() {
                       <Box display="flex" justifyContent="center" py={3}><CircularProgress /></Box>
                     ) : (
                       <Box>
-                        {/* Número de nota */}
+                        {/* Número de nota — solo tintorería */}
+                        {branch.vertical_type !== "clinic" && (<>
                         <Typography variant="subtitle2" fontWeight={700} mb={1.5} color="text.secondary">
                           NÚMERO DE NOTA
                         </Typography>
@@ -384,6 +386,8 @@ export default function BusinessAdminDashboard() {
                             </Grid>
                           )}
                         </Grid>
+
+                        </>)}
 
                         <Divider sx={{ mb: 2 }} />
 
@@ -457,7 +461,8 @@ export default function BusinessAdminDashboard() {
 
                         <Divider sx={{ mb: 2 }} />
 
-                        {/* Tiempos y Urgencia */}
+                        {/* Tiempos y Urgencia — solo tintorería */}
+                        {branch.vertical_type !== "clinic" && (<>
                         <Typography variant="subtitle2" fontWeight={700} mb={1.5} color="text.secondary">
                           TIEMPOS DE ENTREGA Y URGENCIA
                         </Typography>
@@ -507,9 +512,12 @@ export default function BusinessAdminDashboard() {
                           </Grid>
                         </Grid>
 
+                        </>)}
+
                         <Divider sx={{ mb: 2 }} />
 
-                        {/* Escaneo de prendas */}
+                        {/* Escaneo de prendas — solo tintorería */}
+                        {branch.vertical_type !== "clinic" && (<>
                         <Typography variant="subtitle2" fontWeight={700} mb={1.5} color="text.secondary">
                           ESCANEO DE PRENDAS EN PRODUCCIÓN
                         </Typography>
@@ -536,6 +544,8 @@ export default function BusinessAdminDashboard() {
                             }
                           />
                         </Box>
+
+                        </>)}
 
                         {/* Botón guardar toda la config */}
                         <Box display="flex" alignItems="center" gap={2}>

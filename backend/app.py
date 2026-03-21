@@ -402,12 +402,14 @@ class Branch(db.Model):
         }
 
     def to_dict(self):
+        biz = Business.query.get(self.business_id)
         return {
             'id': self.id, 'name': self.name, 'address': self.address,
             'business_id': self.business_id,
             'folio_prefix': self.folio_prefix or '',
             'folio_counter': self.folio_counter or 0,
             'is_active': self.is_active,
+            'vertical_type': biz.vertical_type if biz else 'laundry',
         }
 
 class Client(db.Model):
