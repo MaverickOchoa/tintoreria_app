@@ -19,12 +19,30 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:YoYo158087@localhost/tintoreria_db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-only-fallback-key-change-in-prod')
+app.config['PROPAGATE_EXCEPTIONS'] = True
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 api = Api(app)
 jwt = JWTManager(app)
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return {"message": "Token expirado. Inicia sesión nuevamente."}, 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error_string):
+    return {"message": "Token inválido."}, 401
+
+@jwt.unauthorized_loader
+def missing_token_callback(error_string):
+    return {"message": "Token requerido."}, 401
+
+@jwt.revoked_token_loader
+def revoked_token_callback(jwt_header, jwt_payload):
+    return {"message": "Token revocado."}, 401
+
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
 
 @app.after_request
