@@ -8,7 +8,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'a1b2c3d4e5f6'
-down_revision = None
+down_revision = '56493a8df0dc'
 branch_labels = None
 depends_on = None
 
@@ -77,8 +77,6 @@ def upgrade() -> None:
     op.create_index('ix_appointments_business_branch', 'appointments', ['business_id', 'branch_id'])
     op.create_index('ix_appointments_scheduled_at', 'appointments', ['scheduled_at'])
     op.create_index('ix_clinical_records_patient', 'clinical_records', ['patient_id'])
-
-    op.add_column('businesses', sa.Column('vertical_type', sa.String(30), nullable=False, server_default='laundry'))
 
 
 def downgrade() -> None:
