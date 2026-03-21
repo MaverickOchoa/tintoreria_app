@@ -7,6 +7,8 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from sqlalchemy import UniqueConstraint, or_, Numeric
 from sqlalchemy.orm import joinedload
+from apscheduler.schedulers.background import BackgroundScheduler
+import atexit
 from datetime import datetime, date, timedelta, time as dt_time
 import os
 from dotenv import load_dotenv
@@ -3677,6 +3679,28 @@ api.add_resource(ReportOverviewResource, '/api/v1/reports/overview')
 api.add_resource(ReportReceivableResource, '/api/v1/reports/receivable')
 api.add_resource(ReportClientsDetailResource, '/api/v1/reports/clients-detail')
 api.add_resource(ReportDiscountsResource, '/api/v1/reports/discounts')
+
+def auto_advance_orders():
+    with app.app_context():
+        try:
+            cutoff = datetime.utcnow() - timedelta(hours=2)
+            orders = Order.query.filter(
+                Order.status == 'Creada',
+                Order.order_date <= cutoff
+            ).all()
+            if orders:
+                for order in orders:
+                    order.status = 'En proceso'
+                db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+
+
+_scheduler = BackgroundScheduler(timezone="UTC")
+_scheduler.add_job(auto_advance_orders, 'interval', minutes=5)
+_scheduler.start()
+atexit.register(lambda: _scheduler.shutdown(wait=False))
+
 
 if __name__ == '__main__':
     with app.app_context():
