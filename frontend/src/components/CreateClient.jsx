@@ -5,7 +5,7 @@ import {
   MenuItem, Divider,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { toTitleCase } from "../utils";
+import { toTitleCase, isValidPhone, isValidEmail } from "../utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
@@ -60,6 +60,16 @@ const CreateClient = () => {
       setLoading(false);
       return;
     }
+    if (!isValidPhone(clientData.phone)) {
+      setResponse({ success: false, message: "El teléfono debe tener exactamente 10 dígitos." });
+      setLoading(false);
+      return;
+    }
+    if (clientData.email && !isValidEmail(clientData.email)) {
+      setResponse({ success: false, message: "El formato del correo electrónico no es válido." });
+      setLoading(false);
+      return;
+    }
 
     const dataToSend = {};
     for (const key in clientData) {
@@ -109,7 +119,9 @@ const CreateClient = () => {
 
           <Box sx={rowStyle}>
             <TextField required label="Teléfono" name="phone" type="tel"
-              value={clientData.phone} onChange={handleChange} sx={{ flex: 1 }} />
+              value={clientData.phone} onChange={handleChange} sx={{ flex: 1 }}
+              inputProps={{ maxLength: 10 }}
+              helperText="10 dígitos sin espacios" />
             <TextField label="Correo Electrónico" name="email" type="email"
               value={clientData.email} onChange={handleChange} sx={{ flex: 1 }} />
           </Box>

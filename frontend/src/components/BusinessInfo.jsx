@@ -7,6 +7,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import BusinessIcon from "@mui/icons-material/Business";
+import { isValidPhone, isValidEmail } from "../utils";
 
 const API = import.meta.env.VITE_API_URL || API;
 
@@ -74,6 +75,14 @@ export default function BusinessInfo() {
   };
 
   const handleSave = async () => {
+    if (form.phone && !isValidPhone(form.phone)) {
+      setError("El teléfono debe tener exactamente 10 dígitos.");
+      return;
+    }
+    if (form.email && !isValidEmail(form.email)) {
+      setError("El formato del correo electrónico no es válido.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -136,7 +145,8 @@ export default function BusinessInfo() {
             </Grid>
             <Grid item xs={12} sm={3}>
               <TextField fullWidth label="Teléfono" value={form.phone}
-                onChange={handleChange("phone")} inputProps={{ maxLength: 20 }} />
+                onChange={handleChange("phone")} inputProps={{ maxLength: 10 }}
+                helperText="10 dígitos" />
             </Grid>
             <Grid item xs={12} sm={3}>
               <TextField fullWidth label="Correo Electrónico" value={form.email}

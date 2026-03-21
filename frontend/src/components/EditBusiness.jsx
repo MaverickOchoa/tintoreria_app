@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
+import { isValidPhone, isValidEmail } from "../utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || API;
 
@@ -53,6 +54,8 @@ export default function EditBusiness() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) { setError("El nombre no puede ir vacío."); return; }
+    if (form.phone && !isValidPhone(form.phone)) { setError("El teléfono debe tener exactamente 10 dígitos."); return; }
+    if (form.email && !isValidEmail(form.email)) { setError("El formato del correo electrónico no es válido."); return; }
     setSaving(true); setError(""); setOk("");
     try {
       const res = await fetch(`${API_BASE_URL}/businesses/${businessId}`, {
@@ -131,7 +134,7 @@ export default function EditBusiness() {
               <TextField fullWidth label="País" value={form.country} onChange={set("country")} disabled={saving} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField fullWidth label="Teléfono" value={form.phone} onChange={set("phone")} disabled={saving} />
+              <TextField fullWidth label="Teléfono" value={form.phone} onChange={set("phone")} disabled={saving} inputProps={{ maxLength: 10 }} helperText="10 dígitos" />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth label="Correo Electrónico" value={form.email} onChange={set("email")} disabled={saving} />

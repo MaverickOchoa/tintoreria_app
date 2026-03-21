@@ -11,6 +11,7 @@ import {
   Alert,
 } from "@mui/material";
 import { createBusiness } from "../api/business";
+import { isValidPhone, isValidEmail } from "../utils";
 
 export default function CreateBusinessPage() {
   const navigate = useNavigate();
@@ -31,6 +32,14 @@ export default function CreateBusinessPage() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
+    if (form.business_phone && !isValidPhone(form.business_phone)) {
+      setErr("El teléfono debe tener exactamente 10 dígitos.");
+      return;
+    }
+    if (form.business_email && !isValidEmail(form.business_email)) {
+      setErr("El formato del correo electrónico no es válido.");
+      return;
+    }
     setLoading(true);
 
     try {

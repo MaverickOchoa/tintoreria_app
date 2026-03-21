@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
+import { isValidPhone, isValidEmail } from "../utils";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 const BASE_URL = `${API}/api/v1`;
@@ -51,6 +52,16 @@ const ClientFormModal = ({ client, onSave, onClose }) => {
     const token = localStorage.getItem("jwt_token");
     if (!token) {
       setError("Error de autenticación. Inicia sesión.");
+      setIsLoading(false);
+      return;
+    }
+    if (!isValidPhone(formData.phone)) {
+      setError("El teléfono debe tener exactamente 10 dígitos.");
+      setIsLoading(false);
+      return;
+    }
+    if (formData.email && !isValidEmail(formData.email)) {
+      setError("El formato del correo electrónico no es válido.");
       setIsLoading(false);
       return;
     }
@@ -125,18 +136,12 @@ const ClientFormModal = ({ client, onSave, onClose }) => {
 
         {/* Input de Teléfono */}
         <TextField
-          fullWidth
-          label="Teléfono *"
-          name="phone"
-          type="tel"
-          value={formData.phone}
-          onChange={handleChange}
-          variant="outlined"
-          size="small"
-          margin="dense"
-          required
-          disabled={isLoading}
-          sx={{ mb: 1.5 }}
+          fullWidth label="Teléfono *" name="phone" type="tel"
+          value={formData.phone} onChange={handleChange}
+          variant="outlined" size="small" margin="dense"
+          required disabled={isLoading} sx={{ mb: 1.5 }}
+          inputProps={{ maxLength: 10 }}
+          helperText="10 dígitos sin espacios"
         />
 
         {/* Input de Email */}
