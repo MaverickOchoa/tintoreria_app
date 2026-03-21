@@ -26,10 +26,11 @@ export default function ManageAgencies() {
   const [msg, setMsg] = useState(null);
   const [expanded, setExpanded] = useState(null);
   const [agencyDetails, setAgencyDetails] = useState({});
+  const [formErrors, setFormErrors] = useState({});
 
   // Create agency dialog
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: "", contact_name: "", email: "", phone: "", notes: "" });
+  const [createForm, setCreateForm] = useState({ name: "", contact_name: "", contact_last_name: "", email: "", phone: "", notes: "" });
   const [editAgency, setEditAgency] = useState(null);
 
   // Create admin dialog
@@ -61,17 +62,34 @@ export default function ManageAgencies() {
     if (!agencyDetails[id]) loadAgencyDetail(id);
   };
 
+  const validateAgencyForm = () => {
+    const errors = {};
+    if (!createForm.name.trim()) errors.name = "Nombre requerido";
+    if (createForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.email.trim())) {
+      errors.email = "Correo electrónico inválido";
+    }
+    if (createForm.phone && !/^\d{10}$/.test(createForm.phone.replace(/\s|-/g, ""))) {
+      errors.phone = "El teléfono debe tener exactamente 10 dígitos";
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveAgency = async () => {
+    if (!validateAgencyForm()) return;
+    const contact_name = [createForm.contact_name, createForm.contact_last_name].filter(Boolean).join(" ");
     const method = editAgency ? "PUT" : "POST";
     const url = editAgency ? `${API}/api/v1/agencies/${editAgency.id}` : `${API}/api/v1/agencies`;
     const r = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(createForm),
+      body: JSON.stringify({ ...createForm, contact_name }),
     });
     if (r.ok) {
       setMsg({ type: "success", text: editAgency ? "Agencia actualizada" : "Agencia creada" });
-      setCreateOpen(false); setEditAgency(null); setCreateForm({ name: "", contact_name: "", email: "", phone: "", notes: "" });
+      setCreateOpen(false); setEditAgency(null);
+      setCreateForm({ name: "", contact_name: "", contact_last_name: "", email: "", phone: "", notes: "" });
+      setFormErrors({});
       load();
     } else setMsg({ type: "error", text: "Error al guardar" });
   };
@@ -104,8 +122,17 @@ export default function ManageAgencies() {
   };
 
   const openEdit = (ag) => {
+    const parts = (ag.contact_name || "").split(" ");
     setEditAgency(ag);
-    setCreateForm({ name: ag.name, contact_name: ag.contact_name || "", email: ag.email || "", phone: ag.phone || "", notes: ag.notes || "" });
+    setCreateForm({
+      name: ag.name,
+      contact_name: parts[0] || "",
+      contact_last_name: parts.slice(1).join(" ") || "",
+      email: ag.email || "",
+      phone: ag.phone || "",
+      notes: ag.notes || "",
+    });
+    setFormErrors({});
     setCreateOpen(true);
   };
 
@@ -228,15 +255,33 @@ export default function ManageAgencies() {
       </Box>
 
       {/* Create/Edit Agency dialog */}
-      <Dialog open={createOpen} onClose={() => { setCreateOpen(false); setEditAgency(null); }} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+      <Dialog open={createOpen} onClose={() => { setCreateOpen(false); setEditAgency(null); setFormErrors({}); }} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle fontWeight={800}>{editAgency ? "Editar Agencia" : "Nueva Agencia"}</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2} pt={1}>
-            {[["name", "Nombre de la agencia *"], ["contact_name", "Nombre del contacto"], ["email", "Email"], ["phone", "Teléfono"]].map(([k, l]) => (
-              <Grid item xs={12} sm={k === "name" ? 12 : 6} key={k}>
-                <TextField fullWidth label={l} value={createForm[k]} onChange={e => setCreateForm(p => ({ ...p, [k]: e.target.value }))} />
-              </Grid>
-            ))}
+            <Grid item xs={12}>
+              <TextField fullWidth label="Nombre de la agencia *" value={createForm.name}
+                onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))}
+                error={Boolean(formErrors.name)} helperText={formErrors.name} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Nombre del contacto" value={createForm.contact_name}
+                onChange={e => setCreateForm(p => ({ ...p, contact_name: e.target.value }))} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Apellido del contacto" value={createForm.contact_last_name}
+                onChange={e => setCreateForm(p => ({ ...p, contact_last_name: e.target.value }))} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Correo electrónico" value={createForm.email}
+                onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))}
+                error={Boolean(formErrors.email)} helperText={formErrors.email} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Teléfono (10 dígitos)" value={createForm.phone}
+                onChange={e => setCreateForm(p => ({ ...p, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+                error={Boolean(formErrors.phone)} helperText={formErrors.phone || "Solo números, sin espacios"} />
+            </Grid>
             <Grid item xs={12}>
               <TextField fullWidth multiline minRows={2} label="Notas internas" value={createForm.notes}
                 onChange={e => setCreateForm(p => ({ ...p, notes: e.target.value }))} />
@@ -244,7 +289,7 @@ export default function ManageAgencies() {
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => { setCreateOpen(false); setEditAgency(null); }}>Cancelar</Button>
+          <Button onClick={() => { setCreateOpen(false); setEditAgency(null); setFormErrors({}); }}>Cancelar</Button>
           <Button variant="contained" onClick={handleSaveAgency}
             sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, fontWeight: 700 }}>
             {editAgency ? "Guardar cambios" : "Crear agencia"}

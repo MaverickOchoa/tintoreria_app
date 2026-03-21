@@ -12,10 +12,14 @@ import {
   Divider,
   Paper,
   useTheme,
+  MenuItem,
+  Chip,
 } from "@mui/material";
 
 import AddBusinessIcon from "@mui/icons-material/AddBusiness";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 
 import { toTitleCase } from "../utils";
 
@@ -25,6 +29,7 @@ function CreateBusiness() {
   const [businessName, setBusinessName] = useState("");
   const [branchName, setBranchName] = useState("Matriz");
   const [branchAddress, setBranchAddress] = useState("");
+  const [verticalType, setVerticalType] = useState("laundry");
 
   const [ownerUsername, setOwnerUsername] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
@@ -54,6 +59,7 @@ function CreateBusiness() {
         admin_username: (ownerUsername || "").trim(),
         admin_password: ownerPassword,
         business_address: (branchAddress || "").trim(),
+        vertical_type: verticalType,
       };
 
       if (!payload.business_name || !payload.admin_username || !payload.admin_password) {
@@ -155,6 +161,35 @@ function CreateBusiness() {
           </Typography>
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {/* Tipo de vertical */}
+            <Box>
+              <Typography fontSize={12} color="text.secondary" fontWeight={600} mb={1}>
+                Tipo de Negocio
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1.5 }}>
+                {[
+                  { value: "laundry", label: "Tintorería", icon: <StorefrontIcon fontSize="small" />, color: "#4361ee" },
+                  { value: "clinic",  label: "Clínica",    icon: <LocalHospitalIcon fontSize="small" />, color: "#2ec4b6" },
+                ].map(opt => (
+                  <Box
+                    key={opt.value}
+                    onClick={() => setVerticalType(opt.value)}
+                    sx={{
+                      flex: 1, border: `2px solid ${verticalType === opt.value ? opt.color : "#e0e0e0"}`,
+                      borderRadius: 2, p: 1.5, cursor: "pointer", textAlign: "center",
+                      bgcolor: verticalType === opt.value ? opt.color + "10" : "#fff",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <Box sx={{ color: opt.color, mb: 0.5 }}>{opt.icon}</Box>
+                    <Typography fontSize={13} fontWeight={verticalType === opt.value ? 700 : 400} color={verticalType === opt.value ? opt.color : "text.secondary"}>
+                      {opt.label}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+
             <TextField
               fullWidth
               label="Nombre del Negocio"

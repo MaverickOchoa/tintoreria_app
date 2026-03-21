@@ -83,6 +83,7 @@ const Login = () => {
         is_superadmin: data.is_superadmin ?? null,
         user_id: data.user_id ?? null,
         username: data.username ?? username,
+        agency_id: data.agency_id ?? null,
       };
 
       localStorage.setItem("user_claims", JSON.stringify(claimsPayload));

@@ -882,6 +882,7 @@ class BusinessCreation(Resource):
                                 address=(data.get('business_address') or '').title(),
                                 phone=data.get('business_phone') or '',
                                 email=data.get('business_email') or '',
+                                vertical_type=data.get('vertical_type') or 'laundry',
                                 admin_user=new_admin)
         try:
             db.session.add(new_business)
