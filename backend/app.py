@@ -827,7 +827,7 @@ item_parser.add_argument('business_id', type=int)
 
 branch_parser = reqparse.RequestParser()
 branch_parser.add_argument('name', required=True, location='json')
-branch_parser.add_argument('address', required=True, location='json')
+branch_parser.add_argument('address', required=False, location='json')
 
 client_parser = reqparse.RequestParser()
 client_parser.add_argument('first_name', location='json')
@@ -979,7 +979,7 @@ class BranchResource(Resource):
             return {"message": "Permiso denegado"}, 403
         args = branch_parser.parse_args()
         try:
-            new_branch = Branch(name=args["name"].title(), address=args["address"].title(), business_id=business_id)
+            new_branch = Branch(name=args["name"].title(), address=(args.get("address") or "").title(), business_id=business_id)
             db.session.add(new_branch)
             db.session.commit()
             return {"message": "Sucursal creada", "branch": new_branch.to_dict()}, 201
