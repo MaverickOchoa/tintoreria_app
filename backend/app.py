@@ -376,7 +376,7 @@ class Branch(db.Model):
     urgent_pct = db.Column(db.Float, nullable=True)
     extra_urgent_pct = db.Column(db.Float, nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
-    require_scan = db.Column(db.Boolean, nullable=True)
+    require_scan = db.Column(db.Boolean, nullable=False, default=True, server_default='true')
     users = db.relationship('Admin', back_populates='branch', lazy=True)
 
     def get_config(self):
