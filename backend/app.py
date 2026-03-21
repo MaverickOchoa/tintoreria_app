@@ -15,6 +15,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+try:
+    from twilio.rest import Client as TwilioClient
+    _TWILIO_AVAILABLE = True
+except ImportError:
+    _TWILIO_AVAILABLE = False
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:YoYo158087@localhost/tintoreria_db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -603,6 +609,31 @@ class MonthlyGoal(db.Model):
             'year': self.year,
             'month': self.month,
             'goal_amount': str(self.goal_amount),
+        }
+
+
+class WhatsappTemplate(db.Model):
+    __tablename__ = 'whatsapp_templates'
+    id           = db.Column(db.Integer, primary_key=True)
+    business_id  = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    trigger_type = db.Column(db.String(50), nullable=False)
+    message_body = db.Column(db.Text, nullable=False)
+    is_active    = db.Column(db.Boolean, nullable=False, default=True)
+    created_at   = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at   = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('business_id', 'trigger_type', name='uq_whatsapp_template_business_trigger'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'business_id': self.business_id,
+            'trigger_type': self.trigger_type,
+            'message_body': self.message_body,
+            'is_active': self.is_active,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -1869,6 +1900,9 @@ class ClientListResource(Resource):
         )
         db.session.add(new_client)
         db.session.commit()
+        branch = Branch.query.get(new_client.branch_id) if new_client.branch_id else None
+        if branch:
+            fire_whatsapp_trigger('client_welcome', branch.business_id, new_client)
         return {"message": "Cliente creado", "client": new_client.to_dict()}, 201
 
     @jwt_required()
@@ -2266,6 +2300,16 @@ class OrderResource(Resource):
         if 'notes' in data:
             order.notes = data['notes']
         db.session.commit()
+        if new_status == 'Listo':
+            client = Client.query.get(order.client_id) if order.client_id else None
+            branch = Branch.query.get(order.branch_id)
+            if client and branch:
+                fire_whatsapp_trigger('order_ready', branch.business_id, client, {'folio': order.folio or str(order.id)})
+                completed_orders = Order.query.filter_by(client_id=client.id).filter(
+                    Order.status.in_(['Listo', 'Entregado'])
+                ).count()
+                if completed_orders == 3:
+                    fire_whatsapp_trigger('client_recurring', branch.business_id, client)
         return {"message": "Orden actualizada", "order": order.to_dict()}, 200
 
 class OrderPaymentResource(Resource):
@@ -3721,6 +3765,125 @@ try:
     atexit.register(lambda: _scheduler.shutdown(wait=False) if _scheduler.running else None)
 except Exception:
     pass
+
+
+def send_whatsapp(to_phone, message_body):
+    account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+    auth_token  = os.environ.get('TWILIO_AUTH_TOKEN')
+    from_number = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
+    if not account_sid or not auth_token or not _TWILIO_AVAILABLE:
+        app.logger.info(f"[WhatsApp MOCK] To: {to_phone} | Msg: {message_body[:80]}")
+        return False
+    try:
+        phone = to_phone.strip().replace(' ', '').replace('-', '')
+        if not phone.startswith('+'):
+            phone = '+52' + phone
+        client = TwilioClient(account_sid, auth_token)
+        client.messages.create(
+            from_=from_number,
+            to=f'whatsapp:{phone}',
+            body=message_body
+        )
+        return True
+    except Exception as e:
+        app.logger.error(f"[WhatsApp ERROR] {e}")
+        return False
+
+
+def fire_whatsapp_trigger(trigger_type, business_id, client, extra=None):
+    try:
+        if not client or not client.whatsapp_consent:
+            return
+        template = WhatsappTemplate.query.filter_by(
+            business_id=business_id,
+            trigger_type=trigger_type,
+            is_active=True
+        ).first()
+        if not template:
+            return
+        nombre = f"{client.full_name or ''} {client.last_name or ''}".strip()
+        folio  = (extra or {}).get('folio', '')
+        msg = template.message_body \
+            .replace('{nombre}', nombre) \
+            .replace('{folio}', folio)
+        send_whatsapp(client.phone, msg)
+    except Exception as e:
+        app.logger.error(f"[WhatsApp TRIGGER ERROR] {trigger_type}: {e}")
+
+
+class WhatsappTemplateListResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        if not business_id:
+            return {"message": "Acceso denegado"}, 403
+        templates = WhatsappTemplate.query.filter_by(business_id=business_id).all()
+        return [t.to_dict() for t in templates], 200
+
+    @jwt_required()
+    def post(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        if not business_id:
+            return {"message": "Acceso denegado"}, 403
+        data = request.get_json() or {}
+        trigger_type = data.get('trigger_type', '').strip()
+        message_body = data.get('message_body', '').strip()
+        VALID_TRIGGERS = ('client_welcome', 'client_recurring', 'order_ready')
+        if trigger_type not in VALID_TRIGGERS:
+            return {"message": f"trigger_type debe ser uno de: {', '.join(VALID_TRIGGERS)}"}, 400
+        if not message_body:
+            return {"message": "message_body requerido"}, 400
+        existing = WhatsappTemplate.query.filter_by(business_id=business_id, trigger_type=trigger_type).first()
+        if existing:
+            existing.message_body = message_body
+            existing.is_active    = bool(data.get('is_active', True))
+            existing.updated_at   = datetime.utcnow()
+            db.session.commit()
+            return existing.to_dict(), 200
+        t = WhatsappTemplate(
+            business_id=business_id,
+            trigger_type=trigger_type,
+            message_body=message_body,
+            is_active=bool(data.get('is_active', True)),
+        )
+        db.session.add(t)
+        db.session.commit()
+        return t.to_dict(), 201
+
+
+class WhatsappTemplateResource(Resource):
+    @jwt_required()
+    def put(self, template_id):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        t = WhatsappTemplate.query.get_or_404(template_id)
+        if t.business_id != business_id:
+            return {"message": "Acceso denegado"}, 403
+        data = request.get_json() or {}
+        if 'message_body' in data:
+            t.message_body = data['message_body']
+        if 'is_active' in data:
+            t.is_active = bool(data['is_active'])
+        t.updated_at = datetime.utcnow()
+        db.session.commit()
+        return t.to_dict(), 200
+
+    @jwt_required()
+    def delete(self, template_id):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        t = WhatsappTemplate.query.get_or_404(template_id)
+        if t.business_id != business_id:
+            return {"message": "Acceso denegado"}, 403
+        db.session.delete(t)
+        db.session.commit()
+        return {"message": "Eliminado"}, 200
+
+
+api.add_resource(WhatsappTemplateListResource, '/api/v1/whatsapp-templates')
+api.add_resource(WhatsappTemplateResource, '/api/v1/whatsapp-templates/<int:template_id>')
 
 
 if __name__ == '__main__':

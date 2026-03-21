@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Box, Paper, Typography, Button, TextField, IconButton, Chip,
   Stack, Divider, Alert, CircularProgress, MenuItem, Switch,
-  FormControlLabel, Grid, Collapse,
+  FormControlLabel, Grid, Collapse, Tabs, Tab, Tooltip,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -11,6 +11,8 @@ import AddIcon from "@mui/icons-material/Add";
 import SaveIcon from "@mui/icons-material/Save";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import EditIcon from "@mui/icons-material/Edit";
 
 const API = import.meta.env.VITE_API_URL || API;
 
@@ -26,6 +28,7 @@ export default function ManagePromotions() {
   const token = localStorage.getItem("access_token");
   const claims = JSON.parse(localStorage.getItem("user_claims") || "{}");
 
+  const [tab, setTab] = useState(0);
   const [promotions, setPromotions] = useState([]);
   const [services, setServices] = useState([]);
   const [clientTypes, setClientTypes] = useState([]);
@@ -42,8 +45,85 @@ export default function ManagePromotions() {
   const [rewardItems, setRewardItems] = useState([]);
   const [rewardLineOptions, setRewardLineOptions] = useState([]);
 
+  // WhatsApp templates
+  const TRIGGER_META = {
+    client_welcome:   { label: "Bienvenida al cliente nuevo", icon: "👋", hint: "Se envía cuando se registra un cliente nuevo." },
+    client_recurring: { label: "Felicitación cliente recurrente", icon: "⭐", hint: "Se envía cuando el cliente completa su 3ª orden." },
+    order_ready:      { label: "Orden lista para recoger", icon: "✅", hint: "Se envía cuando una orden cambia a estatus 'Listo'." },
+  };
+  const DEFAULT_MESSAGES = {
+    client_welcome:   "¡Hola {nombre}! Bienvenido/a a nuestra tintorería. Nos da mucho gusto tenerte como cliente. 🧺",
+    client_recurring: "¡Hola {nombre}! Ya eres parte de nuestros clientes frecuentes. ¡Gracias por confiar en nosotros! ⭐",
+    order_ready:      "¡Hola {nombre}! Tu orden #{folio} ya está lista para recoger. ¡Te esperamos! ✅",
+  };
+  const [templates, setTemplates] = useState({});
+  const [editingTrigger, setEditingTrigger] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [waMsgState, setWaMsgState] = useState(null);
+  const [waSaving, setWaSaving] = useState(false);
+
+  const loadTemplates = () => {
+    fetch(`${API}/api/v1/whatsapp-templates`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) {
+          const map = {};
+          d.forEach(t => { map[t.trigger_type] = t; });
+          setTemplates(map);
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handleSaveTemplate = async (trigger_type) => {
+    setWaSaving(true);
+    setWaMsgState(null);
+    try {
+      const body = editText.trim() || DEFAULT_MESSAGES[trigger_type];
+      const existing = templates[trigger_type];
+      const method = existing ? 'PUT' : 'POST';
+      const url = existing
+        ? `${API}/api/v1/whatsapp-templates/${existing.id}`
+        : `${API}/api/v1/whatsapp-templates`;
+      const payload = existing
+        ? { message_body: body, is_active: existing.is_active }
+        : { trigger_type, message_body: body };
+      const r = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        const saved = await r.json();
+        setTemplates(prev => ({ ...prev, [trigger_type]: saved }));
+        setWaMsgState({ type: 'success', text: 'Guardado correctamente' });
+        setEditingTrigger(null);
+      } else {
+        setWaMsgState({ type: 'error', text: 'Error al guardar' });
+      }
+    } catch {
+      setWaMsgState({ type: 'error', text: 'Error de conexión' });
+    }
+    setWaSaving(false);
+  };
+
+  const handleToggleTemplate = async (trigger_type) => {
+    const t = templates[trigger_type];
+    if (!t) return;
+    const r = await fetch(`${API}/api/v1/whatsapp-templates/${t.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ is_active: !t.is_active }),
+    });
+    if (r.ok) {
+      const saved = await r.json();
+      setTemplates(prev => ({ ...prev, [trigger_type]: saved }));
+    }
+  };
+
   useEffect(() => {
     loadAll();
+    loadTemplates();
     fetch(`${API}/services`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setServices(Array.isArray(d) ? d : (d.services || []))).catch(() => {});
     fetch(`${API}/api/v1/client-types`, { headers: { Authorization: `Bearer ${token}` } })
@@ -213,8 +293,104 @@ export default function ManagePromotions() {
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/business-admin-dashboard")} sx={{ mb: 2 }}>
           Regresar
         </Button>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5" fontWeight={700}>Promociones</Typography>
+        <Typography variant="h5" fontWeight={700} mb={2}>Promociones y Mensajes</Typography>
+
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }} variant="fullWidth">
+          <Tab label="Promociones" />
+          <Tab label={<Box display="flex" alignItems="center" gap={0.5}><WhatsAppIcon fontSize="small" sx={{ color: "#25D366" }} /> Mensajes Automáticos</Box>} />
+        </Tabs>
+
+        {/* ─── TAB MENSAJES AUTOMÁTICOS ─── */}
+        {tab === 1 && (
+          <Box>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Los mensajes se envían automáticamente por WhatsApp a clientes que dieron su consentimiento.
+              Usa <strong>{"{nombre}"}</strong> para el nombre del cliente y <strong>{"{folio}"}</strong> para el número de orden.
+            </Alert>
+            {waMsgState && <Alert severity={waMsgState.type} sx={{ mb: 2 }} onClose={() => setWaMsgState(null)}>{waMsgState.text}</Alert>}
+            <Stack spacing={2}>
+              {Object.entries(TRIGGER_META).map(([trigger, meta]) => {
+                const saved = templates[trigger];
+                const isEditing = editingTrigger === trigger;
+                const currentBody = saved?.message_body || DEFAULT_MESSAGES[trigger];
+                return (
+                  <Paper key={trigger} elevation={2} sx={{ p: 3, borderRadius: 3 }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                      <Box>
+                        <Typography fontWeight={700} fontSize={16}>
+                          {meta.icon} {meta.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">{meta.hint}</Typography>
+                      </Box>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        {saved && (
+                          <Tooltip title={saved.is_active ? "Desactivar" : "Activar"}>
+                            <FormControlLabel
+                              control={
+                                <Switch
+                                  size="small"
+                                  checked={saved.is_active}
+                                  onChange={() => handleToggleTemplate(trigger)}
+                                  color="success"
+                                />
+                              }
+                              label={saved.is_active ? "Activo" : "Inactivo"}
+                              sx={{ m: 0 }}
+                            />
+                          </Tooltip>
+                        )}
+                        <IconButton size="small" onClick={() => { setEditingTrigger(trigger); setEditText(currentBody); setWaMsgState(null); }}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                    <Divider sx={{ my: 1.5 }} />
+                    {isEditing ? (
+                      <Box>
+                        <TextField
+                          fullWidth
+                          multiline
+                          minRows={3}
+                          value={editText}
+                          onChange={e => setEditText(e.target.value)}
+                          placeholder={DEFAULT_MESSAGES[trigger]}
+                          sx={{ mb: 1.5 }}
+                        />
+                        <Stack direction="row" spacing={1}>
+                          <Button
+                            variant="contained"
+                            startIcon={<SaveIcon />}
+                            size="small"
+                            disabled={waSaving}
+                            onClick={() => handleSaveTemplate(trigger)}
+                            sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1ebe5c" } }}
+                          >
+                            {waSaving ? "Guardando..." : "Guardar"}
+                          </Button>
+                          <Button size="small" onClick={() => setEditingTrigger(null)}>Cancelar</Button>
+                        </Stack>
+                      </Box>
+                    ) : (
+                      <Box sx={{ bgcolor: "grey.50", borderRadius: 2, p: 1.5 }}>
+                        <Typography variant="body2" color={saved ? "text.primary" : "text.secondary"} fontStyle={saved ? "normal" : "italic"}>
+                          {currentBody}
+                        </Typography>
+                        {!saved && (
+                          <Chip label="Sin configurar — se usará el mensaje por defecto" size="small" color="warning" variant="outlined" sx={{ mt: 1 }} />
+                        )}
+                      </Box>
+                    )}
+                  </Paper>
+                );
+              })}
+            </Stack>
+          </Box>
+        )}
+
+        {/* ─── TAB PROMOCIONES ─── */}
+        {tab === 0 && (
+          <Box>
+        <Box display="flex" justifyContent="flex-end" mb={2}>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setShowForm(v => !v); setMsg(null); }}>
             {showForm ? "Cancelar" : "Nueva Promoción"}
           </Button>
@@ -442,6 +618,8 @@ export default function ManagePromotions() {
               );
             })}
           </Stack>
+        )}
+          </Box>
         )}
       </Box>
     </Box>
