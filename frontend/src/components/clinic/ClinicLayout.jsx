@@ -2,19 +2,18 @@ import React, { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Box, Typography, IconButton, Tooltip, Avatar, Divider,
-  Menu, MenuItem, Badge,
+  Menu, MenuItem,
 } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import ReceiptIcon from "@mui/icons-material/Receipt";
-import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import { BRAND } from "../../brand";
 
 const SIDEBAR_W = 220;
 const SIDEBAR_COLLAPSED = 64;
@@ -58,7 +57,7 @@ export default function ClinicLayout() {
           <LocalHospitalIcon sx={{ color: "#4361ee", fontSize: 28, flexShrink: 0 }} />
           {!collapsed && (
             <Typography fontWeight={800} fontSize={16} letterSpacing={0.5} noWrap>
-              ClínicaApp
+              {BRAND.verticals.clinic.name}
             </Typography>
           )}
           <Box sx={{ ml: "auto" }}>
@@ -133,6 +132,10 @@ export default function ClinicLayout() {
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Box sx={{ flex: 1, overflow: "auto", p: 0 }}>
           <Outlet context={{ token, claims }} />
+        </Box>
+        <Box sx={{ borderTop: "1px solid #e0e0e0", px: 3, py: 1, display: "flex", justifyContent: "space-between", bgcolor: "#fff" }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={600}>{BRAND.verticals.clinic.name}</Typography>
+          <Typography variant="caption" color="text.disabled">{BRAND.footer} · © {BRAND.year}</Typography>
         </Box>
       </Box>
     </Box>

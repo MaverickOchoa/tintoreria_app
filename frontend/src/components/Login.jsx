@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BRAND } from "../brand";
 
 // MUI
 import {
@@ -150,9 +151,12 @@ const Login = () => {
           component="h1"
           gutterBottom
           align="center"
-          sx={{ mb: 4, color: "primary.main", fontWeight: 700 }}
+          sx={{ mb: 0.5, fontWeight: 900, letterSpacing: -1, color: "#4361ee" }}
         >
-          Iniciar Sesión
+          {BRAND.name}
+        </Typography>
+        <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 4 }}>
+          Inicia sesión para continuar
         </Typography>
 
         {error && (
@@ -220,6 +224,9 @@ const Login = () => {
           </Box>
         </form>
       </Paper>
+      <Typography variant="caption" color="text.disabled" sx={{ mt: 2, display: "block", textAlign: "center" }}>
+        {BRAND.footer} · © {BRAND.year}
+      </Typography>
     </Box>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { BRAND, getVerticalBrand } from "../brand";
 import {
   Box, Typography, Button, Paper,
   TextField, Alert, CircularProgress, Chip,
@@ -236,12 +237,16 @@ export default function BusinessAdminDashboard() {
 
   const btnSx = { py: 2.5, borderRadius: 2, fontWeight: 600, height: "100%" };
 
+  const verticalBrand = getVerticalBrand(claims.vertical_type || "laundry");
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default", p: { xs: 2, md: 4 } }}>
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
-        <Typography variant="h5" fontWeight={700} mb={0.5}>Panel de Administración</Typography>
+        <Typography variant="h5" fontWeight={900} mb={0.5} sx={{ color: verticalBrand.color, letterSpacing: -0.5 }}>
+          {verticalBrand.name}
+        </Typography>
         <Typography variant="body2" color="text.secondary" mb={3}>
-          Gestiona las operaciones, configuración y personal de tu negocio.
+          Panel de Administración · Gestiona las operaciones y configuración de tu negocio.
         </Typography>
 
         {/* === BOTONES DE NAVEGACIÓN === */}
@@ -600,6 +605,9 @@ export default function BusinessAdminDashboard() {
           </DialogActions>
         </Dialog>
       </Box>
+      <Typography variant="caption" color="text.disabled" sx={{ mt: 3, display: "block", textAlign: "center", pb: 2 }}>
+        {BRAND.footer} · © {BRAND.year}
+      </Typography>
     </Box>
   );
 }

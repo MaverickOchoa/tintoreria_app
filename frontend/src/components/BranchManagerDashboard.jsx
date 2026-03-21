@@ -7,6 +7,7 @@ import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import LogoutIcon from "@mui/icons-material/Logout";
 import StoreIcon from "@mui/icons-material/Store";
 import OrderStatsCards from "./OrderStatsCards";
+import { BRAND } from "../brand";
 
 function BranchManagerDashboard() {
   const navigate = useNavigate();
@@ -55,8 +56,11 @@ function BranchManagerDashboard() {
       >
         <Typography
           variant="h5"
-          sx={{ mb: 1.5, color: "primary.main", fontWeight: 800 }}
+          sx={{ mb: 0.5, color: "#0096c7", fontWeight: 900, letterSpacing: -0.5 }}
         >
+          {BRAND.verticals.laundry.name}
+        </Typography>
+        <Typography variant="caption" color="text.disabled" sx={{ mb: 1.5, display: "block" }}>
           Panel del Gerente
         </Typography>
 
@@ -110,6 +114,9 @@ function BranchManagerDashboard() {
           </Button>
         </Stack>
       </Paper>
+      <Typography variant="caption" color="text.disabled" sx={{ mt: 2, display: "block", textAlign: "center" }}>
+        {BRAND.footer} · © {BRAND.year}
+      </Typography>
     </Box>
   );
 }
