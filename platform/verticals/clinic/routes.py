@@ -78,7 +78,9 @@ def list_patients(
     business_id = claims.get("business_id")
     from core.models.tenant import Branch
     branch_ids = [b.id for b in db.query(Branch).filter_by(business_id=business_id).all()]
-    q = db.query(Patient).join(Patient.client).filter(Client.branch_id.in_(branch_ids))
+    q = db.query(Patient).join(Patient.client).filter(
+        (Client.branch_id.in_(branch_ids)) | (Client.branch_id.is_(None))
+    )
     if search:
         q = q.filter(Client.phone.contains(search) | Client.full_name.ilike(f"%{search}%"))
     total = q.count()
@@ -93,7 +95,7 @@ def create_patient(
     db: Session = Depends(get_db),
 ):
     business_id = claims.get("business_id")
-    branch_id = payload.branch_id or claims.get("branch_id")
+    branch_id = payload.branch_id or claims.get("branch_id") or None
 
     # Check phone uniqueness
     existing_client = db.query(Client).filter(Client.phone == payload.phone).first()
