@@ -5,7 +5,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Chip, Avatar, IconButton, Tooltip, Skeleton,
   Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Select, FormControl, InputLabel,
-  FormControlLabel, Checkbox,
+  FormControlLabel, Checkbox, Alert,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
@@ -72,27 +72,36 @@ export default function ClinicPatients() {
     return e;
   };
 
+  const [saveError, setSaveError] = useState(null);
+
   const handleSave = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     setSaving(true);
+    setSaveError(null);
     try {
       const r = await fetch(`${CLINIC_API}/clinic/patients`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, business_id: claims.business_id }),
       });
+      const data = await r.json();
       if (r.ok) {
         setOpenModal(false);
         setForm(EMPTY_FORM);
         setErrors({});
+        setSaveError(null);
         load(search);
+      } else {
+        setSaveError(data.detail || `Error ${r.status}: no se pudo crear el paciente`);
       }
-    } catch {}
+    } catch (err) {
+      setSaveError("Error de conexión. Verifica tu red e intenta de nuevo.");
+    }
     setSaving(false);
   };
 
-  const handleClose = () => { setOpenModal(false); setForm(EMPTY_FORM); setErrors({}); };
+  const handleClose = () => { setOpenModal(false); setForm(EMPTY_FORM); setErrors({}); setSaveError(null); };
   const set = (k) => (e) => setForm(f => ({
     ...f,
     [k]: ["full_name","last_name","emergency_contact_name"].includes(k)
@@ -217,6 +226,7 @@ export default function ClinicPatients() {
           <IconButton size="small" onClick={handleClose}><CloseIcon fontSize="small" /></IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ px: 3, py: 2.5 }}>
+          {saveError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{saveError}</Alert>}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
 
             {/* ── Datos personales ── */}
