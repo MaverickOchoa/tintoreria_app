@@ -4,16 +4,26 @@ import {
   Box, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Chip, Avatar, IconButton, Tooltip, Skeleton,
+  Dialog, DialogTitle, DialogContent, DialogActions, Grid, MenuItem, Select, FormControl, InputLabel,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import CloseIcon from "@mui/icons-material/Close";
 import { CLINIC_API } from "./clinicTheme";
+
+const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 function getInitials(name = "", last = "") {
   return ((name[0] || "") + (last[0] || "")).toUpperCase() || "?";
 }
+
+const EMPTY_FORM = {
+  full_name: "", last_name: "", phone: "", email: "",
+  birth_date: "", blood_type: "", allergies: "",
+  emergency_contact_name: "", emergency_contact_phone: "", notes: "",
+};
 
 export default function ClinicPatients() {
   const { token, claims } = useOutletContext();
@@ -22,6 +32,10 @@ export default function ClinicPatients() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [openModal, setOpenModal] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const load = useCallback(async (s = "") => {
     setLoading(true);
@@ -38,11 +52,45 @@ export default function ClinicPatients() {
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
-
   useEffect(() => {
     const t = setTimeout(() => load(search), 450);
     return () => clearTimeout(t);
   }, [search]);
+
+  const validate = () => {
+    const e = {};
+    if (!form.full_name.trim()) e.full_name = "Requerido";
+    if (!form.last_name.trim()) e.last_name = "Requerido";
+    if (!form.phone.trim()) e.phone = "Requerido";
+    else if (!/^\d{10}$/.test(form.phone.replace(/\s/g, ""))) e.phone = "Debe ser 10 dígitos";
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Email inválido";
+    if (form.emergency_contact_phone && !/^\d{10}$/.test(form.emergency_contact_phone.replace(/\s/g, "")))
+      e.emergency_contact_phone = "Debe ser 10 dígitos";
+    return e;
+  };
+
+  const handleSave = async () => {
+    const e = validate();
+    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    setSaving(true);
+    try {
+      const r = await fetch(`${CLINIC_API}/clinic/patients`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, business_id: claims.business_id }),
+      });
+      if (r.ok) {
+        setOpenModal(false);
+        setForm(EMPTY_FORM);
+        setErrors({});
+        load(search);
+      }
+    } catch {}
+    setSaving(false);
+  };
+
+  const handleClose = () => { setOpenModal(false); setForm(EMPTY_FORM); setErrors({}); };
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -68,7 +116,7 @@ export default function ClinicPatients() {
           variant="contained"
           startIcon={<PersonAddIcon />}
           size="small"
-          onClick={() => navigate("/create-client")}
+          onClick={() => setOpenModal(true)}
           sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, fontWeight: 700 }}
         >
           Nuevo Paciente
@@ -151,6 +199,75 @@ export default function ClinicPatients() {
           </Table>
         </TableContainer>
       </Box>
+
+      {/* ── MODAL NUEVO PACIENTE ── */}
+      <Dialog open={openModal} onClose={handleClose} maxWidth="sm" fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
+          <Typography fontWeight={800} fontSize={17}>Nuevo Paciente</Typography>
+          <IconButton size="small" onClick={handleClose}><CloseIcon fontSize="small" /></IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <TextField label="Nombre *" fullWidth size="small" value={form.full_name}
+                onChange={set("full_name")} error={!!errors.full_name} helperText={errors.full_name} />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField label="Apellido *" fullWidth size="small" value={form.last_name}
+                onChange={set("last_name")} error={!!errors.last_name} helperText={errors.last_name} />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField label="Teléfono * (10 dígitos)" fullWidth size="small" value={form.phone}
+                onChange={set("phone")} error={!!errors.phone} helperText={errors.phone}
+                inputProps={{ maxLength: 10 }} />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField label="Email" fullWidth size="small" value={form.email}
+                onChange={set("email")} error={!!errors.email} helperText={errors.email} />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField label="Fecha de nacimiento" fullWidth size="small" type="date"
+                value={form.birth_date} onChange={set("birth_date")}
+                InputLabelProps={{ shrink: true }} />
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Tipo de sangre</InputLabel>
+                <Select label="Tipo de sangre" value={form.blood_type} onChange={set("blood_type")}>
+                  <MenuItem value=""><em>No especificado</em></MenuItem>
+                  {BLOOD_TYPES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField label="Alergias" fullWidth size="small" value={form.allergies}
+                onChange={set("allergies")} placeholder="Ej: Penicilina, látex…" />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField label="Contacto de emergencia" fullWidth size="small"
+                value={form.emergency_contact_name} onChange={set("emergency_contact_name")} />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField label="Teléfono emergencia (10 dígitos)" fullWidth size="small"
+                value={form.emergency_contact_phone} onChange={set("emergency_contact_phone")}
+                error={!!errors.emergency_contact_phone} helperText={errors.emergency_contact_phone}
+                inputProps={{ maxLength: 10 }} />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField label="Notas generales" fullWidth size="small" multiline rows={2}
+                value={form.notes} onChange={set("notes")} />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={handleClose} sx={{ color: "text.secondary" }}>Cancelar</Button>
+          <Button variant="contained" onClick={handleSave} disabled={saving}
+            sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, fontWeight: 700 }}>
+            {saving ? "Guardando…" : "Crear Paciente"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
