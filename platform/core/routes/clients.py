@@ -4,6 +4,7 @@ from typing import Optional, List
 from core.database import get_db
 from core.dependencies import require_business_admin, get_current_claims
 from core.models.client import Client, ClientType, ClientDiscount
+from core.models.tenant import Branch
 from core.schemas.client import (
     ClientCreate, ClientUpdate, ClientOut,
     ClientTypeCreate, ClientTypeOut,
@@ -24,14 +25,7 @@ def list_clients(
     business_id = claims.get("business_id")
     query = db.query(Client)
     if not claims.get("is_super_admin"):
-        branch_ids = [
-            b.id for b in db.execute(
-                "SELECT id FROM branches WHERE business_id = :bid",
-                {"bid": business_id}
-            ).fetchall()
-        ] if business_id else []
-        from core.models.tenant import Branch
-        branch_ids = [b.id for b in db.query(Branch).filter_by(business_id=business_id).all()]
+        branch_ids = [b.id for b in db.query(Branch).filter_by(business_id=business_id).all()] if business_id else []
         query = query.filter(Client.branch_id.in_(branch_ids))
     if search:
         query = query.filter(

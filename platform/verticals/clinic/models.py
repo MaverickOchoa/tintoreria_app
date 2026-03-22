@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, Text, ForeignKey, DateTime, Date, UniqueConstraint, Enum
+from sqlalchemy import Column, Integer, String, Boolean, Float, Text, ForeignKey, DateTime, Date, UniqueConstraint, Enum, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from core.database import Base
@@ -19,7 +19,7 @@ class Patient(Base):
     __tablename__ = "patients"
 
     id = Column(Integer, primary_key=True)
-    client_id = Column(Integer, ForeignKey("clients.id"), unique=True, nullable=False)
+    client_id = Column(Integer, ForeignKey("clients.id"), unique=True, nullable=False, index=True)
     blood_type = Column(String(10), nullable=True)
     allergies = Column(Text, nullable=True)
     emergency_contact_name = Column(String(150), nullable=True)
@@ -51,7 +51,7 @@ class ClinicService(Base):
     __tablename__ = "clinic_services"
 
     id = Column(Integer, primary_key=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     duration_minutes = Column(Integer, nullable=False, default=30)
@@ -73,12 +73,12 @@ class Appointment(Base):
     __tablename__ = "appointments"
 
     id = Column(Integer, primary_key=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
-    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
-    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
-    doctor_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False, index=True)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
+    doctor_id = Column(Integer, ForeignKey("employees.id"), nullable=True, index=True)
     clinic_service_id = Column(Integer, ForeignKey("clinic_services.id"), nullable=True)
-    scheduled_at = Column(DateTime, nullable=False)
+    scheduled_at = Column(DateTime, nullable=False, index=True)
     duration_minutes = Column(Integer, nullable=False, default=30)
     status = Column(String(30), nullable=False, default=AppointmentStatus.scheduled)
     notes = Column(Text, nullable=True)
@@ -117,10 +117,10 @@ class ClinicalRecord(Base):
     __tablename__ = "clinical_records"
 
     id = Column(Integer, primary_key=True)
-    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
     appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=True)
     doctor_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
 
     chief_complaint = Column(Text, nullable=True)

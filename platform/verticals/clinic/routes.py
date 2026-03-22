@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import secrets, string, os, logging
 
-logger = logging.getLogger(__name__)
+import sendgrid as sg_module
+from sendgrid.helpers.mail import Mail
 from werkzeug.security import generate_password_hash, check_password_hash
 from jose import jwt
+
+logger = logging.getLogger(__name__)
 
 from core.database import get_db
 from core.dependencies import get_current_claims, require_business_admin
@@ -30,10 +33,9 @@ PORTAL_URL = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patien
 
 def _send_patient_credentials(email: str, full_name: str, username: str, password: str):
     if not SENDGRID_KEY or not email:
+        logger.warning("Email not sent: SENDGRID_KEY missing or no email address.")
         return
     try:
-        import sendgrid as sg_module
-        from sendgrid.helpers.mail import Mail
         sg = sg_module.SendGridAPIClient(SENDGRID_KEY)
         message = Mail(
             from_email=SENDER_EMAIL,
@@ -81,8 +83,13 @@ def list_patients(
     business_id = claims.get("business_id")
     from core.models.tenant import Branch
     branch_ids = [b.id for b in db.query(Branch).filter_by(business_id=business_id).all()]
-    q = db.query(Patient).join(Patient.client).filter(
-        (Client.branch_id.in_(branch_ids)) | (Client.branch_id.is_(None))
+    q = (
+        db.query(Patient)
+        .join(Patient.client)
+        .options(joinedload(Patient.client))
+        .filter(
+            (Client.branch_id.in_(branch_ids)) | (Client.branch_id.is_(None))
+        )
     )
     if search:
         q = q.filter(Client.phone.contains(search) | Client.full_name.ilike(f"%{search}%"))
@@ -267,13 +274,19 @@ def portal_records(claims: dict = Depends(get_current_claims), db: Session = Dep
 def portal_payments(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     if claims.get("role") != "patient":
         raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
-    apts = db.query(Appointment).filter(
-        Appointment.patient_id == claims.get("patient_id"),
-        Appointment.status == AppointmentStatus.completed,
-    ).order_by(Appointment.scheduled_at.desc()).all()
+    apts = (
+        db.query(Appointment)
+        .options(joinedload(Appointment.clinic_service))
+        .filter(
+            Appointment.patient_id == claims.get("patient_id"),
+            Appointment.status == AppointmentStatus.completed,
+        )
+        .order_by(Appointment.scheduled_at.desc())
+        .all()
+    )
     payments = []
     for a in apts:
-        service = db.query(ClinicService).filter(ClinicService.id == a.clinic_service_id).first() if a.clinic_service_id else None
+        service = a.clinic_service
         payments.append({
             "appointment_id": a.id,
             "date": a.scheduled_at.isoformat() if a.scheduled_at else None,
@@ -339,7 +352,15 @@ def list_appointments(
     db: Session = Depends(get_db),
 ):
     business_id = claims.get("business_id")
-    q = db.query(Appointment).filter(Appointment.business_id == business_id)
+    q = (
+        db.query(Appointment)
+        .options(
+            joinedload(Appointment.patient).joinedload(Patient.client),
+            joinedload(Appointment.doctor),
+            joinedload(Appointment.clinic_service),
+        )
+        .filter(Appointment.business_id == business_id)
+    )
     if branch_id:
         q = q.filter(Appointment.branch_id == branch_id)
     elif claims.get("branch_id"):
@@ -396,7 +417,11 @@ def update_appointment(
         raise HTTPException(status_code=404, detail="Cita no encontrada.")
     for field, value in payload.model_dump(exclude_none=True).items():
         setattr(apt, field, value)
-    if payload.status == AppointmentStatus.completed:
+    try:
+        resolved_status = AppointmentStatus(apt.status)
+    except ValueError:
+        resolved_status = None
+    if resolved_status == AppointmentStatus.completed and not apt.completed_at:
         apt.completed_at = datetime.utcnow()
     db.commit()
     return apt.to_dict()
@@ -478,13 +503,21 @@ def get_calendar(
 ):
     business_id = claims.get("business_id")
     target_date = view_date or date.today()
-    week_start = target_date
-    week_end = datetime.combine(target_date.replace(day=target_date.day + 6), datetime.max.time())
-    q = db.query(Appointment).filter(
-        Appointment.business_id == business_id,
-        Appointment.scheduled_at >= datetime.combine(week_start, datetime.min.time()),
-        Appointment.scheduled_at <= week_end,
-        Appointment.status.notin_([AppointmentStatus.cancelled]),
+    week_start = datetime.combine(target_date, datetime.min.time())
+    week_end = datetime.combine(target_date + timedelta(days=6), datetime.max.time())
+    q = (
+        db.query(Appointment)
+        .options(
+            joinedload(Appointment.patient).joinedload(Patient.client),
+            joinedload(Appointment.doctor),
+            joinedload(Appointment.clinic_service),
+        )
+        .filter(
+            Appointment.business_id == business_id,
+            Appointment.scheduled_at >= week_start,
+            Appointment.scheduled_at <= week_end,
+            Appointment.status.notin_([AppointmentStatus.cancelled]),
+        )
     )
     if branch_id:
         q = q.filter(Appointment.branch_id == branch_id)

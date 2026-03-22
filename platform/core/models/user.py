@@ -47,7 +47,7 @@ class Employee(Base):
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
     business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
 
-    roles = relationship("Role", secondary=employee_roles, lazy="subquery",
+    roles = relationship("Role", secondary=employee_roles, lazy="joined",
                          backref="employees")
 
     def to_dict(self) -> dict:

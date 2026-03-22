@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+import logging
 
 from core.database import engine
 from core.routes.auth import router as auth_router
@@ -11,6 +12,8 @@ from core.routes.clients import router as clients_router
 from core.routes.expenses import router as expenses_router
 from verticals.laundry.routes import router as laundry_router
 from verticals.clinic.routes import router as clinic_router
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="SaaS Platform API",
@@ -34,27 +37,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_STARTUP_MIGRATIONS = [
+    "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_whatsapp BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_email BOOLEAN NOT NULL DEFAULT FALSE",
+]
+
 
 @app.on_event("startup")
-def apply_migrations():
-    migrations = [
-        "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_whatsapp BOOLEAN NOT NULL DEFAULT FALSE",
-        "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_email BOOLEAN NOT NULL DEFAULT FALSE",
-    ]
-    with engine.connect() as conn:
-        for sql in migrations:
-            try:
-                conn.execute(text(sql))
-                conn.commit()
-            except Exception:
-                conn.rollback()
+async def apply_migrations():
+    try:
+        with engine.connect() as conn:
+            for sql in _STARTUP_MIGRATIONS:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                except Exception as e:
+                    conn.rollback()
+                    logger.warning("Migration skipped (%s): %s", sql[:60], e)
+        logger.info("Startup migrations applied.")
+    except Exception as e:
+        logger.error("Startup migration failed: %s", e)
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc)},
+        content={"detail": "Internal server error"},
     )
 
 
