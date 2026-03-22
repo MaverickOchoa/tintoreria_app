@@ -13,6 +13,21 @@ class PatientCreate(BaseModel):
     medical_history: Optional[str] = None
 
 
+class PatientCreateFull(BaseModel):
+    full_name: str
+    last_name: Optional[str] = None
+    phone: str
+    email: Optional[str] = None
+    birth_date: Optional[str] = None
+    blood_type: Optional[str] = None
+    allergies: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    notes: Optional[str] = None
+    branch_id: Optional[int] = None
+    business_id: Optional[int] = None
+
+
 class PatientUpdate(BaseModel):
     blood_type: Optional[str] = None
     allergies: Optional[str] = None

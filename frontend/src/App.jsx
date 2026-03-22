@@ -76,6 +76,13 @@ import ClinicUsers from "./components/clinic/ClinicUsers.jsx";
 import ManageAgencies from "./components/ManageAgencies.jsx";
 import AgencyAdminDashboard from "./components/AgencyAdminDashboard.jsx";
 
+// Patient portal
+import PatientLogin from "./components/patient/PatientLogin.jsx";
+import PatientLayout from "./components/patient/PatientLayout.jsx";
+import PatientAppointments from "./components/patient/PatientAppointments.jsx";
+import PatientPayments from "./components/patient/PatientPayments.jsx";
+import PatientRecords from "./components/patient/PatientRecords.jsx";
+
 const inputGlobalStyles = (
   <GlobalStyles
     styles={{
@@ -254,6 +261,15 @@ function App() {
               <Route path="payments" element={<ClinicPayments />} />
               <Route path="users" element={<ClinicUsers />} />
             </Route>
+          </Route>
+
+          {/* ── Patient Portal ── */}
+          <Route path="/patient/login" element={<PatientLogin />} />
+          <Route path="/patient" element={<PatientLayout />}>
+            <Route index element={<Navigate to="/patient/appointments" replace />} />
+            <Route path="appointments" element={<PatientAppointments />} />
+            <Route path="payments" element={<PatientPayments />} />
+            <Route path="records" element={<PatientRecords />} />
           </Route>
         </Routes>
       </Box>

@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, date
+import secrets, string, os
+from werkzeug.security import generate_password_hash, check_password_hash
+from jose import jwt
 
 from core.database import get_db
 from core.dependencies import get_current_claims, require_business_admin
 from core.models.client import Client
 from verticals.clinic.models import Patient, Appointment, ClinicalRecord, ClinicService, AppointmentStatus
 from verticals.clinic.schemas import (
-    PatientCreate, PatientUpdate,
+    PatientCreate, PatientCreateFull, PatientUpdate,
     ClinicServiceCreate, ClinicServiceUpdate,
     AppointmentCreate, AppointmentUpdate,
     ClinicalRecordCreate, ClinicalRecordUpdate,
@@ -16,6 +19,49 @@ from verticals.clinic.schemas import (
 
 router = APIRouter(prefix="/clinic", tags=["clinic"])
 
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "supersecretkey")
+ALGORITHM = "HS256"
+SENDGRID_KEY = os.getenv("SENDGRID_API_KEY", "")
+SENDER_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
+PORTAL_URL = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patient/login")
+
+
+def _send_patient_credentials(email: str, full_name: str, username: str, password: str):
+    if not SENDGRID_KEY or not email:
+        return
+    try:
+        import sendgrid as sg_module
+        from sendgrid.helpers.mail import Mail
+        sg = sg_module.SendGridAPIClient(SENDGRID_KEY)
+        message = Mail(
+            from_email=SENDER_EMAIL,
+            to_emails=email,
+            subject="Bienvenido a Zentro Clinic — Tus credenciales de acceso",
+            html_content=f"""
+            <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;background:#f8f9fa;border-radius:12px">
+              <h2 style="color:#4361ee;margin-bottom:4px">Zentro Clinic</h2>
+              <p style="color:#555">Hola <strong>{full_name}</strong>, tu perfil ha sido creado.</p>
+              <div style="background:#fff;border-radius:8px;padding:20px;margin:20px 0;border:1px solid #e0e0e0">
+                <p style="margin:0 0 8px;color:#333;font-size:15px"><strong>Tus datos de acceso:</strong></p>
+                <p style="margin:4px 0;color:#555">Usuario: <strong>{username}</strong></p>
+                <p style="margin:4px 0;color:#555">Contraseña: <strong>{password}</strong></p>
+              </div>
+              <a href="{PORTAL_URL}" style="display:inline-block;background:#4361ee;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Acceder a mi portal</a>
+              <p style="color:#aaa;font-size:12px;margin-top:24px">Por seguridad, cambia tu contraseña después de tu primer acceso.</p>
+            </div>
+            """
+        )
+        sg.send(message)
+    except Exception:
+        pass
+
+
+def _generate_password(length=10):
+    chars = string.ascii_letters + string.digits
+    return "".join(secrets.choice(chars) for _ in range(length))
+
+
+# ── Patients ──────────────────────────────────────────────────────────────────
 
 @router.get("/patients")
 def list_patients(
@@ -30,9 +76,7 @@ def list_patients(
     branch_ids = [b.id for b in db.query(Branch).filter_by(business_id=business_id).all()]
     q = db.query(Patient).join(Patient.client).filter(Client.branch_id.in_(branch_ids))
     if search:
-        q = q.filter(
-            Client.phone.contains(search) | Client.full_name.ilike(f"%{search}%")
-        )
+        q = q.filter(Client.phone.contains(search) | Client.full_name.ilike(f"%{search}%"))
     total = q.count()
     patients = q.offset(offset).limit(limit).all()
     return {"total": total, "patients": [p.to_dict() for p in patients]}
@@ -40,20 +84,61 @@ def list_patients(
 
 @router.post("/patients", status_code=201)
 def create_patient(
-    payload: PatientCreate,
+    payload: PatientCreateFull,
     claims: dict = Depends(get_current_claims),
     db: Session = Depends(get_db),
 ):
-    client = db.query(Client).filter(Client.id == payload.client_id).first()
-    if not client:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
-    existing = db.query(Patient).filter(Patient.client_id == payload.client_id).first()
-    if existing:
-        raise HTTPException(status_code=409, detail="Este cliente ya tiene perfil de paciente.")
-    patient = Patient(**payload.model_dump())
+    business_id = claims.get("business_id")
+    branch_id = payload.branch_id or claims.get("branch_id")
+
+    # Check phone uniqueness
+    existing_client = db.query(Client).filter(Client.phone == payload.phone).first()
+    if existing_client:
+        existing_patient = db.query(Patient).filter(Patient.client_id == existing_client.id).first()
+        if existing_patient:
+            raise HTTPException(status_code=409, detail="Ya existe un paciente con ese teléfono.")
+
+    # Generate credentials
+    raw_password = _generate_password()
+    username = payload.phone
+
+    # Create client record
+    client = Client(
+        full_name=payload.full_name,
+        last_name=payload.last_name,
+        phone=payload.phone,
+        email=payload.email,
+        notes=payload.notes,
+        branch_id=branch_id,
+        username=username,
+        password=generate_password_hash(raw_password),
+    )
+    if payload.birth_date:
+        try:
+            dt = datetime.strptime(payload.birth_date, "%Y-%m-%d")
+            client.date_of_birth_day = dt.day
+            client.date_of_birth_month = dt.month
+        except Exception:
+            pass
+    db.add(client)
+    db.flush()
+
+    # Create patient profile
+    patient = Patient(
+        client_id=client.id,
+        blood_type=payload.blood_type,
+        allergies=payload.allergies,
+        emergency_contact_name=payload.emergency_contact_name,
+        emergency_contact_phone=payload.emergency_contact_phone,
+    )
     db.add(patient)
     db.commit()
     db.refresh(patient)
+
+    # Send email
+    if payload.email:
+        _send_patient_credentials(payload.email, payload.full_name, username, raw_password)
+
     return patient.to_dict()
 
 
@@ -81,11 +166,100 @@ def update_patient(
     return patient.to_dict()
 
 
-@router.get("/services")
-def list_clinic_services(
-    claims: dict = Depends(get_current_claims),
+# ── Patient Portal Auth ────────────────────────────────────────────────────────
+
+@router.post("/patient/login")
+def patient_login(
+    payload: dict,
     db: Session = Depends(get_db),
 ):
+    username = payload.get("username", "").strip()
+    password = payload.get("password", "")
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Usuario y contraseña requeridos.")
+    client = db.query(Client).filter(Client.username == username).first()
+    if not client or not client.password:
+        raise HTTPException(status_code=401, detail="Credenciales inválidas.")
+    if not check_password_hash(client.password, password):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas.")
+    patient = db.query(Patient).filter(Patient.client_id == client.id).first()
+    if not patient:
+        raise HTTPException(status_code=403, detail="Este usuario no tiene perfil de paciente.")
+    token_data = {
+        "sub": str(client.id),
+        "role": "patient",
+        "patient_id": patient.id,
+        "client_id": client.id,
+        "full_name": f"{client.full_name} {client.last_name or ''}".strip(),
+        "email": client.email,
+    }
+    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+    return {"access_token": token, "token_type": "bearer", "patient": token_data}
+
+
+def get_patient_claims(db: Session = Depends(get_db), claims: dict = Depends(get_current_claims)):
+    if claims.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+    return claims
+
+
+# ── Patient Portal Endpoints ───────────────────────────────────────────────────
+
+@router.get("/portal/me")
+def portal_me(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    if claims.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+    patient = db.query(Patient).filter(Patient.id == claims.get("patient_id")).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+    return patient.to_dict()
+
+
+@router.get("/portal/appointments")
+def portal_appointments(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    if claims.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+    apts = db.query(Appointment).filter(
+        Appointment.patient_id == claims.get("patient_id")
+    ).order_by(Appointment.scheduled_at.desc()).all()
+    return {"appointments": [a.to_dict() for a in apts]}
+
+
+@router.get("/portal/records")
+def portal_records(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    if claims.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+    records = db.query(ClinicalRecord).filter(
+        ClinicalRecord.patient_id == claims.get("patient_id")
+    ).order_by(ClinicalRecord.record_date.desc()).all()
+    return {"records": [r.to_dict() for r in records]}
+
+
+@router.get("/portal/payments")
+def portal_payments(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    if claims.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+    apts = db.query(Appointment).filter(
+        Appointment.patient_id == claims.get("patient_id"),
+        Appointment.status == AppointmentStatus.completed,
+    ).order_by(Appointment.scheduled_at.desc()).all()
+    payments = []
+    for a in apts:
+        service = db.query(ClinicService).filter(ClinicService.id == a.clinic_service_id).first() if a.clinic_service_id else None
+        payments.append({
+            "appointment_id": a.id,
+            "date": a.scheduled_at.isoformat() if a.scheduled_at else None,
+            "service": service.name if service else "Consulta",
+            "amount": service.price if service else 0,
+            "paid": False,
+        })
+    return {"payments": payments}
+
+
+# ── Services ───────────────────────────────────────────────────────────────────
+
+@router.get("/services")
+def list_clinic_services(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     business_id = claims.get("business_id")
     services = db.query(ClinicService).filter_by(business_id=business_id, is_active=True).all()
     return [s.to_dict() for s in services]
@@ -123,6 +297,8 @@ def update_clinic_service(
     db.commit()
     return service.to_dict()
 
+
+# ── Appointments ───────────────────────────────────────────────────────────────
 
 @router.get("/appointments")
 def list_appointments(
@@ -190,8 +366,7 @@ def update_appointment(
     ).first()
     if not apt:
         raise HTTPException(status_code=404, detail="Cita no encontrada.")
-    update_data = payload.model_dump(exclude_none=True)
-    for field, value in update_data.items():
+    for field, value in payload.model_dump(exclude_none=True).items():
         setattr(apt, field, value)
     if payload.status == AppointmentStatus.completed:
         apt.completed_at = datetime.utcnow()
@@ -215,6 +390,8 @@ def cancel_appointment(
     db.commit()
 
 
+# ── Clinical Records ───────────────────────────────────────────────────────────
+
 @router.get("/patients/{patient_id}/records")
 def get_patient_records(
     patient_id: int,
@@ -235,11 +412,7 @@ def create_clinical_record(
     db: Session = Depends(get_db),
 ):
     business_id = claims.get("business_id")
-    record = ClinicalRecord(
-        business_id=business_id,
-        created_by=claims.get("sub"),
-        **payload.model_dump(),
-    )
+    record = ClinicalRecord(business_id=business_id, created_by=claims.get("sub"), **payload.model_dump())
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -264,6 +437,8 @@ def update_clinical_record(
     db.commit()
     return record.to_dict()
 
+
+# ── Calendar ───────────────────────────────────────────────────────────────────
 
 @router.get("/calendar")
 def get_calendar(
