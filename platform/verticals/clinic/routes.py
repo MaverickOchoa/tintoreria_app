@@ -31,10 +31,10 @@ SENDER_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
 PORTAL_URL = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patient/login")
 
 
-def _send_patient_credentials(email: str, full_name: str, username: str, password: str):
+def _send_patient_credentials(email: str, full_name: str, username: str, password: str) -> bool:
     if not SENDGRID_KEY or not email:
         logger.warning("Email not sent: SENDGRID_KEY missing or no email address.")
-        return
+        return False
     try:
         sg = sg_module.SendGridAPIClient(SENDGRID_KEY)
         message = Mail(
@@ -58,8 +58,10 @@ def _send_patient_credentials(email: str, full_name: str, username: str, passwor
         )
         response = sg.send(message)
         logger.info(f"Email sent to {email}, status={response.status_code}")
+        return True
     except Exception as e:
         logger.error(f"Failed to send email to {email}: {e}", exc_info=True)
+        return False
 
 
 def _generate_username(full_name: str, last_name: str) -> str:
@@ -153,11 +155,14 @@ def create_patient(
     db.commit()
     db.refresh(patient)
 
-    # Send email
-    if payload.email:
-        _send_patient_credentials(payload.email, payload.full_name, username, raw_password)
+    # Send email — patient is created even if email fails
+    email_sent = False
+    if payload.email and payload.consent_email:
+        email_sent = _send_patient_credentials(payload.email, payload.full_name, username, raw_password)
 
-    return patient.to_dict()
+    result = patient.to_dict()
+    result["email_sent"] = email_sent
+    return result
 
 
 @router.get("/patients/{patient_id}")
