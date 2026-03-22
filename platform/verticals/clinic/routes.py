@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime, date
-import secrets, string, os
+import secrets, string, os, logging
+
+logger = logging.getLogger(__name__)
 from werkzeug.security import generate_password_hash, check_password_hash
 from jose import jwt
 
@@ -52,9 +54,10 @@ def _send_patient_credentials(email: str, full_name: str, username: str, passwor
             </div>
             """
         )
-        sg.send(message)
-    except Exception:
-        pass
+        response = sg.send(message)
+        logger.info(f"Email sent to {email}, status={response.status_code}")
+    except Exception as e:
+        logger.error(f"Failed to send email to {email}: {e}", exc_info=True)
 
 
 def _generate_username(full_name: str, last_name: str) -> str:
@@ -172,6 +175,23 @@ def update_patient(
         setattr(patient, field, value)
     db.commit()
     return patient.to_dict()
+
+
+@router.delete("/patients/{patient_id}", status_code=204)
+def delete_patient(
+    patient_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+    client = db.query(Client).filter(Client.id == patient.client_id).first()
+    db.delete(patient)
+    if client:
+        db.delete(client)
+    db.commit()
+    return
 
 
 # ── Patient Portal Auth ────────────────────────────────────────────────────────

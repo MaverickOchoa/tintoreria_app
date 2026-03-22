@@ -11,6 +11,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { CLINIC_API } from "./clinicTheme";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -39,6 +40,22 @@ export default function ClinicPatients() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await fetch(`${CLINIC_API}/clinic/patients/${deleteTarget.patient_id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDeleteTarget(null);
+      load(search);
+    } catch {}
+    setDeleting(false);
+  };
 
   const load = useCallback(async (s = "") => {
     setLoading(true);
@@ -206,9 +223,17 @@ export default function ClinicPatients() {
                         : <Typography fontSize={12} color="text.disabled">—</Typography>}
                     </TableCell>
                     <TableCell align="right">
-                      <IconButton size="small">
-                        <ArrowForwardIosIcon sx={{ fontSize: 13 }} />
-                      </IconButton>
+                      <Box display="flex" justifyContent="flex-end" gap={0.5}>
+                        <Tooltip title="Eliminar paciente">
+                          <IconButton size="small" color="error"
+                            onClick={e => { e.stopPropagation(); setDeleteTarget(p); }}>
+                            <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <IconButton size="small">
+                          <ArrowForwardIosIcon sx={{ fontSize: 13 }} />
+                        </IconButton>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))
@@ -312,6 +337,27 @@ export default function ClinicPatients() {
           <Button variant="contained" onClick={handleSave} disabled={saving}
             sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, fontWeight: 700, px: 3 }}>
             {saving ? "Guardando…" : "Crear Paciente"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 800 }}>Eliminar paciente</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Estás seguro de eliminar a <strong>{deleteTarget?.full_name} {deleteTarget?.last_name}</strong>?
+            Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setDeleteTarget(null)} variant="outlined" sx={{ borderRadius: 2 }}>
+            Cancelar
+          </Button>
+          <Button onClick={handleDelete} variant="contained" color="error" disabled={deleting}
+            sx={{ borderRadius: 2 }}>
+            {deleting ? "Eliminando…" : "Eliminar"}
           </Button>
         </DialogActions>
       </Dialog>
