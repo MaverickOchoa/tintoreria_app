@@ -42,12 +42,13 @@ def _send_patient_credentials(email: str, full_name: str, username: str, passwor
               <h2 style="color:#4361ee;margin-bottom:4px">Zentro Clinic</h2>
               <p style="color:#555">Hola <strong>{full_name}</strong>, tu perfil ha sido creado.</p>
               <div style="background:#fff;border-radius:8px;padding:20px;margin:20px 0;border:1px solid #e0e0e0">
-                <p style="margin:0 0 8px;color:#333;font-size:15px"><strong>Tus datos de acceso:</strong></p>
+                <p style="margin:0 0 8px;color:#333;font-size:15px"><strong>Tus datos de acceso al portal:</strong></p>
                 <p style="margin:4px 0;color:#555">Usuario: <strong>{username}</strong></p>
-                <p style="margin:4px 0;color:#555">Contraseña: <strong>{password}</strong></p>
+                <p style="margin:4px 0;color:#555">Contraseña temporal: <strong>{password}</strong></p>
+                <p style="margin:12px 0 0;color:#888;font-size:12px">Tu contraseña temporal es tu número de teléfono. Te recomendamos cambiarla después de tu primer acceso.</p>
               </div>
               <a href="{PORTAL_URL}" style="display:inline-block;background:#4361ee;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Acceder a mi portal</a>
-              <p style="color:#aaa;font-size:12px;margin-top:24px">Por seguridad, cambia tu contraseña después de tu primer acceso.</p>
+              <p style="color:#aaa;font-size:12px;margin-top:24px">Zentro Clinic · Powered by Zentro</p>
             </div>
             """
         )
@@ -56,9 +57,12 @@ def _send_patient_credentials(email: str, full_name: str, username: str, passwor
         pass
 
 
-def _generate_password(length=10):
-    chars = string.ascii_letters + string.digits
-    return "".join(secrets.choice(chars) for _ in range(length))
+def _generate_username(full_name: str, last_name: str) -> str:
+    name = (full_name or "").strip().lower().replace(" ", "")
+    last = (last_name or "").strip().lower().replace(" ", "")
+    if last:
+        return f"{name}.{last}"
+    return name
 
 
 # ── Patients ──────────────────────────────────────────────────────────────────
@@ -98,20 +102,22 @@ def create_patient(
         if existing_patient:
             raise HTTPException(status_code=409, detail="Ya existe un paciente con ese teléfono.")
 
-    # Generate credentials
-    raw_password = _generate_password()
-    username = payload.phone
+    # Generate credentials — username=nombre.apellido, password=phone
+    username = _generate_username(payload.full_name, payload.last_name)
+    raw_password = payload.phone  # temp password = phone number
 
     # Create client record
     client = Client(
-        full_name=payload.full_name,
-        last_name=payload.last_name,
+        full_name=payload.full_name.strip().capitalize() if payload.full_name else payload.full_name,
+        last_name=payload.last_name.strip().capitalize() if payload.last_name else payload.last_name,
         phone=payload.phone,
         email=payload.email,
         notes=payload.notes,
         branch_id=branch_id,
         username=username,
         password=generate_password_hash(raw_password),
+        consent_whatsapp=payload.consent_whatsapp,
+        consent_email=payload.consent_email,
     )
     if payload.birth_date:
         try:

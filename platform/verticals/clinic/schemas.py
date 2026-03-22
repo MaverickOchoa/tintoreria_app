@@ -26,6 +26,8 @@ class PatientCreateFull(BaseModel):
     notes: Optional[str] = None
     branch_id: Optional[int] = None
     business_id: Optional[int] = None
+    consent_whatsapp: bool = False
+    consent_email: bool = False
 
 
 class PatientUpdate(BaseModel):

@@ -5,9 +5,9 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Chip, Avatar, IconButton, Tooltip, Skeleton,
   Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Select, FormControl, InputLabel,
+  FormControlLabel, Checkbox,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import AddIcon from "@mui/icons-material/Add";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import CloseIcon from "@mui/icons-material/Close";
@@ -23,7 +23,10 @@ const EMPTY_FORM = {
   full_name: "", last_name: "", phone: "", email: "",
   birth_date: "", blood_type: "", allergies: "",
   emergency_contact_name: "", emergency_contact_phone: "", notes: "",
+  consent_whatsapp: false, consent_email: false,
 };
+
+const capitalize = (v) => v ? v.charAt(0).toUpperCase() + v.slice(1) : v;
 
 export default function ClinicPatients() {
   const { token, claims } = useOutletContext();
@@ -90,7 +93,13 @@ export default function ClinicPatients() {
   };
 
   const handleClose = () => { setOpenModal(false); setForm(EMPTY_FORM); setErrors({}); };
-  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const set = (k) => (e) => setForm(f => ({
+    ...f,
+    [k]: ["full_name","last_name","emergency_contact_name"].includes(k)
+      ? capitalize(e.target.value)
+      : e.target.value
+  }));
+  const setCheck = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.checked }));
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -263,6 +272,26 @@ export default function ClinicPatients() {
                   value={form.emergency_contact_phone} onChange={set("emergency_contact_phone")}
                   error={!!errors.emergency_contact_phone} helperText={errors.emergency_contact_phone}
                   inputProps={{ maxLength: 10 }} />
+              </Box>
+            </Box>
+
+            {/* ── Permisos de comunicación ── */}
+            <Box>
+              <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1}>
+                Permisos de comunicación
+              </Typography>
+              <Typography fontSize={12} color="text.secondary" mb={1.5}>
+                El paciente autoriza recibir comunicaciones a través de los siguientes medios:
+              </Typography>
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
+                <FormControlLabel
+                  control={<Checkbox checked={form.consent_whatsapp} onChange={setCheck("consent_whatsapp")} sx={{ color: "#4361ee", "&.Mui-checked": { color: "#4361ee" } }} />}
+                  label={<Typography fontSize={13}>Acepta recibir WhatsApp</Typography>}
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={form.consent_email} onChange={setCheck("consent_email")} sx={{ color: "#4361ee", "&.Mui-checked": { color: "#4361ee" } }} />}
+                  label={<Typography fontSize={13}>Acepta recibir correos</Typography>}
+                />
               </Box>
             </Box>
 

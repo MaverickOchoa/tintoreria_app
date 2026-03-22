@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime, UniqueConstraint, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from core.database import Base
@@ -35,6 +35,8 @@ class Client(Base):
     client_type_id = Column(Integer, ForeignKey("client_types.id"), nullable=True)
     username = Column(String(80), unique=True, nullable=True)
     password = Column(String(255), nullable=True)
+    consent_whatsapp = Column(Boolean, default=False, nullable=False, server_default="false")
+    consent_email = Column(Boolean, default=False, nullable=False, server_default="false")
     points_balance = Column(Float, nullable=False, default=0.0)
 
     client_type = relationship("ClientType", backref="clients")
@@ -53,6 +55,8 @@ class Client(Base):
             "client_type_name": self.client_type.name if self.client_type else None,
             "username": self.username,
             "points_balance": self.points_balance,
+            "consent_whatsapp": self.consent_whatsapp,
+            "consent_email": self.consent_email,
             "has_portal_access": bool(self.username and self.password),
         }
 
