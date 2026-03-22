@@ -201,14 +201,21 @@ export default function ClinicPatients() {
       </Box>
 
       {/* ── MODAL NUEVO PACIENTE ── */}
-      <Dialog open={openModal} onClose={handleClose} maxWidth="sm" fullWidth
+      <Dialog open={openModal} onClose={handleClose} maxWidth="md" fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}>
-        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
-          <Typography fontWeight={800} fontSize={17}>Nuevo Paciente</Typography>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, py: 2 }}>
+          <Typography fontWeight={800} fontSize={18}>Nuevo Paciente</Typography>
           <IconButton size="small" onClick={handleClose}><CloseIcon fontSize="small" /></IconButton>
         </DialogTitle>
-        <DialogContent dividers>
-          <Grid container spacing={2}>
+        <DialogContent dividers sx={{ px: 3, py: 2.5 }}>
+          <Grid container spacing={2.5}>
+
+            {/* ── Sección: Datos personales ── */}
+            <Grid item xs={12}>
+              <Typography fontSize={12} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={0.8} mb={0.5}>
+                Datos personales
+              </Typography>
+            </Grid>
             <Grid item xs={6}>
               <TextField label="Nombre *" fullWidth size="small" value={form.full_name}
                 onChange={set("full_name")} error={!!errors.full_name} helperText={errors.full_name} />
@@ -240,30 +247,45 @@ export default function ClinicPatients() {
                 </Select>
               </FormControl>
             </Grid>
+
+            {/* ── Sección: Datos clínicos ── */}
             <Grid item xs={12}>
+              <Typography fontSize={12} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={0.8} mt={0.5} mb={0.5}>
+                Datos clínicos
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
               <TextField label="Alergias" fullWidth size="small" value={form.allergies}
                 onChange={set("allergies")} placeholder="Ej: Penicilina, látex…" />
             </Grid>
             <Grid item xs={6}>
-              <TextField label="Contacto de emergencia" fullWidth size="small"
+              <TextField label="Notas generales" fullWidth size="small" value={form.notes}
+                onChange={set("notes")} placeholder="Observaciones iniciales…" />
+            </Grid>
+
+            {/* ── Sección: Contacto de emergencia ── */}
+            <Grid item xs={12}>
+              <Typography fontSize={12} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={0.8} mt={0.5} mb={0.5}>
+                Contacto de emergencia
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField label="Nombre del contacto" fullWidth size="small"
                 value={form.emergency_contact_name} onChange={set("emergency_contact_name")} />
             </Grid>
             <Grid item xs={6}>
-              <TextField label="Teléfono emergencia (10 dígitos)" fullWidth size="small"
+              <TextField label="Teléfono (10 dígitos)" fullWidth size="small"
                 value={form.emergency_contact_phone} onChange={set("emergency_contact_phone")}
                 error={!!errors.emergency_contact_phone} helperText={errors.emergency_contact_phone}
                 inputProps={{ maxLength: 10 }} />
             </Grid>
-            <Grid item xs={12}>
-              <TextField label="Notas generales" fullWidth size="small" multiline rows={2}
-                value={form.notes} onChange={set("notes")} />
-            </Grid>
+
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleClose} sx={{ color: "text.secondary" }}>Cancelar</Button>
           <Button variant="contained" onClick={handleSave} disabled={saving}
-            sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, fontWeight: 700 }}>
+            sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, fontWeight: 700, px: 3 }}>
             {saving ? "Guardando…" : "Crear Paciente"}
           </Button>
         </DialogActions>
