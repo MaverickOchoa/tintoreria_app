@@ -107,7 +107,6 @@ function KanbanColumn({ status, appointments, onStatusChange, onViewRecord, doct
   const cfg = STATUS_CONFIG[status];
   return (
     <Box sx={{
-      minWidth: 220, maxWidth: 240, flex: "0 0 220px",
       display: "flex", flexDirection: "column",
     }}>
       {/* Column header */}
@@ -247,7 +246,7 @@ export default function ClinicKanban() {
             ))}
           </Box>
         ) : (
-          <Box display="flex" gap={2} sx={{ minHeight: "calc(100vh - 160px)", alignItems: "flex-start" }}>
+          <Box display="grid" sx={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 2, minHeight: "calc(100vh - 160px)", alignItems: "flex-start" }}>
             {COLUMNS.map(status => (
               <KanbanColumn
                 key={status}
