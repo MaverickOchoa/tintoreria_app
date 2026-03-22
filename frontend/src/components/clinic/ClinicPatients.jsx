@@ -4,7 +4,7 @@ import {
   Box, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Chip, Avatar, IconButton, Tooltip, Skeleton,
-  Dialog, DialogTitle, DialogContent, DialogActions, Grid, MenuItem, Select, FormControl, InputLabel,
+  Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Select, FormControl, InputLabel,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
@@ -208,79 +208,65 @@ export default function ClinicPatients() {
           <IconButton size="small" onClick={handleClose}><CloseIcon fontSize="small" /></IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ px: 3, py: 2.5 }}>
-          <Grid container spacing={2.5}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
 
-            {/* ── Sección: Datos personales ── */}
-            <Grid item xs={12}>
-              <Typography fontSize={12} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={0.8} mb={0.5}>
+            {/* ── Datos personales ── */}
+            <Box>
+              <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1.5}>
                 Datos personales
               </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="Nombre *" fullWidth size="small" value={form.full_name}
-                onChange={set("full_name")} error={!!errors.full_name} helperText={errors.full_name} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="Apellido *" fullWidth size="small" value={form.last_name}
-                onChange={set("last_name")} error={!!errors.last_name} helperText={errors.last_name} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="Teléfono * (10 dígitos)" fullWidth size="small" value={form.phone}
-                onChange={set("phone")} error={!!errors.phone} helperText={errors.phone}
-                inputProps={{ maxLength: 10 }} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="Email" fullWidth size="small" value={form.email}
-                onChange={set("email")} error={!!errors.email} helperText={errors.email} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="Fecha de nacimiento" fullWidth size="small" type="date"
-                value={form.birth_date} onChange={set("birth_date")}
-                InputLabelProps={{ shrink: true }} />
-            </Grid>
-            <Grid item xs={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Tipo de sangre</InputLabel>
-                <Select label="Tipo de sangre" value={form.blood_type} onChange={set("blood_type")}>
-                  <MenuItem value=""><em>No especificado</em></MenuItem>
-                  {BLOOD_TYPES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                <TextField label="Nombre *" fullWidth size="small" value={form.full_name}
+                  onChange={set("full_name")} error={!!errors.full_name} helperText={errors.full_name} />
+                <TextField label="Apellido *" fullWidth size="small" value={form.last_name}
+                  onChange={set("last_name")} error={!!errors.last_name} helperText={errors.last_name} />
+                <TextField label="Teléfono * (10 dígitos)" fullWidth size="small" value={form.phone}
+                  onChange={set("phone")} error={!!errors.phone} helperText={errors.phone}
+                  inputProps={{ maxLength: 10 }} />
+                <TextField label="Email" fullWidth size="small" value={form.email}
+                  onChange={set("email")} error={!!errors.email} helperText={errors.email} />
+                <TextField label="Fecha de nacimiento" fullWidth size="small" type="date"
+                  value={form.birth_date} onChange={set("birth_date")}
+                  InputLabelProps={{ shrink: true }} />
+                <FormControl fullWidth size="small">
+                  <InputLabel>Tipo de sangre</InputLabel>
+                  <Select label="Tipo de sangre" value={form.blood_type} onChange={set("blood_type")}>
+                    <MenuItem value=""><em>No especificado</em></MenuItem>
+                    {BLOOD_TYPES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
 
-            {/* ── Sección: Datos clínicos ── */}
-            <Grid item xs={12}>
-              <Typography fontSize={12} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={0.8} mt={0.5} mb={0.5}>
+            {/* ── Datos clínicos ── */}
+            <Box>
+              <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1.5}>
                 Datos clínicos
               </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="Alergias" fullWidth size="small" value={form.allergies}
-                onChange={set("allergies")} placeholder="Ej: Penicilina, látex…" />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="Notas generales" fullWidth size="small" value={form.notes}
-                onChange={set("notes")} placeholder="Observaciones iniciales…" />
-            </Grid>
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                <TextField label="Alergias" fullWidth size="small" value={form.allergies}
+                  onChange={set("allergies")} placeholder="Ej: Penicilina, látex…" />
+                <TextField label="Notas generales" fullWidth size="small" value={form.notes}
+                  onChange={set("notes")} placeholder="Observaciones iniciales…" />
+              </Box>
+            </Box>
 
-            {/* ── Sección: Contacto de emergencia ── */}
-            <Grid item xs={12}>
-              <Typography fontSize={12} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={0.8} mt={0.5} mb={0.5}>
+            {/* ── Contacto de emergencia ── */}
+            <Box>
+              <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1.5}>
                 Contacto de emergencia
               </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="Nombre del contacto" fullWidth size="small"
-                value={form.emergency_contact_name} onChange={set("emergency_contact_name")} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="Teléfono (10 dígitos)" fullWidth size="small"
-                value={form.emergency_contact_phone} onChange={set("emergency_contact_phone")}
-                error={!!errors.emergency_contact_phone} helperText={errors.emergency_contact_phone}
-                inputProps={{ maxLength: 10 }} />
-            </Grid>
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                <TextField label="Nombre del contacto" fullWidth size="small"
+                  value={form.emergency_contact_name} onChange={set("emergency_contact_name")} />
+                <TextField label="Teléfono (10 dígitos)" fullWidth size="small"
+                  value={form.emergency_contact_phone} onChange={set("emergency_contact_phone")}
+                  error={!!errors.emergency_contact_phone} helperText={errors.emergency_contact_phone}
+                  inputProps={{ maxLength: 10 }} />
+              </Box>
+            </Box>
 
-          </Grid>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleClose} sx={{ color: "text.secondary" }}>Cancelar</Button>
