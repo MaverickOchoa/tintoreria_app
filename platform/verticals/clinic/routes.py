@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 from core.database import get_db
 from core.dependencies import get_current_claims, require_business_admin
 from core.models.client import Client
-from verticals.clinic.models import Patient, Appointment, ClinicalRecord, ClinicService, AppointmentStatus
+from verticals.clinic.models import (
+    Patient, Appointment, ClinicalRecord, ClinicService, AppointmentStatus,
+    BranchSchedule, BranchMessage, ClinicPromotion,
+    DoctorSchedule, DoctorScheduleBlock,
+)
 from verticals.clinic.schemas import (
     PatientCreate, PatientCreateFull, PatientUpdate,
     ClinicServiceCreate, ClinicServiceUpdate,
@@ -530,3 +534,343 @@ def get_calendar(
         q = q.filter(Appointment.doctor_id == doctor_id)
     appointments = q.order_by(Appointment.scheduled_at.asc()).all()
     return {"appointments": [a.to_dict() for a in appointments]}
+
+
+# ── Branch Schedule ────────────────────────────────────────────────────────────
+
+DAYS_DEFAULT = [
+    {"day": 0, "label": "Lunes",     "active": True,  "open": "09:00", "close": "18:00"},
+    {"day": 1, "label": "Martes",    "active": True,  "open": "09:00", "close": "18:00"},
+    {"day": 2, "label": "Miércoles", "active": True,  "open": "09:00", "close": "18:00"},
+    {"day": 3, "label": "Jueves",    "active": True,  "open": "09:00", "close": "18:00"},
+    {"day": 4, "label": "Viernes",   "active": True,  "open": "09:00", "close": "18:00"},
+    {"day": 5, "label": "Sábado",    "active": False, "open": "09:00", "close": "14:00"},
+    {"day": 6, "label": "Domingo",   "active": False, "open": "09:00", "close": "14:00"},
+]
+
+DAY_LABELS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
+
+@router.get("/schedule")
+def get_branch_schedule(
+    branch_id: int = Query(...),
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    rows = db.query(BranchSchedule).filter_by(branch_id=branch_id).order_by(BranchSchedule.day_of_week).all()
+    if not rows:
+        return DAYS_DEFAULT
+    result = {r.day_of_week: r for r in rows}
+    return [
+        {
+            "day": d,
+            "label": DAY_LABELS[d],
+            "active": result[d].is_open if d in result else d < 5,
+            "open": result[d].open_time if d in result else "09:00",
+            "close": result[d].close_time if d in result else "18:00",
+        }
+        for d in range(7)
+    ]
+
+
+@router.post("/schedule", status_code=200)
+def save_branch_schedule(
+    payload: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    branch_id = payload.get("branch_id")
+    schedule = payload.get("schedule", [])
+    business_id = claims.get("business_id")
+    if not branch_id:
+        raise HTTPException(status_code=400, detail="branch_id requerido.")
+    for entry in schedule:
+        day = entry.get("day")
+        row = db.query(BranchSchedule).filter_by(branch_id=branch_id, day_of_week=day).first()
+        if row:
+            row.is_open = entry.get("active", True)
+            row.open_time = entry.get("open", "09:00")
+            row.close_time = entry.get("close", "18:00")
+        else:
+            db.add(BranchSchedule(
+                branch_id=branch_id, business_id=business_id, day_of_week=day,
+                is_open=entry.get("active", True),
+                open_time=entry.get("open", "09:00"),
+                close_time=entry.get("close", "18:00"),
+            ))
+    db.commit()
+    return {"ok": True}
+
+
+# ── Branch Messages ────────────────────────────────────────────────────────────
+
+@router.get("/messages")
+def get_branch_messages(
+    branch_id: int = Query(...),
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    rows = db.query(BranchMessage).filter_by(branch_id=branch_id).all()
+    return {f"{r.trigger_key}_{r.channel}": r.text for r in rows}
+
+
+@router.post("/messages", status_code=200)
+def save_branch_messages(
+    payload: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    branch_id = payload.get("branch_id")
+    messages: dict = payload.get("messages", {})
+    business_id = claims.get("business_id")
+    if not branch_id:
+        raise HTTPException(status_code=400, detail="branch_id requerido.")
+    for composite_key, text in messages.items():
+        parts = composite_key.rsplit("_", 1)
+        if len(parts) != 2:
+            continue
+        trigger_key, channel = parts
+        row = db.query(BranchMessage).filter_by(
+            branch_id=branch_id, trigger_key=trigger_key, channel=channel
+        ).first()
+        if row:
+            row.text = text
+        else:
+            db.add(BranchMessage(
+                branch_id=branch_id, business_id=business_id,
+                trigger_key=trigger_key, channel=channel, text=text,
+            ))
+    db.commit()
+    return {"ok": True}
+
+
+# ── Clinic Promotions ──────────────────────────────────────────────────────────
+
+@router.get("/promotions")
+def list_promotions(
+    branch_id: int = Query(...),
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    promos = db.query(ClinicPromotion).filter_by(branch_id=branch_id, is_active=True).all()
+    return [p.to_dict() for p in promos]
+
+
+@router.post("/promotions", status_code=201)
+def create_promotion(
+    payload: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    branch_id = payload.get("branch_id")
+    if not branch_id or not payload.get("name"):
+        raise HTTPException(status_code=400, detail="branch_id y name son requeridos.")
+    promo = ClinicPromotion(
+        branch_id=branch_id,
+        business_id=claims.get("business_id"),
+        name=payload["name"],
+        description=payload.get("description"),
+        discount_pct=float(payload.get("discount_pct", 0)),
+        min_orders=payload.get("min_orders"),
+    )
+    db.add(promo)
+    db.commit()
+    db.refresh(promo)
+    return promo.to_dict()
+
+
+@router.delete("/promotions/{promo_id}", status_code=204)
+def delete_promotion(
+    promo_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    promo = db.query(ClinicPromotion).filter_by(id=promo_id).first()
+    if not promo:
+        raise HTTPException(status_code=404, detail="Promoción no encontrada.")
+    promo.is_active = False   # soft delete
+    db.commit()
+    return
+
+
+# ── Doctor Schedule ────────────────────────────────────────────────────────────
+
+@router.get("/doctors")
+def list_doctors(
+    branch_id: int = Query(...),
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    from core.models.user import Employee
+    docs = db.query(Employee).filter_by(branch_id=branch_id, is_active=True).all()
+    return [{"id": d.id, "full_name": d.full_name, "specialty": getattr(d, "specialty", None)} for d in docs]
+
+
+@router.get("/doctors/{doctor_id}/schedule")
+def get_doctor_schedule(
+    doctor_id: int,
+    branch_id: int = Query(...),
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    rows = db.query(DoctorSchedule).filter_by(
+        doctor_id=doctor_id, branch_id=branch_id
+    ).order_by(DoctorSchedule.day_of_week).all()
+    if not rows:
+        return [
+            {"day": d, "label": DAY_LABELS[d], "active": d < 5,
+             "start": "09:00", "end": "17:00", "slot_duration_minutes": 30}
+            for d in range(7)
+        ]
+    result = {r.day_of_week: r for r in rows}
+    return [
+        {
+            "day": d,
+            "label": DAY_LABELS[d],
+            "active": result[d].is_available if d in result else d < 5,
+            "start": result[d].start_time if d in result else "09:00",
+            "end": result[d].end_time if d in result else "17:00",
+            "slot_duration_minutes": result[d].slot_duration_minutes if d in result else 30,
+        }
+        for d in range(7)
+    ]
+
+
+@router.post("/doctors/{doctor_id}/schedule", status_code=200)
+def save_doctor_schedule(
+    doctor_id: int,
+    payload: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    branch_id = payload.get("branch_id")
+    schedule = payload.get("schedule", [])
+    business_id = claims.get("business_id")
+    if not branch_id:
+        raise HTTPException(status_code=400, detail="branch_id requerido.")
+    for entry in schedule:
+        day = entry.get("day")
+        row = db.query(DoctorSchedule).filter_by(
+            doctor_id=doctor_id, branch_id=branch_id, day_of_week=day
+        ).first()
+        if row:
+            row.is_available = entry.get("active", True)
+            row.start_time = entry.get("start", "09:00")
+            row.end_time = entry.get("end", "17:00")
+            row.slot_duration_minutes = entry.get("slot_duration_minutes", 30)
+        else:
+            db.add(DoctorSchedule(
+                doctor_id=doctor_id, branch_id=branch_id, business_id=business_id,
+                day_of_week=day,
+                is_available=entry.get("active", True),
+                start_time=entry.get("start", "09:00"),
+                end_time=entry.get("end", "17:00"),
+                slot_duration_minutes=entry.get("slot_duration_minutes", 30),
+            ))
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/doctors/{doctor_id}/available-slots")
+def get_available_slots(
+    doctor_id: int,
+    target_date: date = Query(..., alias="date"),
+    branch_id: int = Query(...),
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    """Return list of available time slots for a doctor on a given date."""
+    day_of_week = target_date.weekday()   # 0=Mon, 6=Sun
+
+    sched = db.query(DoctorSchedule).filter_by(
+        doctor_id=doctor_id, branch_id=branch_id, day_of_week=day_of_week
+    ).first()
+    if not sched or not sched.is_available:
+        return {"slots": []}
+
+    # Build all possible slots
+    start_h, start_m = map(int, sched.start_time.split(":"))
+    end_h, end_m = map(int, sched.end_time.split(":"))
+    duration = sched.slot_duration_minutes
+
+    from datetime import time as dt_time
+    current = datetime.combine(target_date, dt_time(start_h, start_m))
+    end_dt = datetime.combine(target_date, dt_time(end_h, end_m))
+    all_slots = []
+    while current + timedelta(minutes=duration) <= end_dt:
+        all_slots.append(current.strftime("%H:%M"))
+        current += timedelta(minutes=duration)
+
+    # Remove slots already booked
+    booked = db.query(Appointment).filter(
+        Appointment.doctor_id == doctor_id,
+        Appointment.branch_id == branch_id,
+        Appointment.scheduled_at >= datetime.combine(target_date, dt_time.min),
+        Appointment.scheduled_at <= datetime.combine(target_date, dt_time.max),
+        Appointment.status.notin_([AppointmentStatus.cancelled, AppointmentStatus.no_show]),
+    ).all()
+    booked_times = {a.scheduled_at.strftime("%H:%M") for a in booked}
+
+    # Remove blocked times
+    blocks = db.query(DoctorScheduleBlock).filter_by(
+        doctor_id=doctor_id, branch_id=branch_id, blocked_date=target_date
+    ).all()
+    for block in blocks:
+        if block.all_day:
+            return {"slots": []}
+        if block.start_time and block.end_time:
+            bstart_h, bstart_m = map(int, block.start_time.split(":"))
+            bend_h, bend_m = map(int, block.end_time.split(":"))
+            block_start = datetime.combine(target_date, dt_time(bstart_h, bstart_m))
+            block_end = datetime.combine(target_date, dt_time(bend_h, bend_m))
+            cur = block_start
+            while cur < block_end:
+                booked_times.add(cur.strftime("%H:%M"))
+                cur += timedelta(minutes=duration)
+
+    available = [s for s in all_slots if s not in booked_times]
+    return {"slots": available, "duration_minutes": duration}
+
+
+@router.post("/doctors/{doctor_id}/blocks", status_code=201)
+def block_doctor_time(
+    doctor_id: int,
+    payload: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    branch_id = payload.get("branch_id")
+    if not branch_id or not payload.get("blocked_date"):
+        raise HTTPException(status_code=400, detail="branch_id y blocked_date son requeridos.")
+    try:
+        blocked_date = date.fromisoformat(payload["blocked_date"])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido (YYYY-MM-DD).")
+    block = DoctorScheduleBlock(
+        doctor_id=doctor_id,
+        branch_id=branch_id,
+        blocked_date=blocked_date,
+        all_day=payload.get("all_day", False),
+        start_time=payload.get("start_time"),
+        end_time=payload.get("end_time"),
+        reason=payload.get("reason"),
+    )
+    db.add(block)
+    db.commit()
+    db.refresh(block)
+    return block.to_dict()
+
+
+@router.delete("/doctors/{doctor_id}/blocks/{block_id}", status_code=204)
+def delete_doctor_block(
+    doctor_id: int,
+    block_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    block = db.query(DoctorScheduleBlock).filter_by(id=block_id, doctor_id=doctor_id).first()
+    if not block:
+        raise HTTPException(status_code=404, detail="Bloqueo no encontrado.")
+    db.delete(block)
+    db.commit()
+    return

@@ -46,6 +46,124 @@ class Patient(Base):
         }
 
 
+class BranchSchedule(Base):
+    """Clinic operating hours per branch, per day of the week."""
+    __tablename__ = "clinic_branch_schedules"
+    __table_args__ = (UniqueConstraint("branch_id", "day_of_week", name="uq_branch_day"),)
+
+    id = Column(Integer, primary_key=True)
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
+    day_of_week = Column(Integer, nullable=False)   # 0=Mon … 6=Sun
+    is_open = Column(Boolean, nullable=False, default=True)
+    open_time = Column(String(5), nullable=False, default="09:00")
+    close_time = Column(String(5), nullable=False, default="18:00")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id, "branch_id": self.branch_id,
+            "day": self.day_of_week, "active": self.is_open,
+            "open": self.open_time, "close": self.close_time,
+        }
+
+
+class BranchMessage(Base):
+    """Automated message templates per branch (WhatsApp / Email)."""
+    __tablename__ = "clinic_branch_messages"
+    __table_args__ = (UniqueConstraint("branch_id", "trigger_key", "channel", name="uq_branch_msg"),)
+
+    id = Column(Integer, primary_key=True)
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
+    trigger_key = Column(String(60), nullable=False)   # e.g. "new_patient"
+    channel = Column(String(20), nullable=False)        # "whatsapp" | "email"
+    text = Column(Text, nullable=False, default="")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id, "branch_id": self.branch_id,
+            "trigger_key": self.trigger_key, "channel": self.channel,
+            "text": self.text,
+        }
+
+
+class ClinicPromotion(Base):
+    """Promotions / discounts per branch."""
+    __tablename__ = "clinic_promotions"
+
+    id = Column(Integer, primary_key=True)
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
+    name = Column(String(120), nullable=False)
+    description = Column(Text, nullable=True)
+    discount_pct = Column(Float, nullable=False, default=0)
+    min_orders = Column(Integer, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id, "branch_id": self.branch_id,
+            "name": self.name, "description": self.description,
+            "discount_pct": self.discount_pct, "min_orders": self.min_orders,
+            "is_active": self.is_active,
+        }
+
+
+class DoctorSchedule(Base):
+    """Weekly availability per doctor per branch."""
+    __tablename__ = "clinic_doctor_schedules"
+    __table_args__ = (UniqueConstraint("doctor_id", "branch_id", "day_of_week", name="uq_doctor_day"),)
+
+    id = Column(Integer, primary_key=True)
+    doctor_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
+    day_of_week = Column(Integer, nullable=False)   # 0=Mon … 6=Sun
+    is_available = Column(Boolean, nullable=False, default=True)
+    start_time = Column(String(5), nullable=False, default="09:00")
+    end_time = Column(String(5), nullable=False, default="17:00")
+    slot_duration_minutes = Column(Integer, nullable=False, default=30)
+
+    doctor = relationship("Employee", foreign_keys=[doctor_id])
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "doctor_id": self.doctor_id,
+            "doctor_name": self.doctor.full_name if self.doctor else None,
+            "branch_id": self.branch_id,
+            "day": self.day_of_week,
+            "active": self.is_available,
+            "start": self.start_time,
+            "end": self.end_time,
+            "slot_duration_minutes": self.slot_duration_minutes,
+        }
+
+
+class DoctorScheduleBlock(Base):
+    """Blocked time slots for a doctor (vacation, break, personal)."""
+    __tablename__ = "clinic_doctor_blocks"
+
+    id = Column(Integer, primary_key=True)
+    doctor_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
+    blocked_date = Column(Date, nullable=False, index=True)
+    all_day = Column(Boolean, nullable=False, default=False)
+    start_time = Column(String(5), nullable=True)
+    end_time = Column(String(5), nullable=True)
+    reason = Column(String(200), nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id, "doctor_id": self.doctor_id, "branch_id": self.branch_id,
+            "blocked_date": self.blocked_date.isoformat() if self.blocked_date else None,
+            "all_day": self.all_day,
+            "start_time": self.start_time, "end_time": self.end_time,
+            "reason": self.reason,
+        }
+
+
 class ClinicService(Base):
     """Types of services a clinic offers: general, dental, chiro, physio, etc."""
     __tablename__ = "clinic_services"

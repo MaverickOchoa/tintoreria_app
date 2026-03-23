@@ -4,7 +4,7 @@ import {
   Box, Typography, Paper, Button, TextField, Switch, FormControlLabel,
   Divider, Chip, IconButton, Dialog, DialogTitle, DialogContent,
   DialogActions, MenuItem, Select, FormControl, InputLabel, Alert, Snackbar,
-  Accordion, AccordionSummary, AccordionDetails,
+  Accordion, AccordionSummary, AccordionDetails, CircularProgress,
 } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -13,12 +13,14 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import EmailIcon from "@mui/icons-material/Email";
+import PersonIcon from "@mui/icons-material/Person";
 
 const CLINIC_API = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
 const FLASK_API = import.meta.env.VITE_API_URL || "";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
+const SLOT_OPTIONS = [15, 20, 30, 45, 60, 90];
 
 const MSG_TRIGGERS = [
   { key: "new_patient", label: "Nuevo paciente registrado", desc: "Se envía cuando se crea un paciente nuevo" },
@@ -26,6 +28,70 @@ const MSG_TRIGGERS = [
   { key: "appointment_ready", label: "Cita confirmada", desc: "Se envía cuando una cita cambia a Confirmada" },
   { key: "appointment_reminder", label: "Recordatorio 24h antes", desc: "Se envía 24 horas antes de la cita" },
 ];
+
+function DoctorSchedulePanel({ doctor, branchId, token }) {
+  const [sched, setSched] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch(`${CLINIC_API}/clinic/doctors/${doctor.id}/schedule?branch_id=${branchId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => Array.isArray(d) && setSched(d))
+      .catch(() => {});
+  }, [doctor.id, branchId]);
+
+  const save = async () => {
+    setSaving(true);
+    await fetch(`${CLINIC_API}/clinic/doctors/${doctor.id}/schedule`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ branch_id: branchId, schedule: sched }),
+    }).catch(() => {});
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  if (!sched) return <CircularProgress size={20} sx={{ m: 2 }} />;
+
+  return (
+    <Box>
+      {sched.map((s, i) => (
+        <Box key={s.day} sx={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr 1fr 120px", alignItems: "center", gap: 1.5, mb: 1 }}>
+          <FormControlLabel
+            control={<Switch checked={s.active} size="small"
+              onChange={e => setSched(sc => sc.map((x, j) => j === i ? { ...x, active: e.target.checked } : x))} />}
+            label={<Typography fontSize={13}>{s.label}</Typography>}
+          />
+          <TextField select size="small" label="Inicio" value={s.start} disabled={!s.active}
+            onChange={e => setSched(sc => sc.map((x, j) => j === i ? { ...x, start: e.target.value } : x))}>
+            {HOURS.map(h => <MenuItem key={h} value={h}>{h}</MenuItem>)}
+          </TextField>
+          <TextField select size="small" label="Fin" value={s.end} disabled={!s.active}
+            onChange={e => setSched(sc => sc.map((x, j) => j === i ? { ...x, end: e.target.value } : x))}>
+            {HOURS.map(h => <MenuItem key={h} value={h}>{h}</MenuItem>)}
+          </TextField>
+          <TextField select size="small" label="Duración cita" value={s.slot_duration_minutes} disabled={!s.active}
+            onChange={e => setSched(sc => sc.map((x, j) => j === i ? { ...x, slot_duration_minutes: Number(e.target.value) } : x))}>
+            {SLOT_OPTIONS.map(m => <MenuItem key={m} value={m}>{m} min</MenuItem>)}
+          </TextField>
+          <Chip label={s.active ? "Disponible" : "No disponible"} size="small"
+            sx={{ bgcolor: s.active ? "#ecfdf5" : "#f9fafb", color: s.active ? "#059669" : "#9ca3af", fontWeight: 700 }} />
+        </Box>
+      ))}
+      <Box mt={1.5} display="flex" alignItems="center" gap={1.5}>
+        <Button variant="contained" size="small" startIcon={<SaveIcon />} onClick={save} disabled={saving}
+          sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2 }}>
+          {saving ? "Guardando…" : "Guardar horario"}
+        </Button>
+        {saved && <Typography fontSize={12} color="#059669" fontWeight={700}>✓ Guardado</Typography>}
+      </Box>
+    </Box>
+  );
+}
 
 export default function ClinicAdminDashboard() {
   const { token, claims, branches, selectedBranch, setSelectedBranch } = useOutletContext();
@@ -52,7 +118,10 @@ export default function ClinicAdminDashboard() {
   // Messages state
   const [messages, setMessages] = useState({});
 
-  const branchId = selectedBranch?.id;
+  // Doctors state
+  const [doctors, setDoctors] = useState([]);
+
+  const branchId = selectedBranch?.id || selectedBranch;
 
   useEffect(() => {
     if (!branchId) return;
@@ -85,6 +154,12 @@ export default function ClinicAdminDashboard() {
     fetch(`${CLINIC_API}/clinic/messages?branch_id=${branchId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => { if (d && typeof d === "object") setMessages(d); })
+      .catch(() => {});
+
+    // Load doctors for this branch
+    fetch(`${CLINIC_API}/clinic/doctors?branch_id=${branchId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setDoctors(Array.isArray(d) ? d : []))
       .catch(() => {});
   }, [branchId]);
 
@@ -288,7 +363,44 @@ export default function ClinicAdminDashboard() {
         </AccordionDetails>
       </Accordion>
 
-      {/* Dialog crear promo */}
+      {/* ── 5. Doctor Schedules ─────────────────────────────────────── */}
+      <Accordion defaultExpanded={false} sx={{ borderRadius: "12px !important", mb: 2, boxShadow: "0 1px 6px rgba(0,0,0,.07)", "&:before": { display: "none" } }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2.5 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <PersonIcon sx={{ color: "#4361ee", fontSize: 20 }} />
+            <Typography fontWeight={800} fontSize={15}>Horarios de doctores</Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails sx={{ px: 2.5, pb: 2.5 }}>
+          <Typography fontSize={12} color="text.secondary" mb={2}>
+            Configura la disponibilidad semanal de cada doctor. Esto define los horarios en que los pacientes pueden agendar citas.
+          </Typography>
+          {doctors.length === 0 ? (
+            <Typography fontSize={13} color="text.secondary">
+              No hay doctores registrados en esta sucursal. Agrega empleados con rol de doctor primero.
+            </Typography>
+          ) : (
+            doctors.map(doc => (
+              <Accordion key={doc.id} defaultExpanded={false} sx={{ mb: 1, borderRadius: "8px !important", boxShadow: "none", border: "1px solid #e5e7eb", "&:before": { display: "none" } }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ width: 32, height: 32, borderRadius: "50%", bgcolor: "#eef0fd", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <PersonIcon sx={{ color: "#4361ee", fontSize: 18 }} />
+                    </Box>
+                    <Box>
+                      <Typography fontWeight={700} fontSize={13}>{doc.full_name}</Typography>
+                      {doc.specialty && <Typography fontSize={11} color="text.secondary">{doc.specialty}</Typography>}
+                    </Box>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails sx={{ px: 2, pb: 2 }}>
+                  <DoctorSchedulePanel doctor={doc} branchId={selectedBranch} token={token} />
+                </AccordionDetails>
+              </Accordion>
+            ))
+          )}
+        </AccordionDetails>
+      </Accordion>
       <Dialog open={promoDialog} onClose={() => setPromoDialog(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 800 }}>Nueva Promoción</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
