@@ -670,6 +670,85 @@ class WhatsappTemplate(db.Model):
         }
 
 
+class EmailTemplate(db.Model):
+    """Email message templates per business per trigger. Mirrors WhatsappTemplate."""
+    __tablename__ = 'email_templates'
+    id           = db.Column(db.Integer, primary_key=True)
+    business_id  = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    trigger_type = db.Column(db.String(60), nullable=False)
+    subject      = db.Column(db.String(200), nullable=False, default='')
+    message_body = db.Column(db.Text, nullable=False)
+    is_active    = db.Column(db.Boolean, nullable=False, default=True)
+    created_at   = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at   = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('business_id', 'trigger_type', name='uq_email_template_business_trigger'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'business_id': self.business_id,
+            'trigger_type': self.trigger_type,
+            'subject': self.subject,
+            'message_body': self.message_body,
+            'is_active': self.is_active,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class TriggerChannelConfig(db.Model):
+    """Stores which channel (whatsapp/email/none) is selected per trigger per business."""
+    __tablename__ = 'trigger_channel_configs'
+    id           = db.Column(db.Integer, primary_key=True)
+    business_id  = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    trigger_type = db.Column(db.String(60), nullable=False)
+    channel      = db.Column(db.String(20), nullable=False, default='none')  # whatsapp|email|none
+
+    __table_args__ = (
+        db.UniqueConstraint('business_id', 'trigger_type', name='uq_trigger_channel_config'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'business_id': self.business_id,
+            'trigger_type': self.trigger_type,
+            'channel': self.channel,
+        }
+
+
+class DateCampaign(db.Model):
+    """Date-based campaigns: birthday (yearly), or one-time on a specific date."""
+    __tablename__ = 'date_campaigns'
+    id            = db.Column(db.Integer, primary_key=True)
+    business_id   = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    name          = db.Column(db.String(120), nullable=False)
+    campaign_type = db.Column(db.String(30), nullable=False)   # 'birthday' | 'one_time'
+    channel       = db.Column(db.String(20), nullable=False)   # 'whatsapp' | 'email'
+    subject       = db.Column(db.String(200), nullable=True)   # email only
+    message_body  = db.Column(db.Text, nullable=False)
+    send_date     = db.Column(db.Date, nullable=True)          # one_time only (YYYY-MM-DD)
+    is_active     = db.Column(db.Boolean, nullable=False, default=True)
+    fired_at      = db.Column(db.DateTime, nullable=True)      # set when one_time campaign fires
+    created_at    = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'business_id': self.business_id,
+            'name': self.name,
+            'campaign_type': self.campaign_type,
+            'channel': self.channel,
+            'subject': self.subject,
+            'message_body': self.message_body,
+            'send_date': self.send_date.isoformat() if self.send_date else None,
+            'is_active': self.is_active,
+            'fired_at': self.fired_at.isoformat() if self.fired_at else None,
+        }
+
+
 class Expense(db.Model):
     __tablename__ = 'expenses'
     id           = db.Column(db.Integer, primary_key=True)
@@ -3927,6 +4006,194 @@ class WhatsappTemplateResource(Resource):
 
 api.add_resource(WhatsappTemplateListResource, '/api/v1/whatsapp-templates')
 api.add_resource(WhatsappTemplateResource, '/api/v1/whatsapp-templates/<int:template_id>')
+
+VALID_TRIGGERS = ('client_welcome', 'client_recurring', 'order_ready')
+
+
+class EmailTemplateListResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        templates = EmailTemplate.query.filter_by(business_id=business_id).all()
+        return [t.to_dict() for t in templates], 200
+
+    @jwt_required()
+    def post(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        data = request.get_json() or {}
+        trigger_type = data.get('trigger_type', '').strip()
+        message_body = data.get('message_body', '').strip()
+        subject = data.get('subject', '').strip()
+        if trigger_type not in VALID_TRIGGERS:
+            return {"message": f"trigger_type debe ser uno de: {', '.join(VALID_TRIGGERS)}"}, 400
+        if not message_body:
+            return {"message": "message_body requerido"}, 400
+        existing = EmailTemplate.query.filter_by(business_id=business_id, trigger_type=trigger_type).first()
+        if existing:
+            existing.subject = subject
+            existing.message_body = message_body
+            existing.is_active = bool(data.get('is_active', True))
+            existing.updated_at = datetime.utcnow()
+            db.session.commit()
+            return existing.to_dict(), 200
+        t = EmailTemplate(
+            business_id=business_id,
+            trigger_type=trigger_type,
+            subject=subject,
+            message_body=message_body,
+            is_active=bool(data.get('is_active', True)),
+        )
+        db.session.add(t)
+        db.session.commit()
+        return t.to_dict(), 201
+
+
+class EmailTemplateResource(Resource):
+    @jwt_required()
+    def put(self, template_id):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        t = EmailTemplate.query.get_or_404(template_id)
+        if t.business_id != business_id:
+            return {"message": "Acceso denegado"}, 403
+        data = request.get_json() or {}
+        if 'subject' in data:
+            t.subject = data['subject']
+        if 'message_body' in data:
+            t.message_body = data['message_body']
+        if 'is_active' in data:
+            t.is_active = bool(data['is_active'])
+        t.updated_at = datetime.utcnow()
+        db.session.commit()
+        return t.to_dict(), 200
+
+    @jwt_required()
+    def delete(self, template_id):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        t = EmailTemplate.query.get_or_404(template_id)
+        if t.business_id != business_id:
+            return {"message": "Acceso denegado"}, 403
+        db.session.delete(t)
+        db.session.commit()
+        return {"message": "Eliminado"}, 200
+
+
+class TriggerChannelConfigResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        configs = TriggerChannelConfig.query.filter_by(business_id=business_id).all()
+        return {c.trigger_type: c.channel for c in configs}, 200
+
+    @jwt_required()
+    def post(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        data = request.get_json() or {}
+        trigger_type = data.get('trigger_type', '').strip()
+        channel = data.get('channel', 'none').strip()
+        if trigger_type not in VALID_TRIGGERS:
+            return {"message": f"trigger_type inválido"}, 400
+        if channel not in ('whatsapp', 'email', 'none'):
+            return {"message": "channel debe ser whatsapp, email o none"}, 400
+        existing = TriggerChannelConfig.query.filter_by(business_id=business_id, trigger_type=trigger_type).first()
+        if existing:
+            existing.channel = channel
+        else:
+            db.session.add(TriggerChannelConfig(business_id=business_id, trigger_type=trigger_type, channel=channel))
+        db.session.commit()
+        return {"ok": True}, 200
+
+
+class DateCampaignListResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        campaigns = DateCampaign.query.filter_by(business_id=business_id, is_active=True).order_by(DateCampaign.created_at.desc()).all()
+        return [c.to_dict() for c in campaigns], 200
+
+    @jwt_required()
+    def post(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        data = request.get_json() or {}
+        name = data.get('name', '').strip()
+        campaign_type = data.get('campaign_type', '').strip()
+        channel = data.get('channel', '').strip()
+        message_body = data.get('message_body', '').strip()
+        if not name or not campaign_type or not channel or not message_body:
+            return {"message": "name, campaign_type, channel y message_body son requeridos"}, 400
+        if campaign_type not in ('birthday', 'one_time'):
+            return {"message": "campaign_type debe ser birthday o one_time"}, 400
+        if channel not in ('whatsapp', 'email'):
+            return {"message": "channel debe ser whatsapp o email"}, 400
+        send_date = None
+        if campaign_type == 'one_time':
+            raw_date = data.get('send_date')
+            if not raw_date:
+                return {"message": "send_date requerido para campañas de fecha específica"}, 400
+            try:
+                from datetime import date as dt_date
+                send_date = dt_date.fromisoformat(raw_date)
+            except ValueError:
+                return {"message": "send_date inválido (usa YYYY-MM-DD)"}, 400
+        c = DateCampaign(
+            business_id=business_id,
+            name=name,
+            campaign_type=campaign_type,
+            channel=channel,
+            subject=data.get('subject', '').strip() or None,
+            message_body=message_body,
+            send_date=send_date,
+        )
+        db.session.add(c)
+        db.session.commit()
+        return c.to_dict(), 201
+
+
+class DateCampaignResource(Resource):
+    @jwt_required()
+    def put(self, campaign_id):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        c = DateCampaign.query.get_or_404(campaign_id)
+        if c.business_id != business_id:
+            return {"message": "Acceso denegado"}, 403
+        data = request.get_json() or {}
+        for field in ('name', 'channel', 'message_body', 'subject'):
+            if field in data:
+                setattr(c, field, data[field])
+        if 'send_date' in data and data['send_date']:
+            try:
+                from datetime import date as dt_date
+                c.send_date = dt_date.fromisoformat(data['send_date'])
+            except ValueError:
+                return {"message": "send_date inválido"}, 400
+        db.session.commit()
+        return c.to_dict(), 200
+
+    @jwt_required()
+    def delete(self, campaign_id):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        c = DateCampaign.query.get_or_404(campaign_id)
+        if c.business_id != business_id:
+            return {"message": "Acceso denegado"}, 403
+        c.is_active = False
+        db.session.commit()
+        return {"message": "Eliminado"}, 200
+
+
+api.add_resource(EmailTemplateListResource, '/api/v1/email-templates')
+api.add_resource(EmailTemplateResource, '/api/v1/email-templates/<int:template_id>')
+api.add_resource(TriggerChannelConfigResource, '/api/v1/trigger-channel-config')
+api.add_resource(DateCampaignListResource, '/api/v1/date-campaigns')
+api.add_resource(DateCampaignResource, '/api/v1/date-campaigns/<int:campaign_id>')
 
 
 class AgencyListResource(Resource):
