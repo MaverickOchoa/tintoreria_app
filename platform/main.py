@@ -38,8 +38,124 @@ app.add_middleware(
 )
 
 _STARTUP_MIGRATIONS = [
+    # Consent columns
     "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_whatsapp BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_email BOOLEAN NOT NULL DEFAULT FALSE",
+    # Clinic core tables
+    """CREATE TABLE IF NOT EXISTS patients (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL UNIQUE REFERENCES clients(id),
+        blood_type VARCHAR(10),
+        allergies TEXT,
+        emergency_contact_name VARCHAR(150),
+        emergency_contact_phone VARCHAR(20),
+        occupation VARCHAR(100),
+        medical_history TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    """CREATE TABLE IF NOT EXISTS clinic_services (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        duration_minutes INTEGER NOT NULL DEFAULT 30,
+        price FLOAT,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE
+    )""",
+    """CREATE TABLE IF NOT EXISTS appointments (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        patient_id INTEGER NOT NULL REFERENCES patients(id),
+        doctor_id INTEGER REFERENCES employees(id),
+        clinic_service_id INTEGER REFERENCES clinic_services(id),
+        scheduled_at TIMESTAMP NOT NULL,
+        duration_minutes INTEGER NOT NULL DEFAULT 30,
+        status VARCHAR(30) NOT NULL DEFAULT 'Agendada',
+        notes TEXT,
+        reason VARCHAR(255),
+        created_by VARCHAR(120),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        completed_at TIMESTAMP
+    )""",
+    """CREATE TABLE IF NOT EXISTS clinical_records (
+        id SERIAL PRIMARY KEY,
+        patient_id INTEGER NOT NULL REFERENCES patients(id),
+        appointment_id INTEGER REFERENCES appointments(id),
+        doctor_id INTEGER REFERENCES employees(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        chief_complaint TEXT,
+        diagnosis TEXT,
+        treatment TEXT,
+        prescription TEXT,
+        next_appointment_notes TEXT,
+        vital_signs TEXT,
+        record_date TIMESTAMP NOT NULL DEFAULT NOW(),
+        created_by VARCHAR(120)
+    )""",
+    # Branch config tables
+    """CREATE TABLE IF NOT EXISTS clinic_branch_schedules (
+        id SERIAL PRIMARY KEY,
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        day_of_week INTEGER NOT NULL,
+        is_open BOOLEAN NOT NULL DEFAULT TRUE,
+        open_time VARCHAR(5) NOT NULL DEFAULT '09:00',
+        close_time VARCHAR(5) NOT NULL DEFAULT '18:00',
+        CONSTRAINT uq_branch_day UNIQUE (branch_id, day_of_week)
+    )""",
+    """CREATE TABLE IF NOT EXISTS clinic_branch_messages (
+        id SERIAL PRIMARY KEY,
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        trigger_key VARCHAR(60) NOT NULL,
+        channel VARCHAR(20) NOT NULL,
+        text TEXT NOT NULL DEFAULT '',
+        CONSTRAINT uq_branch_msg UNIQUE (branch_id, trigger_key, channel)
+    )""",
+    """CREATE TABLE IF NOT EXISTS clinic_promotions (
+        id SERIAL PRIMARY KEY,
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        name VARCHAR(120) NOT NULL,
+        description TEXT,
+        discount_pct FLOAT NOT NULL DEFAULT 0,
+        min_orders INTEGER,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    # Doctor schedule tables
+    """CREATE TABLE IF NOT EXISTS clinic_doctor_schedules (
+        id SERIAL PRIMARY KEY,
+        doctor_id INTEGER NOT NULL REFERENCES employees(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        day_of_week INTEGER NOT NULL,
+        is_available BOOLEAN NOT NULL DEFAULT TRUE,
+        start_time VARCHAR(5) NOT NULL DEFAULT '09:00',
+        end_time VARCHAR(5) NOT NULL DEFAULT '17:00',
+        slot_duration_minutes INTEGER NOT NULL DEFAULT 30,
+        CONSTRAINT uq_doctor_day UNIQUE (doctor_id, branch_id, day_of_week)
+    )""",
+    """CREATE TABLE IF NOT EXISTS clinic_doctor_blocks (
+        id SERIAL PRIMARY KEY,
+        doctor_id INTEGER NOT NULL REFERENCES employees(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        blocked_date DATE NOT NULL,
+        all_day BOOLEAN NOT NULL DEFAULT FALSE,
+        start_time VARCHAR(5),
+        end_time VARCHAR(5),
+        reason VARCHAR(200)
+    )""",
+    # Indexes
+    "CREATE INDEX IF NOT EXISTS ix_appointments_business_branch ON appointments(business_id, branch_id)",
+    "CREATE INDEX IF NOT EXISTS ix_appointments_scheduled_at ON appointments(scheduled_at)",
+    "CREATE INDEX IF NOT EXISTS ix_appointments_patient ON appointments(patient_id)",
+    "CREATE INDEX IF NOT EXISTS ix_clinical_records_patient ON clinical_records(patient_id)",
+    "CREATE INDEX IF NOT EXISTS ix_patients_client ON patients(client_id)",
+    "CREATE INDEX IF NOT EXISTS ix_doctor_schedule_doctor ON clinic_doctor_schedules(doctor_id)",
+    "CREATE INDEX IF NOT EXISTS ix_doctor_blocks_date ON clinic_doctor_blocks(blocked_date)",
 ]
 
 
