@@ -27,6 +27,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://zentro-iik7.onrender.com",
+        "https://zentro-5b3g.onrender.com",
         "https://zentro.onrender.com",
         "https://tintoreria-frontend.onrender.com",
         "http://localhost:5173",
