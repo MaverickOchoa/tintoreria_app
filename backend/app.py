@@ -21,6 +21,13 @@ try:
 except ImportError:
     _TWILIO_AVAILABLE = False
 
+try:
+    import sendgrid
+    from sendgrid.helpers.mail import Mail
+    _SENDGRID_AVAILABLE = True
+except ImportError:
+    _SENDGRID_AVAILABLE = False
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:YoYo158087@localhost/tintoreria_db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -1993,6 +2000,17 @@ class ClientListResource(Resource):
         branch_id = claims.get('branch_id')
         if not branch_id:
             branch_id = data.get('branch_id')
+
+        # Auto-generate username and temporary password
+        base_user = f"{first_name.lower()}.{last_name.lower()}" if last_name else first_name.lower()
+        base_user = base_user.replace(' ', '')
+        username = base_user
+        counter = 1
+        while Client.query.filter_by(username=username).first():
+            username = f"{base_user}{counter}"
+            counter += 1
+        plain_password = phone  # temporary password = phone number
+
         new_client = Client(
             full_name=first_name.title(),
             last_name=last_name.title() if last_name else None,
@@ -2006,8 +2024,8 @@ class ClientListResource(Resource):
             date_of_birth_month=data.get('date_of_birth_month') or None,
             branch_id=branch_id,
             client_type_id=data.get('client_type_id') or None,
-            username=(data.get('username') or '').strip() or None,
-            password=generate_password_hash(data['password']) if data.get('password') else None,
+            username=username,
+            password=generate_password_hash(plain_password),
             whatsapp_consent=bool(data.get('whatsapp_consent', False)),
             email_consent=bool(data.get('email_consent', False)),
         )
@@ -2015,7 +2033,8 @@ class ClientListResource(Resource):
         db.session.commit()
         branch = Branch.query.get(new_client.branch_id) if new_client.branch_id else None
         if branch:
-            fire_whatsapp_trigger('client_welcome', branch.business_id, new_client)
+            dispatch_trigger('client_welcome', branch.business_id, new_client,
+                             extra={'plain_password': plain_password})
         return {"message": "Cliente creado", "client": new_client.to_dict()}, 201
 
     @jwt_required()
@@ -2417,12 +2436,12 @@ class OrderResource(Resource):
             client = Client.query.get(order.client_id) if order.client_id else None
             branch = Branch.query.get(order.branch_id)
             if client and branch:
-                fire_whatsapp_trigger('order_ready', branch.business_id, client, {'folio': order.folio or str(order.id)})
+                dispatch_trigger('order_ready', branch.business_id, client, {'folio': order.folio or str(order.id)})
                 completed_orders = Order.query.filter_by(client_id=client.id).filter(
                     Order.status.in_(['Listo', 'Entregado'])
                 ).count()
                 if completed_orders == 3:
-                    fire_whatsapp_trigger('client_recurring', branch.business_id, client)
+                    dispatch_trigger('client_recurring', branch.business_id, client)
         return {"message": "Orden actualizada", "order": order.to_dict()}, 200
 
 class OrderPaymentResource(Resource):
@@ -3923,14 +3942,106 @@ def fire_whatsapp_trigger(trigger_type, business_id, client, extra=None):
         ).first()
         if not template:
             return
-        nombre = f"{client.full_name or ''} {client.last_name or ''}".strip()
-        folio  = (extra or {}).get('folio', '')
-        msg = template.message_body \
-            .replace('{nombre}', nombre) \
-            .replace('{folio}', folio)
+        nombre   = f"{client.full_name or ''} {client.last_name or ''}".strip()
+        folio    = (extra or {}).get('folio', '')
+        usuario  = client.username or ''
+        contrasena = (extra or {}).get('plain_password', '')
+        portal   = os.environ.get('CLIENT_PORTAL_URL', 'https://zentro-5b3g.onrender.com/#/client-login')
+        msg = (template.message_body
+               .replace('{nombre}',    nombre)
+               .replace('{folio}',     folio)
+               .replace('{usuario}',   usuario)
+               .replace('{contrasena}', contrasena)
+               .replace('{portal}',    portal))
         send_whatsapp(client.phone, msg)
     except Exception as e:
         app.logger.error(f"[WhatsApp TRIGGER ERROR] {trigger_type}: {e}")
+
+
+def _send_email(to_email, subject, body_text):
+    """Send a plain-text email via SendGrid."""
+    api_key = os.environ.get('SENDGRID_API_KEY', '')
+    from_email = os.environ.get('SENDGRID_FROM_EMAIL', 'noreply@zentro.app')
+    if not api_key or not _SENDGRID_AVAILABLE:
+        app.logger.warning("[EMAIL] SendGrid not configured - skipping")
+        return
+    try:
+        sg = sendgrid.SendGridAPIClient(api_key=api_key)
+        message = Mail(
+            from_email=from_email,
+            to_emails=to_email,
+            subject=subject,
+            plain_text_content=body_text,
+        )
+        sg.send(message)
+    except Exception as e:
+        app.logger.error(f"[EMAIL SEND ERROR] {to_email}: {e}")
+
+
+def fire_email_trigger(trigger_type, business_id, client, extra=None):
+    try:
+        if not client or not client.email_consent or not client.email:
+            return
+        template = EmailTemplate.query.filter_by(
+            business_id=business_id,
+            trigger_type=trigger_type,
+            is_active=True
+        ).first()
+        nombre     = f"{client.full_name or ''} {client.last_name or ''}".strip()
+        folio      = (extra or {}).get('folio', '')
+        usuario    = client.username or ''
+        contrasena = (extra or {}).get('plain_password', '')
+        portal     = os.environ.get('CLIENT_PORTAL_URL', 'https://zentro-5b3g.onrender.com/#/client-login')
+
+        DEFAULT_SUBJECTS = {
+            'client_welcome':   '¡Bienvenido/a a nuestra tintorería!',
+            'client_recurring': '¡Gracias por ser cliente frecuente!',
+            'order_ready':      'Tu orden está lista para recoger',
+        }
+        DEFAULT_BODIES = {
+            'client_welcome': (
+                "Hola {nombre},\n\n"
+                "Bienvenido/a. Ya puedes acceder a tu portal:\n"
+                "{portal}\n\n"
+                "Usuario: {usuario}\n"
+                "Contraseña temporal: {contrasena}\n\n"
+                "¡Hasta pronto!"
+            ),
+            'client_recurring': "Hola {nombre},\n\n¡Ya eres cliente frecuente! ¡Gracias por tu confianza!\n\n¡Hasta pronto!",
+            'order_ready':      "Hola {nombre},\n\nTu orden #{folio} ya está lista para recoger. ¡Te esperamos!\n\n¡Hasta pronto!",
+        }
+
+        subject_tpl = (template.subject      if template else DEFAULT_SUBJECTS.get(trigger_type, ''))
+        body_tpl    = (template.message_body  if template else DEFAULT_BODIES.get(trigger_type, ''))
+
+        def fill(t):
+            return (t.replace('{nombre}',    nombre)
+                     .replace('{folio}',     folio)
+                     .replace('{usuario}',   usuario)
+                     .replace('{contrasena}', contrasena)
+                     .replace('{portal}',    portal))
+
+        _send_email(client.email, fill(subject_tpl), fill(body_tpl))
+    except Exception as e:
+        app.logger.error(f"[Email TRIGGER ERROR] {trigger_type}: {e}")
+
+
+def dispatch_trigger(trigger_type, business_id, client, extra=None):
+    """Route trigger to whatsapp, email, or both based on TriggerChannelConfig."""
+    try:
+        config = TriggerChannelConfig.query.filter_by(
+            business_id=business_id,
+            trigger_type=trigger_type
+        ).first()
+        channel = config.channel if config else 'whatsapp'
+        if channel == 'whatsapp':
+            fire_whatsapp_trigger(trigger_type, business_id, client, extra)
+        elif channel == 'email':
+            fire_email_trigger(trigger_type, business_id, client, extra)
+        elif channel == 'none':
+            pass
+    except Exception as e:
+        app.logger.error(f"[DISPATCH TRIGGER ERROR] {trigger_type}: {e}")
 
 
 class WhatsappTemplateListResource(Resource):

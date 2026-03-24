@@ -28,7 +28,7 @@ const TRIGGER_META = {
 };
 
 const DEFAULT_WA = {
-  client_welcome:   "¡Hola {nombre}! Bienvenido/a a nuestra tintorería. Nos da mucho gusto tenerte como cliente. 🧺",
+  client_welcome:   "¡Hola {nombre}! Bienvenido/a. Accede a tu portal: {portal}\nUsuario: {usuario}\nContraseña temporal: {contrasena} 🧺",
   client_recurring: "¡Hola {nombre}! Ya eres parte de nuestros clientes frecuentes. ¡Gracias por confiar en nosotros! ⭐",
   order_ready:      "¡Hola {nombre}! Tu orden #{folio} ya está lista para recoger. ¡Te esperamos! ✅",
 };
@@ -38,8 +38,8 @@ const DEFAULT_EMAIL_SUBJECT = {
   order_ready:      "Tu orden está lista para recoger",
 };
 const DEFAULT_EMAIL_BODY = {
-  client_welcome:   "Hola {nombre},\n\nNos da mucho gusto tenerte como cliente. Estamos para servirte.\n\n¡Hasta pronto!",
-  client_recurring: "Hola {nombre},\n\nYa eres parte de nuestros clientes frecuentes. ¡Gracias por confiar en nosotros!\n\n¡Hasta pronto!",
+  client_welcome:   "Hola {nombre},\n\nBienvenido/a. Ya puedes acceder a tu portal:\n{portal}\n\nUsuario: {usuario}\nContraseña temporal: {contrasena}\n\n¡Hasta pronto!",
+  client_recurring: "Hola {nombre},\n\n¡Ya eres cliente frecuente! ¡Gracias por tu confianza!\n\n¡Hasta pronto!",
   order_ready:      "Hola {nombre},\n\nTu orden #{folio} ya está lista para recoger. ¡Te esperamos!\n\n¡Hasta pronto!",
 };
 
@@ -274,7 +274,7 @@ export default function ManagePromotions() {
           <Box>
             <Alert severity="info" sx={{ mb: 3 }}>
               Por cada trigger elige <strong>un solo canal</strong>: WhatsApp, Email o Ninguno. Solo el canal seleccionado se enviará.
-              Usa <strong>{"{nombre}"}</strong> para el nombre del cliente y <strong>{"{folio}"}</strong> para el número de orden.
+              Usa <strong>{"{nombre}"}</strong> · <strong>{"{folio}"}</strong> · <strong>{"{usuario}"}</strong> · <strong>{"{contrasena}"}</strong> · <strong>{"{portal}"}</strong> en el texto.
             </Alert>
             {msgState && <Alert severity={msgState.type} sx={{ mb: 2 }} onClose={() => setMsgState(null)}>{msgState.text}</Alert>}
             <Stack spacing={2}>
