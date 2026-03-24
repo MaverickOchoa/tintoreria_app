@@ -52,7 +52,7 @@ const EMPTY_FORM = {
 
 const EMPTY_CAMPAIGN = {
   name: "", campaign_type: "birthday", channel: "whatsapp",
-  subject: "", message_body: "", send_date: "",
+  subject: "", message_body: "", send_date: "", image_base64: "",
 };
 
 export default function ManagePromotions() {
@@ -382,7 +382,8 @@ export default function ManagePromotions() {
               <Paper elevation={2} sx={{ p: 3, borderRadius: 3, mb: 3 }}>
                 <Typography fontWeight={700} mb={2}>Nueva campaña</Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  {/* ── Fila 1: 4 columnas ── */}
+                  <Grid item xs={12} sm={3}>
                     <TextField fullWidth label="Nombre de la campaña" value={campaignForm.name}
                       onChange={e => setCampaignForm(p => ({ ...p, name: e.target.value }))} required />
                   </Grid>
@@ -400,23 +401,68 @@ export default function ManagePromotions() {
                       <MenuItem value="email"><Box display="flex" alignItems="center" gap={1}><EmailIcon sx={{ fontSize: 16, color: "#4361ee" }} /> Email</Box></MenuItem>
                     </TextField>
                   </Grid>
-                  {campaignForm.campaign_type === "one_time" && (
-                    <Grid item xs={12} sm={4}>
-                      <TextField fullWidth label="Fecha de envío" type="date" value={campaignForm.send_date}
-                        onChange={e => setCampaignForm(p => ({ ...p, send_date: e.target.value }))}
-                        InputLabelProps={{ shrink: true }} required inputProps={{ min: today }} />
-                    </Grid>
-                  )}
+                  <Grid item xs={12} sm={3}>
+                    <TextField fullWidth label="Fecha de envío" type="date" value={campaignForm.send_date}
+                      onChange={e => setCampaignForm(p => ({ ...p, send_date: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                      disabled={campaignForm.campaign_type !== "one_time"}
+                      required={campaignForm.campaign_type === "one_time"}
+                      inputProps={{ min: today }}
+                      helperText={campaignForm.campaign_type !== "one_time" ? "Solo para fecha específica" : ""} />
+                  </Grid>
+
+                  {/* ── Asunto (email only, full width) ── */}
                   {campaignForm.channel === "email" && (
-                    <Grid item xs={campaignForm.campaign_type === "one_time" ? 8 : 12}>
+                    <Grid item xs={12}>
                       <TextField fullWidth label="Asunto del correo" value={campaignForm.subject}
                         onChange={e => setCampaignForm(p => ({ ...p, subject: e.target.value }))} />
                     </Grid>
                   )}
+
+                  {/* ── Mensaje full width ── */}
                   <Grid item xs={12}>
-                    <TextField fullWidth multiline minRows={3} label="Mensaje" value={campaignForm.message_body}
+                    <TextField fullWidth multiline minRows={4} label="Mensaje" value={campaignForm.message_body}
                       onChange={e => setCampaignForm(p => ({ ...p, message_body: e.target.value }))}
                       helperText="Usa {nombre} para el nombre del cliente" required />
+                  </Grid>
+
+                  {/* ── Imagen opcional ── */}
+                  <Grid item xs={12}>
+                    <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>
+                      IMAGEN ADJUNTA (opcional)
+                    </Typography>
+                    <Box display="flex" alignItems="flex-start" gap={2} flexWrap="wrap">
+                      <Button variant="outlined" component="label" size="small" startIcon={<span>🖼️</span>}
+                        sx={{ whiteSpace: "nowrap" }}>
+                        {campaignForm.image_base64 ? "Cambiar imagen" : "Subir imagen"}
+                        <input type="file" accept="image/*" hidden onChange={e => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) {
+                            alert("La imagen no debe superar 2 MB");
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = ev => setCampaignForm(p => ({ ...p, image_base64: ev.target.result }));
+                          reader.readAsDataURL(file);
+                        }} />
+                      </Button>
+                      {campaignForm.image_base64 && (
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Box component="img" src={campaignForm.image_base64}
+                            sx={{ height: 64, width: 64, objectFit: "cover", borderRadius: 2, border: "1px solid #e0e0e0" }} />
+                          <IconButton size="small" color="error"
+                            onClick={() => setCampaignForm(p => ({ ...p, image_base64: "" }))}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      )}
+                      {!campaignForm.image_base64 && (
+                        <Typography variant="caption" color="text.secondary" sx={{ pt: 1 }}>
+                          JPG, PNG o GIF · máx 2 MB
+                        </Typography>
+                      )}
+                    </Box>
                   </Grid>
                 </Grid>
                 <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
