@@ -31,7 +31,7 @@ const CreateClient = () => {
     first_name: "", last_name: "", phone: "", email: "",
     date_of_birth_day: "", date_of_birth_month: "",
     street_number: "", neighborhood: "", zip_code: "", notes: "",
-    client_type_id: "", username: "", password: "",
+    client_type_id: "",
     whatsapp_consent: false, email_consent: false,
   });
   const [clientTypes, setClientTypes] = useState([]);
@@ -203,15 +203,12 @@ const CreateClient = () => {
           </Box>
 
           <Divider sx={{ my: 2 }} />
-          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
-            Acceso al Portal del Cliente (Opcional)
-          </Typography>
-
-          <Box sx={rowStyle}>
-            <TextField label="Contraseña" name="password" type="password"
-              value={clientData.password} onChange={handleChange} sx={{ flex: 1 }}
-              helperText={`Usuario del portal: ${(clientData.first_name || "").toLowerCase() || "se genera del nombre"}`} />
-            <Box sx={{ flex: 1 }} />
+          <Box sx={{ bgcolor: "grey.50", borderRadius: 2, p: 2, mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Las credenciales del portal se generan automáticamente:
+              usuario = <strong>nombre.apellido</strong>, contraseña temporal = <strong>número de teléfono</strong>.
+              Se enviarán por el canal configurado en Mensajes Automáticos.
+            </Typography>
           </Box>
 
           <Box sx={{ mt: 3 }}>
