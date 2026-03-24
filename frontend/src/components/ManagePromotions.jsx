@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box, Paper, Typography, Button, TextField, IconButton, Chip,
@@ -22,25 +22,25 @@ import BlockIcon from "@mui/icons-material/Block";
 const API = import.meta.env.VITE_API_URL || "";
 
 const TRIGGER_META = {
-  client_welcome:   { label: "Bienvenida al cliente nuevo",          icon: "ðŸ‘‹", hint: "Se envÃ­a cuando se registra un cliente nuevo." },
-  client_recurring: { label: "FelicitaciÃ³n cliente recurrente",      icon: "â­", hint: "Se envÃ­a cuando el cliente completa su 3Âª orden." },
-  order_ready:      { label: "Orden lista para recoger",             icon: "âœ…", hint: "Se envÃ­a cuando una orden cambia a estatus 'Listo'." },
+  client_welcome:   { label: "Bienvenida al cliente nuevo",          icon: "👋", hint: "Se envía cuando se registra un cliente nuevo." },
+  client_recurring: { label: "Felicitación cliente recurrente",      icon: "⭐", hint: "Se envía cuando el cliente completa su 3ª orden." },
+  order_ready:      { label: "Orden lista para recoger",             icon: "✅", hint: "Se envía cuando una orden cambia a estatus 'Listo'." },
 };
 
 const DEFAULT_WA = {
-  client_welcome:   "Â¡Hola {nombre}! Bienvenido/a a nuestra tintorerÃ­a. Nos da mucho gusto tenerte como cliente. ðŸ§º",
-  client_recurring: "Â¡Hola {nombre}! Ya eres parte de nuestros clientes frecuentes. Â¡Gracias por confiar en nosotros! â­",
-  order_ready:      "Â¡Hola {nombre}! Tu orden #{folio} ya estÃ¡ lista para recoger. Â¡Te esperamos! âœ…",
+  client_welcome:   "¡Hola {nombre}! Bienvenido/a a nuestra tintorería. Nos da mucho gusto tenerte como cliente. 🧺",
+  client_recurring: "¡Hola {nombre}! Ya eres parte de nuestros clientes frecuentes. ¡Gracias por confiar en nosotros! ⭐",
+  order_ready:      "¡Hola {nombre}! Tu orden #{folio} ya está lista para recoger. ¡Te esperamos! ✅",
 };
 const DEFAULT_EMAIL_SUBJECT = {
-  client_welcome:   "Â¡Bienvenido/a a nuestra tintorerÃ­a!",
-  client_recurring: "Â¡Gracias por ser cliente frecuente!",
-  order_ready:      "Tu orden estÃ¡ lista para recoger",
+  client_welcome:   "¡Bienvenido/a a nuestra tintorería!",
+  client_recurring: "¡Gracias por ser cliente frecuente!",
+  order_ready:      "Tu orden está lista para recoger",
 };
 const DEFAULT_EMAIL_BODY = {
-  client_welcome:   "Hola {nombre},\n\nNos da mucho gusto tenerte como cliente. Estamos para servirte.\n\nÂ¡Hasta pronto!",
-  client_recurring: "Hola {nombre},\n\nYa eres parte de nuestros clientes frecuentes. Â¡Gracias por confiar en nosotros!\n\nÂ¡Hasta pronto!",
-  order_ready:      "Hola {nombre},\n\nTu orden #{folio} ya estÃ¡ lista para recoger. Â¡Te esperamos!\n\nÂ¡Hasta pronto!",
+  client_welcome:   "Hola {nombre},\n\nNos da mucho gusto tenerte como cliente. Estamos para servirte.\n\n¡Hasta pronto!",
+  client_recurring: "Hola {nombre},\n\nYa eres parte de nuestros clientes frecuentes. ¡Gracias por confiar en nosotros!\n\n¡Hasta pronto!",
+  order_ready:      "Hola {nombre},\n\nTu orden #{folio} ya está lista para recoger. ¡Te esperamos!\n\n¡Hasta pronto!",
 };
 
 const EMPTY_FORM = {
@@ -186,7 +186,7 @@ export default function ManagePromotions() {
       setCampaignMsg({ type: "error", text: "Nombre y mensaje son requeridos" }); return;
     }
     if (campaignForm.campaign_type === "one_time" && !campaignForm.send_date) {
-      setCampaignMsg({ type: "error", text: "La fecha de envÃ­o es requerida" }); return;
+      setCampaignMsg({ type: "error", text: "La fecha de envío es requerida" }); return;
     }
     setSavingCampaign(true);
     const r = await fetch(`${API}/api/v1/date-campaigns`, {
@@ -199,9 +199,9 @@ export default function ManagePromotions() {
       setCampaignForm(EMPTY_CAMPAIGN);
       setShowCampaignForm(false);
       loadCampaigns();
-      setCampaignMsg({ type: "success", text: "CampaÃ±a creada" });
+      setCampaignMsg({ type: "success", text: "Campaña creada" });
     } else {
-      setCampaignMsg({ type: "error", text: "Error al crear la campaÃ±a" });
+      setCampaignMsg({ type: "error", text: "Error al crear la campaña" });
     }
   };
 
@@ -236,7 +236,7 @@ export default function ManagePromotions() {
   const removeRewardLine = (i) => { setForm(p => ({ ...p, reward_lines: p.reward_lines.filter((_, idx) => idx !== i) })); setRewardLineOptions(prev => prev.filter((_, idx) => idx !== i)); };
 
   const handleSave = async () => {
-    if (!form.title.trim()) { setMsg({ type: "error", text: "El tÃ­tulo es requerido" }); return; }
+    if (!form.title.trim()) { setMsg({ type: "error", text: "El título es requerido" }); return; }
     if (!form.starts_at || !form.ends_at) { setMsg({ type: "error", text: "Fechas de vigencia requeridas" }); return; }
     if (form.required_lines.length === 0) { setMsg({ type: "error", text: "Agrega al menos un item requerido" }); return; }
     setSaving(true); setMsg(null);
@@ -244,14 +244,14 @@ export default function ManagePromotions() {
       const body = { ...form, service_id: form.service_id || null, client_type_id: form.client_type_id || null, bundle_price: form.bundle_price ? parseFloat(form.bundle_price) : null, discount_pct: form.discount_pct ? parseFloat(form.discount_pct) : null, required_lines: form.required_lines.map(l => ({ item_id: l.item_id || null, quantity: parseInt(l.quantity) })), reward_lines: form.reward_lines.map(l => ({ item_id: l.item_id, quantity: parseInt(l.quantity) })) };
       const res = await fetch(`${API}/api/v1/promotions`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
       const d = await res.json();
-      if (res.ok) { setForm(EMPTY_FORM); setShowForm(false); loadAll(); setMsg({ type: "success", text: "PromociÃ³n creada" }); }
+      if (res.ok) { setForm(EMPTY_FORM); setShowForm(false); loadAll(); setMsg({ type: "success", text: "Promoción creada" }); }
       else setMsg({ type: "error", text: d.message || "Error" });
-    } catch { setMsg({ type: "error", text: "Error de conexiÃ³n" }); }
+    } catch { setMsg({ type: "error", text: "Error de conexión" }); }
     finally { setSaving(false); }
   };
 
   const handleToggle = async (promo) => { await fetch(`${API}/api/v1/promotions/${promo.id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ active: !promo.active }) }); loadAll(); };
-  const handleDelete = async (id) => { if (!window.confirm("Â¿Eliminar esta promociÃ³n?")) return; await fetch(`${API}/api/v1/promotions/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }); loadAll(); };
+  const handleDelete = async (id) => { if (!window.confirm("¿Eliminar esta promoción?")) return; await fetch(`${API}/api/v1/promotions/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }); loadAll(); };
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -265,16 +265,16 @@ export default function ManagePromotions() {
 
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }} variant="fullWidth">
           <Tab label="Promociones" />
-          <Tab label={<Box display="flex" alignItems="center" gap={0.5}><WhatsAppIcon fontSize="small" sx={{ color: "#25D366" }} /> Mensajes AutomÃ¡ticos</Box>} />
-          <Tab label={<Box display="flex" alignItems="center" gap={0.5}><CampaignIcon fontSize="small" color="primary" /> CampaÃ±as por Fecha</Box>} />
+          <Tab label={<Box display="flex" alignItems="center" gap={0.5}><WhatsAppIcon fontSize="small" sx={{ color: "#25D366" }} /> Mensajes Automáticos</Box>} />
+          <Tab label={<Box display="flex" alignItems="center" gap={0.5}><CampaignIcon fontSize="small" color="primary" /> Campañas por Fecha</Box>} />
         </Tabs>
 
         {/* â”€â”€â”€ TAB 1: MENSAJES AUTOMÃTICOS â”€â”€â”€ */}
         {tab === 1 && (
           <Box>
             <Alert severity="info" sx={{ mb: 3 }}>
-              Por cada trigger elige <strong>un solo canal</strong>: WhatsApp, Email o Ninguno. Solo el canal seleccionado se enviarÃ¡.
-              Usa <strong>{"{nombre}"}</strong> para el nombre del cliente y <strong>{"{folio}"}</strong> para el nÃºmero de orden.
+              Por cada trigger elige <strong>un solo canal</strong>: WhatsApp, Email o Ninguno. Solo el canal seleccionado se enviará.
+              Usa <strong>{"{nombre}"}</strong> para el nombre del cliente y <strong>{"{folio}"}</strong> para el número de orden.
             </Alert>
             {msgState && <Alert severity={msgState.type} sx={{ mb: 2 }} onClose={() => setMsgState(null)}>{msgState.text}</Alert>}
             <Stack spacing={2}>
@@ -316,7 +316,7 @@ export default function ManagePromotions() {
 
                     {/* Message preview / edit */}
                     {channel === "none" ? (
-                      <Typography variant="body2" color="text.secondary" fontStyle="italic">Este trigger estÃ¡ desactivado â€” no se enviarÃ¡ ningÃºn mensaje.</Typography>
+                      <Typography variant="body2" color="text.secondary" fontStyle="italic">Este trigger está desactivado â€” no se enviará ningún mensaje.</Typography>
                     ) : isEditing ? (
                       <Box>
                         {channel === "email" && (
@@ -331,7 +331,7 @@ export default function ManagePromotions() {
                           <Button variant="contained" startIcon={<SaveIcon />} size="small" disabled={savingMsg}
                             onClick={() => handleSaveMessage(trigger)}
                             sx={{ bgcolor: channel === "whatsapp" ? "#25D366" : "#4361ee", "&:hover": { bgcolor: channel === "whatsapp" ? "#1ebe5c" : "#3251d3" } }}>
-                            {savingMsg ? "Guardandoâ€¦" : "Guardar"}
+                            {savingMsg ? "Guardando…" : "Guardar"}
                           </Button>
                           <Button size="small" onClick={() => setEditingTrigger(null)}>Cancelar</Button>
                         </Stack>
@@ -366,13 +366,13 @@ export default function ManagePromotions() {
           <Box>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Box>
-                <Typography fontWeight={700} fontSize={15}>CampaÃ±as por fecha</Typography>
+                <Typography fontWeight={700} fontSize={15}>Campañas por fecha</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  CumpleaÃ±os (anual) o fecha especÃ­fica (Ãºnica vez). Solo llega a clientes que cumplan la condiciÃ³n.
+                  Cumpleaños (anual) o fecha específica (única vez). Solo llega a clientes que cumplan la condición.
                 </Typography>
               </Box>
               <Button variant="contained" startIcon={<AddIcon />} onClick={() => setShowCampaignForm(v => !v)} sx={{ borderRadius: 2 }}>
-                {showCampaignForm ? "Cancelar" : "Nueva campaÃ±a"}
+                {showCampaignForm ? "Cancelar" : "Nueva campaña"}
               </Button>
             </Box>
 
@@ -380,17 +380,17 @@ export default function ManagePromotions() {
 
             <Collapse in={showCampaignForm}>
               <Paper elevation={2} sx={{ p: 3, borderRadius: 3, mb: 3 }}>
-                <Typography fontWeight={700} mb={2}>Nueva campaÃ±a</Typography>
+                <Typography fontWeight={700} mb={2}>Nueva campaña</Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                    <TextField fullWidth label="Nombre de la campaÃ±a" value={campaignForm.name}
+                    <TextField fullWidth label="Nombre de la campaña" value={campaignForm.name}
                       onChange={e => setCampaignForm(p => ({ ...p, name: e.target.value }))} required />
                   </Grid>
                   <Grid item xs={12} sm={3}>
                     <TextField fullWidth select label="Tipo" value={campaignForm.campaign_type}
                       onChange={e => setCampaignForm(p => ({ ...p, campaign_type: e.target.value, send_date: "" }))}>
-                      <MenuItem value="birthday">ðŸŽ‚ CumpleaÃ±os (anual)</MenuItem>
-                      <MenuItem value="one_time">ðŸ“… Fecha especÃ­fica (Ãºnica vez)</MenuItem>
+                      <MenuItem value="birthday">🎂 Cumpleaños (anual)</MenuItem>
+                      <MenuItem value="one_time">📅 Fecha específica (única vez)</MenuItem>
                     </TextField>
                   </Grid>
                   <Grid item xs={12} sm={3}>
@@ -402,7 +402,7 @@ export default function ManagePromotions() {
                   </Grid>
                   {campaignForm.campaign_type === "one_time" && (
                     <Grid item xs={12} sm={4}>
-                      <TextField fullWidth label="Fecha de envÃ­o" type="date" value={campaignForm.send_date}
+                      <TextField fullWidth label="Fecha de envío" type="date" value={campaignForm.send_date}
                         onChange={e => setCampaignForm(p => ({ ...p, send_date: e.target.value }))}
                         InputLabelProps={{ shrink: true }} required inputProps={{ min: today }} />
                     </Grid>
@@ -423,7 +423,7 @@ export default function ManagePromotions() {
                   <Button variant="outlined" onClick={() => { setCampaignForm(EMPTY_CAMPAIGN); setShowCampaignForm(false); }}>Cancelar</Button>
                   <Button variant="contained" startIcon={savingCampaign ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
                     onClick={handleSaveCampaign} disabled={savingCampaign}>
-                    Guardar campaÃ±a
+                    Guardar campaña
                   </Button>
                 </Box>
               </Paper>
@@ -431,7 +431,7 @@ export default function ManagePromotions() {
 
             {campaigns.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: "center", borderRadius: 3 }}>
-                <Typography color="text.secondary">Sin campaÃ±as configuradas. Crea la primera.</Typography>
+                <Typography color="text.secondary">Sin campañas configuradas. Crea la primera.</Typography>
               </Paper>
             ) : (
               <Stack spacing={2}>
@@ -442,9 +442,9 @@ export default function ManagePromotions() {
                         <Box display="flex" alignItems="center" gap={1} mb={0.5} flexWrap="wrap">
                           {CHANNEL_ICON[c.channel]}
                           <Typography fontWeight={700}>{c.name}</Typography>
-                          <Chip size="small" label={c.campaign_type === "birthday" ? "ðŸŽ‚ CumpleaÃ±os" : "ðŸ“… Fecha especÃ­fica"} variant="outlined" />
+                          <Chip size="small" label={c.campaign_type === "birthday" ? "🎂 Cumpleaños" : "📅 Fecha específica"} variant="outlined" />
                           {c.send_date && <Chip size="small" label={new Date(c.send_date + "T12:00:00").toLocaleDateString("es-MX")} color="primary" variant="outlined" />}
-                          {c.fired_at && <Chip size="small" label="âœ“ Enviada" color="success" />}
+                          {c.fired_at && <Chip size="small" label="â✅ Enviada" color="success" />}
                         </Box>
                         {c.subject && <Typography variant="caption" color="text.secondary" display="block"><strong>Asunto:</strong> {c.subject}</Typography>}
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{c.message_body}</Typography>
@@ -465,17 +465,17 @@ export default function ManagePromotions() {
           <Box>
             <Box display="flex" justifyContent="flex-end" mb={2}>
               <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setShowForm(v => !v); setMsg(null); }}>
-                {showForm ? "Cancelar" : "Nueva PromociÃ³n"}
+                {showForm ? "Cancelar" : "Nueva Promoción"}
               </Button>
             </Box>
             {msg && <Alert severity={msg.type} sx={{ mb: 2 }}>{msg.text}</Alert>}
             <Collapse in={showForm}>
               <Paper elevation={3} sx={{ p: 3, borderRadius: 3, mb: 3 }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Nueva PromociÃ³n</Typography>
+                <Typography variant="h6" fontWeight={600} mb={2}>Nueva Promoción</Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={8}><TextField fullWidth required label="Nombre de la promociÃ³n" value={form.title} onChange={e => setField("title", e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} /></Grid>
-                  <Grid item xs={12} sm={4}><TextField fullWidth select label="Tipo de promociÃ³n" value={form.promo_type} onChange={e => setField("promo_type", e.target.value)}><MenuItem value="bundle_price">Paquete precio fijo</MenuItem><MenuItem value="buy_get_free">Compra N lleva M gratis</MenuItem></TextField></Grid>
-                  <Grid item xs={12}><TextField fullWidth multiline rows={2} label="DescripciÃ³n (opcional)" value={form.description} onChange={e => setField("description", e.target.value.replace(/^\w/, c => c.toUpperCase()))} /></Grid>
+                  <Grid item xs={12} sm={8}><TextField fullWidth required label="Nombre de la promoción" value={form.title} onChange={e => setField("title", e.target.value.replace(/\b\w/g, c => c.toUpperCase()))} /></Grid>
+                  <Grid item xs={12} sm={4}><TextField fullWidth select label="Tipo de promoción" value={form.promo_type} onChange={e => setField("promo_type", e.target.value)}><MenuItem value="bundle_price">Paquete precio fijo</MenuItem><MenuItem value="buy_get_free">Compra N lleva M gratis</MenuItem></TextField></Grid>
+                  <Grid item xs={12}><TextField fullWidth multiline rows={2} label="Descripción (opcional)" value={form.description} onChange={e => setField("description", e.target.value.replace(/^\w/, c => c.toUpperCase()))} /></Grid>
                   <Grid item xs={12} sm={4}><TextField fullWidth select required label="Servicio" value={form.service_id} onChange={e => handleServiceChange(e.target.value)} helperText="La promo solo aplica a este servicio"><MenuItem value="">â€” Seleccionar â€”</MenuItem>{services.map(s => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}</TextField></Grid>
                   <Grid item xs={12} sm={4}><TextField fullWidth select label="Solo para tipo de cliente" value={form.client_type_id} onChange={e => setField("client_type_id", e.target.value)}><MenuItem value="">Todos los clientes</MenuItem>{clientTypes.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}</TextField></Grid>
                   <Grid item xs={12} sm={4}><TextField fullWidth select label="Sucursal" value={form.branch_id} onChange={e => setField("branch_id", e.target.value)}><MenuItem value="">Todas las sucursales</MenuItem>{branches.map(b => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}</TextField></Grid>
@@ -490,19 +490,19 @@ export default function ManagePromotions() {
                 <Stack spacing={1} mb={2}>
                   {form.required_lines.map((line, i) => (
                     <Box key={i} display="flex" gap={1} alignItems="center" flexWrap="wrap">
-                      <TextField select label="CategorÃ­a" value={lineOptions[i]?.selectedCategory || ""} onChange={e => handleRequiredCategoryChange(i, e.target.value)} sx={{ flex: 2, minWidth: 130 }} size="small" disabled={!form.service_id}><MenuItem value="">â€” Seleccionar â€”</MenuItem>{(lineOptions[i]?.categories || []).map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</TextField>
-                      <TextField select label="ArtÃ­culo" value={line.item_id} onChange={e => setRequiredLine(i, "item_id", e.target.value)} sx={{ flex: 3, minWidth: 130 }} size="small" disabled={!lineOptions[i]?.selectedCategory}><MenuItem value="">â€” Seleccionar â€”</MenuItem>{(lineOptions[i]?.items || []).map(it => <MenuItem key={it.id} value={it.id}>{it.name}</MenuItem>)}</TextField>
+                      <TextField select label="Categoría" value={lineOptions[i]?.selectedCategory || ""} onChange={e => handleRequiredCategoryChange(i, e.target.value)} sx={{ flex: 2, minWidth: 130 }} size="small" disabled={!form.service_id}><MenuItem value="">â€” Seleccionar â€”</MenuItem>{(lineOptions[i]?.categories || []).map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</TextField>
+                      <TextField select label="Artículo" value={line.item_id} onChange={e => setRequiredLine(i, "item_id", e.target.value)} sx={{ flex: 3, minWidth: 130 }} size="small" disabled={!lineOptions[i]?.selectedCategory}><MenuItem value="">â€” Seleccionar â€”</MenuItem>{(lineOptions[i]?.items || []).map(it => <MenuItem key={it.id} value={it.id}>{it.name}</MenuItem>)}</TextField>
                       <TextField label="Cant." type="number" value={line.quantity} onChange={e => setRequiredLine(i, "quantity", e.target.value)} inputProps={{ min: 1 }} sx={{ width: 70 }} size="small" />
                       <IconButton size="small" color="error" onClick={() => removeRequiredLine(i)}><DeleteIcon fontSize="small" /></IconButton>
                     </Box>
                   ))}
                 </Stack>
-                {form.promo_type === "buy_get_free" && (<><Divider sx={{ my: 2 }} /><Box display="flex" justifyContent="space-between" alignItems="center" mb={1}><Typography variant="subtitle1" fontWeight={600}>Items de regalo</Typography><Button size="small" startIcon={<AddIcon />} onClick={addRewardLine}>Agregar regalo</Button></Box><Stack spacing={1} mb={2}>{form.reward_lines.map((line, i) => (<Box key={i} display="flex" gap={1} alignItems="center" flexWrap="wrap"><TextField select label="CategorÃ­a" value={rewardLineOptions[i]?.selectedCategory || ""} onChange={e => handleRewardCategoryChange(i, e.target.value)} sx={{ flex: 2, minWidth: 130 }} size="small" disabled={!form.service_id}><MenuItem value="">â€” Seleccionar â€”</MenuItem>{(rewardLineOptions[i]?.categories || []).map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</TextField><TextField select label="ArtÃ­culo gratis" value={line.item_id} onChange={e => setRewardLine(i, "item_id", e.target.value)} sx={{ flex: 3, minWidth: 130 }} size="small" disabled={!rewardLineOptions[i]?.selectedCategory}><MenuItem value="">â€” Seleccionar â€”</MenuItem>{(rewardLineOptions[i]?.items || []).map(it => <MenuItem key={it.id} value={it.id}>{it.name}</MenuItem>)}</TextField><TextField label="Cant." type="number" value={line.quantity} onChange={e => setRewardLine(i, "quantity", e.target.value)} inputProps={{ min: 1 }} sx={{ width: 70 }} size="small" /><IconButton size="small" color="error" onClick={() => removeRewardLine(i)}><DeleteIcon fontSize="small" /></IconButton></Box>))}</Stack></>)}
-                <Box display="flex" justifyContent="flex-end" gap={2} mt={1}><Button variant="outlined" onClick={() => { setForm(EMPTY_FORM); setShowForm(false); }}>Cancelar</Button><Button variant="contained" startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />} onClick={handleSave} disabled={saving}>Guardar PromociÃ³n</Button></Box>
+                {form.promo_type === "buy_get_free" && (<><Divider sx={{ my: 2 }} /><Box display="flex" justifyContent="space-between" alignItems="center" mb={1}><Typography variant="subtitle1" fontWeight={600}>Items de regalo</Typography><Button size="small" startIcon={<AddIcon />} onClick={addRewardLine}>Agregar regalo</Button></Box><Stack spacing={1} mb={2}>{form.reward_lines.map((line, i) => (<Box key={i} display="flex" gap={1} alignItems="center" flexWrap="wrap"><TextField select label="Categoría" value={rewardLineOptions[i]?.selectedCategory || ""} onChange={e => handleRewardCategoryChange(i, e.target.value)} sx={{ flex: 2, minWidth: 130 }} size="small" disabled={!form.service_id}><MenuItem value="">â€” Seleccionar â€”</MenuItem>{(rewardLineOptions[i]?.categories || []).map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</TextField><TextField select label="Artículo gratis" value={line.item_id} onChange={e => setRewardLine(i, "item_id", e.target.value)} sx={{ flex: 3, minWidth: 130 }} size="small" disabled={!rewardLineOptions[i]?.selectedCategory}><MenuItem value="">â€” Seleccionar â€”</MenuItem>{(rewardLineOptions[i]?.items || []).map(it => <MenuItem key={it.id} value={it.id}>{it.name}</MenuItem>)}</TextField><TextField label="Cant." type="number" value={line.quantity} onChange={e => setRewardLine(i, "quantity", e.target.value)} inputProps={{ min: 1 }} sx={{ width: 70 }} size="small" /><IconButton size="small" color="error" onClick={() => removeRewardLine(i)}><DeleteIcon fontSize="small" /></IconButton></Box>))}</Stack></>)}
+                <Box display="flex" justifyContent="flex-end" gap={2} mt={1}><Button variant="outlined" onClick={() => { setForm(EMPTY_FORM); setShowForm(false); }}>Cancelar</Button><Button variant="contained" startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />} onClick={handleSave} disabled={saving}>Guardar Promoción</Button></Box>
               </Paper>
             </Collapse>
             {promotions.length === 0 ? (
-              <Paper sx={{ p: 4, textAlign: "center", borderRadius: 3 }}><Typography color="text.secondary">AÃºn no tienes promociones. Â¡Crea la primera!</Typography></Paper>
+              <Paper sx={{ p: 4, textAlign: "center", borderRadius: 3 }}><Typography color="text.secondary">Aún no tienes promociones. ¡Crea la primera!</Typography></Paper>
             ) : (
               <Stack spacing={2}>
                 {promotions.map(p => { const valid = p.active && new Date() >= new Date(p.starts_at) && new Date() <= new Date(p.ends_at); return (
@@ -513,7 +513,7 @@ export default function ManagePromotions() {
                         <Box display="flex" gap={0.5} alignItems="center"><Button size="small" onClick={() => handleToggle(p)}>{p.active ? "Desactivar" : "Activar"}</Button><IconButton size="small" onClick={() => setExpanded(expanded === p.id ? null : p.id)}>{expanded === p.id ? <ExpandLessIcon /> : <ExpandMoreIcon />}</IconButton><IconButton size="small" color="error" onClick={() => handleDelete(p.id)}><DeleteIcon fontSize="small" /></IconButton></Box>
                       </Box>
                     </Box>
-                    <Collapse in={expanded === p.id}><Divider /><Box sx={{ p: 2, bgcolor: "action.hover" }}><Typography variant="caption" fontWeight={700} display="block" mb={0.5}>Items requeridos:</Typography>{(p.required_lines || []).map((l, i) => (<Typography key={i} variant="body2">â€¢ {l.item_name || "Cualquier item"} Ã— {l.quantity}</Typography>))}{p.promo_type === "buy_get_free" && (p.reward_lines || []).length > 0 && (<><Typography variant="caption" fontWeight={700} display="block" mt={1} mb={0.5}>Items de regalo:</Typography>{p.reward_lines.map((l, i) => (<Typography key={i} variant="body2" color="success.main">ðŸŽ {l.item_name} Ã— {l.quantity} gratis</Typography>))}</>)}</Box></Collapse>
+                    <Collapse in={expanded === p.id}><Divider /><Box sx={{ p: 2, bgcolor: "action.hover" }}><Typography variant="caption" fontWeight={700} display="block" mb={0.5}>Items requeridos:</Typography>{(p.required_lines || []).map((l, i) => (<Typography key={i} variant="body2">• {l.item_name || "Cualquier item"} × {l.quantity}</Typography>))}{p.promo_type === "buy_get_free" && (p.reward_lines || []).length > 0 && (<><Typography variant="caption" fontWeight={700} display="block" mt={1} mb={0.5}>Items de regalo:</Typography>{p.reward_lines.map((l, i) => (<Typography key={i} variant="body2" color="success.main">🎁 {l.item_name} × {l.quantity} gratis</Typography>))}</>)}</Box></Collapse>
                   </Paper>
                 ); })}
               </Stack>
