@@ -3989,7 +3989,10 @@ def _send_email(to_email, subject, body_text):
 
 def fire_email_trigger(trigger_type, business_id, client, extra=None):
     try:
-        if not client or not client.email_consent or not client.email:
+        if not client or not client.email:
+            return
+        # For welcome message always send regardless of consent (credentials must reach the client)
+        if trigger_type != 'client_welcome' and not client.email_consent:
             return
         template = EmailTemplate.query.filter_by(
             business_id=business_id,
@@ -4036,19 +4039,28 @@ def fire_email_trigger(trigger_type, business_id, client, extra=None):
 
 
 def dispatch_trigger(trigger_type, business_id, client, extra=None):
-    """Route trigger to whatsapp, email, or both based on TriggerChannelConfig."""
+    """Route trigger to whatsapp, email, or both based on TriggerChannelConfig.
+    For client_welcome: always send email if client has email (credentials delivery).
+    """
     try:
+        # Welcome message: email takes priority to deliver credentials
+        if trigger_type == 'client_welcome':
+            if client and client.email:
+                fire_email_trigger(trigger_type, business_id, client, extra)
+            elif client and client.whatsapp_consent and client.phone:
+                fire_whatsapp_trigger(trigger_type, business_id, client, extra)
+            return
+
         config = TriggerChannelConfig.query.filter_by(
             business_id=business_id,
             trigger_type=trigger_type
         ).first()
-        channel = config.channel if config else 'whatsapp'
+        channel = config.channel if config else 'none'
         if channel == 'whatsapp':
             fire_whatsapp_trigger(trigger_type, business_id, client, extra)
         elif channel == 'email':
             fire_email_trigger(trigger_type, business_id, client, extra)
-        elif channel == 'none':
-            pass
+        # 'none' or no config → skip
     except Exception as e:
         app.logger.error(f"[DISPATCH TRIGGER ERROR] {trigger_type}: {e}")
 
