@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import {
   Box, Typography, Paper, Table, TableHead, TableRow, TableCell,
   TableBody, TableContainer, Chip, CircularProgress, Alert,
-  Tabs, Tab, LinearProgress, Tooltip,
+  Tabs, Tab, LinearProgress, Tooltip, Button,
 } from "@mui/material";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useNavigate } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -20,6 +22,7 @@ const marginLabel = (pct) => {
 };
 
 export default function ProfitabilityReport() {
+  const navigate = useNavigate();
   const [services, setServices] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -45,6 +48,7 @@ export default function ProfitabilityReport() {
   return (
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
       <Box display="flex" alignItems="center" gap={1} mb={3}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} size="small">Regresar</Button>
         <AttachMoneyIcon color="primary" />
         <Typography variant="h5" fontWeight={700}>Rentabilidad por Prenda</Typography>
       </Box>

@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import {
   Box, Typography, Paper, Table, TableHead, TableRow, TableCell,
   TableBody, TableContainer, Chip, CircularProgress, Alert,
-  TextField, InputAdornment,
+  TextField, InputAdornment, Button,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useNavigate } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -23,6 +25,7 @@ const riskLabel = (days) => {
 };
 
 export default function ClientBehaviorReport() {
+  const navigate = useNavigate();
   const [data, setData]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState("");
@@ -53,6 +56,7 @@ export default function ClientBehaviorReport() {
   return (
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
       <Box display="flex" alignItems="center" gap={1} mb={3}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} size="small">Regresar</Button>
         <TrendingDownIcon color="primary" />
         <Typography variant="h5" fontWeight={700}>Comportamiento de Clientes</Typography>
       </Box>

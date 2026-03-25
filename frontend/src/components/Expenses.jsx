@@ -34,6 +34,16 @@ const CATEGORIES = {
     color: "#26a69a",
     items: ["Gas", "Energía eléctrica", "Agua", "Otro"],
   },
+  renta: {
+    label: "Renta",
+    color: "#ff7043",
+    items: ["Renta local", "Renta bodega", "Renta equipo", "Otro"],
+  },
+  nomina: {
+    label: "Nómina",
+    color: "#5c6bc0",
+    items: ["Sueldos", "Horas extra", "Bonos", "Comisiones", "Otro"],
+  },
   otros: {
     label: "Otros",
     color: "#78909c",
