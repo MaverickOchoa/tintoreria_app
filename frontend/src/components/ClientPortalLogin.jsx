@@ -32,7 +32,7 @@ export default function ClientPortalLogin() {
           client_id: data.client_id,
           business_id: data.business_id,
         }));
-        window.location.href = "/client-portal/dashboard";
+        window.location.href = "/#/client-portal/dashboard";
       } else {
         setError(data.message || "Usuario o contraseña incorrectos");
       }
