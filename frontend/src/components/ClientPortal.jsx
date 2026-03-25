@@ -285,7 +285,7 @@ export default function ClientPortal() {
                   <Chip label={me.client_type_name} size="small" color="primary" />
                 </Box>
               </>}
-              {(me.date_of_birth_day || me.date_of_birth_month) && <>
+              {(me.date_of_birth_day && me.date_of_birth_month) && <>
                 <Divider />
                 <Box display="flex" justifyContent="space-between">
                   <Typography color="text.secondary">Cumpleaños</Typography>

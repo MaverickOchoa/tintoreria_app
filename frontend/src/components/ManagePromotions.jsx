@@ -419,13 +419,6 @@ export default function ManagePromotions() {
                     </Grid>
                   )}
 
-                  {/* ── Mensaje full width ── */}
-                  <Grid item xs={12}>
-                    <TextField fullWidth multiline minRows={4} label="Mensaje" value={campaignForm.message_body}
-                      onChange={e => setCampaignForm(p => ({ ...p, message_body: e.target.value }))}
-                      helperText="Usa {nombre} para el nombre del cliente" required />
-                  </Grid>
-
                   {/* ── Imagen opcional ── */}
                   <Grid item xs={12}>
                     <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>
@@ -463,6 +456,13 @@ export default function ManagePromotions() {
                         </Typography>
                       )}
                     </Box>
+                  </Grid>
+
+                  {/* ── Mensaje full width ── */}
+                  <Grid item xs={12}>
+                    <TextField fullWidth multiline minRows={4} label="Mensaje" value={campaignForm.message_body}
+                      onChange={e => setCampaignForm(p => ({ ...p, message_body: e.target.value }))}
+                      helperText="Usa {nombre} para el nombre del cliente" required />
                   </Grid>
                 </Grid>
                 <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
