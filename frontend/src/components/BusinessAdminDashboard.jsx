@@ -45,6 +45,7 @@ const DEFAULT_BRANCH_CONFIG = {
   extra_urgent_pct: 50,
   carousel_format_hint: "",
   require_scan: true,
+  cost_per_point: "",
 };
 
 export default function BusinessAdminDashboard() {
@@ -196,6 +197,7 @@ export default function BusinessAdminDashboard() {
             extra_urgent_pct: cfg.extra_urgent_pct,
             carousel_format_hint: cfg.carousel_format_hint,
             require_scan: cfg.require_scan,
+            cost_per_point: cfg.cost_per_point || null,
           }),
         }),
         fetch(`${API}/branches/${branchId}/scan-config`, {
@@ -513,6 +515,14 @@ export default function BusinessAdminDashboard() {
                               onChange={e => updateBranchConfig(branch.id, "carousel_format_hint", e.target.value)}
                               placeholder="Ej. A-01, 105, B-07..."
                               helperText="Muestra el formato esperado al asignar posición en Producción"
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField label="Costo por punto operativo ($)" type="number" size="small" fullWidth
+                              value={cfg.cost_per_point}
+                              onChange={e => updateBranchConfig(branch.id, "cost_per_point", e.target.value)}
+                              InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment>, inputProps: { min: 0, step: 0.5 } }}
+                              helperText="Define cuánto cuesta en $ cada punto operativo. Ej: $8 = 1 pto = $8"
                             />
                           </Grid>
                         </Grid>

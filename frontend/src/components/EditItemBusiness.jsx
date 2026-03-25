@@ -20,6 +20,7 @@ export default function EditItemBusiness() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [units, setUnits] = useState(1);
+  const [costPoints, setCostPoints] = useState(1.0);
   const [categoryId, setCategoryId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,6 +44,7 @@ export default function EditItemBusiness() {
         const item = itemData.item || itemData;
         setName(toTitleCase(item.name || ""));
         setUnits(item.units || 1);
+        setCostPoints(item.cost_points ?? 1.0);
         // Use branch override price if it exists, otherwise global price
         const overridePrice = overrideData?.price;
         setPrice(String(overridePrice !== null && overridePrice !== undefined ? overridePrice : (item.price ?? "")));
@@ -63,7 +65,7 @@ export default function EditItemBusiness() {
       const resName = await fetch(`${API}/items/${itemId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: toTitleCase(name.trim()), units: parseInt(units) || 1 }),
+        body: JSON.stringify({ name: toTitleCase(name.trim()), units: parseInt(units) || 1, cost_points: parseFloat(costPoints) || 1.0 }),
       });
       if (!resName.ok) {
         const d = await resName.json().catch(() => ({}));
@@ -143,6 +145,17 @@ export default function EditItemBusiness() {
               onChange={e => setUnits(e.target.value)}
               disabled={saving}
               helperText="Ej: 2 para traje 2 piezas, 3 para traje 3 piezas"
+            />
+
+            <TextField
+              fullWidth
+              label="Puntos operativos"
+              type="number"
+              inputProps={{ step: "0.1", min: "0.1" }}
+              value={costPoints}
+              onChange={e => setCostPoints(e.target.value)}
+              disabled={saving}
+              helperText="Peso relativo del servicio. Camisa=1 · Pantalón=1.2 · Saco=2 · Edredón=4"
             />
 
             <Box display="flex" gap={2}>

@@ -64,6 +64,7 @@ import CashCut from "./components/CashCut.jsx";
 import Reports from "./components/Reports.jsx";
 import Expenses from "./components/Expenses.jsx";
 import ClientBehaviorReport from "./components/ClientBehaviorReport.jsx";
+import ProfitabilityReport from "./components/ProfitabilityReport.jsx";
 
 // Clinic vertical
 import ClinicLayout from "./components/clinic/ClinicLayout.jsx";
@@ -212,6 +213,7 @@ function App() {
               <Route path="/reportes" element={<Reports />} />
               <Route path="/gastos" element={<Expenses />} />
               <Route path="/reportes/clientes" element={<ClientBehaviorReport />} />
+              <Route path="/reportes/rentabilidad" element={<ProfitabilityReport />} />
 
               <Route path="/employees" element={<EmployeesPage />} />
 

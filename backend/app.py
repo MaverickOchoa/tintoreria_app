@@ -384,6 +384,7 @@ class Branch(db.Model):
     extra_urgent_pct = db.Column(db.Float, nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     require_scan = db.Column(db.Boolean, nullable=False, default=True, server_default='true')
+    cost_per_point = db.Column(db.Float, nullable=True)   # $ per operational point
     users = db.relationship('Admin', back_populates='branch', lazy=True)
 
     def get_config(self):
@@ -406,6 +407,7 @@ class Branch(db.Model):
             'urgent_pct': cv(self.urgent_pct, biz.urgent_pct if biz else 20.0),
             'extra_urgent_pct': cv(self.extra_urgent_pct, biz.extra_urgent_pct if biz else 50.0),
             'require_scan': self.require_scan if self.require_scan is not None else True,
+            'cost_per_point': self.cost_per_point,
         }
 
     def to_dict(self):
@@ -578,10 +580,12 @@ class Item(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
     business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=True)
     order_items = db.relationship('OrderItem', backref='product_service', lazy=True, cascade="all, delete-orphan")
+    cost_points = db.Column(db.Float, nullable=True, default=1.0)  # operational weight
     def to_dict(self):
         return {'id': self.id, 'name': self.name, 'price': self.price,
                 'units': self.units, 'description': self.description,
-                'category_id': self.category_id, 'business_id': self.business_id}
+                'category_id': self.category_id, 'business_id': self.business_id,
+                'cost_points': self.cost_points if self.cost_points is not None else 1.0}
 
 class Order(db.Model):
     __tablename__ = 'orders'
@@ -1388,7 +1392,7 @@ class BranchConfigResource(Resource):
         bool_fields = ['uses_iva', 'payment_cash', 'payment_card', 'payment_points',
                        'allow_deferred', 'discount_enabled', 'require_scan']
         float_fields = ['points_per_peso', 'peso_per_point', 'max_discount_pct',
-                        'urgent_pct', 'extra_urgent_pct']
+                        'urgent_pct', 'extra_urgent_pct', 'cost_per_point']
         int_fields = ['normal_days', 'urgent_days', 'extra_urgent_days']
         for f in bool_fields:
             if f in data:
@@ -1711,6 +1715,7 @@ class ItemResource(Resource):
             units=args['units'],
             category_id=category_id,
             business_id=business_id,
+            cost_points=float(args['cost_points']) if args.get('cost_points') else 1.0,
         )
         try:
             db.session.add(new_item)
@@ -1753,6 +1758,8 @@ class ItemDetailResource(Resource):
             item.description = (data['description'] or '').strip().title() or None
         if 'units' in data:
             item.units = int(data['units'])
+        if 'cost_points' in data and data['cost_points'] is not None:
+            item.cost_points = float(data['cost_points'])
         try:
             db.session.commit()
             print(f"[PUT /items/{item_id}] guardado OK: name={item.name} price={item.price}", flush=True)
@@ -2975,6 +2982,99 @@ class ClientBehaviorResource(Resource):
         return {'clients': result}, 200
 
 api.add_resource(ClientBehaviorResource, '/api/v1/reports/client-behavior')
+
+
+# ── Profitability report (points system) ──────────────────────────────
+class ProfitabilityReportResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        branch_id   = claims.get('branch_id')
+        business_id = claims.get('business_id')
+        if not business_id and branch_id:
+            br = Branch.query.get(branch_id)
+            business_id = br.business_id if br else None
+        if not business_id:
+            return {'error': 'No business context'}, 400
+
+        branches = Branch.query.filter_by(business_id=business_id).all()
+        branch_map = {b.id: b for b in branches}
+
+        # Per-service aggregation
+        service_stats = {}
+        orders = Order.query.join(Branch).filter(Branch.business_id == business_id).all()
+
+        for order in orders:
+            branch = branch_map.get(order.branch_id)
+            cpp = (branch.cost_per_point or 0) if branch else 0
+            for oi in (order.order_items or []):
+                item = oi.product_service
+                if not item:
+                    continue
+                pts = item.cost_points if item.cost_points is not None else 1.0
+                unit_cost = pts * cpp
+                unit_price = float(oi.unit_price or item.price or 0)
+                qty = oi.quantity or 1
+                revenue = unit_price * qty
+                cost = unit_cost * qty
+                sid = item.id
+                if sid not in service_stats:
+                    service_stats[sid] = {
+                        'item_id': sid,
+                        'name': item.name,
+                        'price': unit_price,
+                        'cost_points': pts,
+                        'unit_cost': round(unit_cost, 2),
+                        'total_qty': 0,
+                        'total_revenue': 0.0,
+                        'total_cost': 0.0,
+                    }
+                service_stats[sid]['total_qty']     += qty
+                service_stats[sid]['total_revenue'] += revenue
+                service_stats[sid]['total_cost']    += cost
+
+        result = []
+        for s in service_stats.values():
+            margin      = s['total_revenue'] - s['total_cost']
+            margin_pct  = round((margin / s['total_revenue'] * 100), 1) if s['total_revenue'] else 0
+            unit_margin = round(s['price'] - s['unit_cost'], 2)
+            result.append({**s,
+                'margin': round(margin, 2),
+                'margin_pct': margin_pct,
+                'unit_margin': unit_margin,
+                'total_revenue': round(s['total_revenue'], 2),
+                'total_cost': round(s['total_cost'], 2),
+            })
+
+        result.sort(key=lambda x: x['margin_pct'])  # worst first
+
+        # Per-branch summary
+        branch_summary = []
+        for b in branches:
+            b_orders = [o for o in orders if o.branch_id == b.id]
+            cpp = b.cost_per_point or 0
+            rev = cost = 0.0
+            for o in b_orders:
+                for oi in (o.order_items or []):
+                    item = oi.product_service
+                    if not item: continue
+                    pts = item.cost_points if item.cost_points is not None else 1.0
+                    qty = oi.quantity or 1
+                    rev  += float(oi.unit_price or item.price or 0) * qty
+                    cost += pts * cpp * qty
+            branch_summary.append({
+                'branch_id': b.id,
+                'branch_name': b.name,
+                'cost_per_point': cpp,
+                'total_revenue': round(rev, 2),
+                'total_cost': round(cost, 2),
+                'total_margin': round(rev - cost, 2),
+                'margin_pct': round((rev - cost) / rev * 100, 1) if rev else 0,
+            })
+
+        return {'services': result, 'branches': branch_summary}, 200
+
+api.add_resource(ProfitabilityReportResource, '/api/v1/reports/profitability')
 api.add_resource(ClientDiscountListResource, '/api/v1/clients/<int:client_id>/discounts')
 api.add_resource(ClientDiscountResource, '/api/v1/clients/<int:client_id>/discounts/<int:discount_id>')
 api.add_resource(PromotionListResource, '/api/v1/promotions')
