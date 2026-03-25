@@ -29,7 +29,7 @@ export default function ClientBehaviorReport() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token");
     fetch(`${API}/api/v1/reports/client-behavior`, {
       headers: { Authorization: `Bearer ${token}` },
     })
