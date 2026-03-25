@@ -106,7 +106,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5" fontWeight={700}>Clientes</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/create-client")}>

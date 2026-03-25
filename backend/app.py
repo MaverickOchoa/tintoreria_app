@@ -3962,7 +3962,7 @@ def fire_whatsapp_trigger(trigger_type, business_id, client, extra=None):
         folio    = (extra or {}).get('folio', '')
         usuario  = client.username or ''
         contrasena = (extra or {}).get('plain_password', '')
-        portal   = os.environ.get('CLIENT_PORTAL_URL', 'https://zentro-5b3g.onrender.com/#/client-login')
+        portal   = os.environ.get('CLIENT_PORTAL_URL', 'https://zentro-5b3g.onrender.com/#/client-portal')
         msg = (template.message_body
                .replace('{nombre}',    nombre)
                .replace('{folio}',     folio)
@@ -3974,8 +3974,8 @@ def fire_whatsapp_trigger(trigger_type, business_id, client, extra=None):
         app.logger.error(f"[WhatsApp TRIGGER ERROR] {trigger_type}: {e}")
 
 
-def _send_email(to_email, subject, body_text):
-    """Send a plain-text email via SendGrid."""
+def _send_email(to_email, subject, body_text, portal_url=None):
+    """Send an HTML email via SendGrid. Includes a button if portal_url is provided."""
     api_key = os.environ.get('SENDGRID_API_KEY', '')
     from_email = os.environ.get('SENDGRID_FROM_EMAIL', 'noreply@zentro.app')
     if not api_key or not _SENDGRID_AVAILABLE:
@@ -3983,12 +3983,25 @@ def _send_email(to_email, subject, body_text):
         return
     try:
         sg = sendgrid.SendGridAPIClient(api_key=api_key)
-        message = Mail(
-            from_email=from_email,
-            to_emails=to_email,
-            subject=subject,
-            plain_text_content=body_text,
-        )
+        lines_html = "".join(f"<p style='margin:6px 0;color:#374151;'>{l}</p>" for l in body_text.split("\n") if l.strip())
+        button_html = ""
+        if portal_url:
+            button_html = f"""
+            <div style='text-align:center;margin:28px 0;'>
+              <a href='{portal_url}' target='_blank'
+                 style='background:#1976d2;color:#ffffff;padding:12px 28px;border-radius:8px;
+                        text-decoration:none;font-weight:600;font-size:15px;display:inline-block;'>
+                Acceder al portal
+              </a>
+            </div>"""
+        html = f"""
+        <div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px 24px;border:1px solid #e5e7eb;border-radius:12px;'>
+          {lines_html}
+          {button_html}
+          <hr style='border:none;border-top:1px solid #e5e7eb;margin:24px 0;'>
+          <p style='font-size:12px;color:#9ca3af;text-align:center;'>Zentro Cleaner · Powered by Zentro</p>
+        </div>"""
+        message = Mail(from_email=from_email, to_emails=to_email, subject=subject, html_content=html)
         sg.send(message)
     except Exception as e:
         app.logger.error(f"[EMAIL SEND ERROR] {to_email}: {e}")
@@ -4010,7 +4023,7 @@ def fire_email_trigger(trigger_type, business_id, client, extra=None):
         folio      = (extra or {}).get('folio', '')
         usuario    = client.username or ''
         contrasena = (extra or {}).get('plain_password', '')
-        portal     = os.environ.get('CLIENT_PORTAL_URL', 'https://zentro-5b3g.onrender.com/#/client-login')
+        portal     = os.environ.get('CLIENT_PORTAL_URL', 'https://zentro-5b3g.onrender.com/#/client-portal')
 
         DEFAULT_SUBJECTS = {
             'client_welcome':   '¡Bienvenido/a a nuestra tintorería!',
@@ -4020,14 +4033,12 @@ def fire_email_trigger(trigger_type, business_id, client, extra=None):
         DEFAULT_BODIES = {
             'client_welcome': (
                 "Hola {nombre},\n\n"
-                "Bienvenido/a. Ya puedes acceder a tu portal:\n"
-                "{portal}\n\n"
+                "Bienvenido/a. Ya puedes acceder a tu portal con tus credenciales:\n"
                 "Usuario: {usuario}\n"
-                "Contraseña temporal: {contrasena}\n\n"
-                "¡Hasta pronto!"
+                "Contraseña temporal: {contrasena}"
             ),
-            'client_recurring': "Hola {nombre},\n\n¡Ya eres cliente frecuente! ¡Gracias por tu confianza!\n\n¡Hasta pronto!",
-            'order_ready':      "Hola {nombre},\n\nTu orden #{folio} ya está lista para recoger. ¡Te esperamos!\n\n¡Hasta pronto!",
+            'client_recurring': "Hola {nombre},\n\n¡Ya eres cliente frecuente! ¡Gracias por tu confianza!",
+            'order_ready':      "Hola {nombre},\n\nTu orden #{folio} ya está lista para recoger. ¡Te esperamos!",
         }
 
         subject_tpl = (template.subject      if template else DEFAULT_SUBJECTS.get(trigger_type, ''))
@@ -4040,7 +4051,9 @@ def fire_email_trigger(trigger_type, business_id, client, extra=None):
                      .replace('{contrasena}', contrasena)
                      .replace('{portal}',    portal))
 
-        _send_email(client.email, fill(subject_tpl), fill(body_tpl))
+        include_button = trigger_type == 'client_welcome'
+        _send_email(client.email, fill(subject_tpl), fill(body_tpl),
+                    portal_url=portal if include_button else None)
     except Exception as e:
         app.logger.error(f"[Email TRIGGER ERROR] {trigger_type}: {e}")
 
