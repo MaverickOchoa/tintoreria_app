@@ -2569,6 +2569,26 @@ class OrderAssignCarouselResource(Resource):
         order.carousel_position = carousel_position
         order.status = 'Listo'
         db.session.commit()
+        # Dispatch order_ready trigger + auto-upgrade client to Frecuente
+        try:
+            client = Client.query.get(order.client_id) if order.client_id else None
+            if client and branch:
+                dispatch_trigger('order_ready', branch.business_id, client, {'folio': order.folio or str(order.id)})
+                completed_orders = Order.query.filter_by(client_id=client.id).filter(
+                    Order.status.in_(['Listo', 'Entregado'])
+                ).count()
+                if completed_orders == 3:
+                    dispatch_trigger('client_recurring', branch.business_id, client)
+                if completed_orders >= 3:
+                    frecuente_type = ClientType.query.filter(
+                        ClientType.business_id == branch.business_id,
+                        db.func.lower(ClientType.name) == 'frecuente'
+                    ).first()
+                    if frecuente_type and client.client_type_id != frecuente_type.id:
+                        client.client_type_id = frecuente_type.id
+                        db.session.commit()
+        except Exception as e:
+            app.logger.error(f"[CAROUSEL TRIGGER ERROR] {e}")
         return {"message": "Posición asignada, orden lista", "order": order.to_dict()}, 200
 
 class OrderDeliverResource(Resource):
