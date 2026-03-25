@@ -4724,3 +4724,17 @@ else:
         except Exception as e:
             import logging
             logging.warning(f"db.create_all() warning: {e}")
+        # Column migrations for existing tables
+        _migrations = [
+            "ALTER TABLE branches ADD COLUMN IF NOT EXISTS cost_per_point FLOAT",
+            "ALTER TABLE items    ADD COLUMN IF NOT EXISTS cost_points FLOAT DEFAULT 1.0",
+            "ALTER TABLE message_logs ADD COLUMN IF NOT EXISTS id SERIAL PRIMARY KEY" if False else None,
+        ]
+        with db.engine.connect() as _conn:
+            for _sql in _migrations:
+                if _sql:
+                    try:
+                        _conn.execute(db.text(_sql))
+                        _conn.commit()
+                    except Exception as _e:
+                        app.logger.warning(f"Migration skip: {_e}")
