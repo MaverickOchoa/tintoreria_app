@@ -419,52 +419,50 @@ export default function ManagePromotions() {
                     </Grid>
                   )}
 
-                  {/* ── Imagen opcional ── */}
-                  <Grid item xs={12}>
-                    <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>
-                      IMAGEN ADJUNTA (opcional)
-                    </Typography>
-                    <Box display="flex" alignItems="flex-start" gap={2} flexWrap="wrap">
-                      <Button variant="outlined" component="label" size="small" startIcon={<span>🖼️</span>}
-                        sx={{ whiteSpace: "nowrap" }}>
-                        {campaignForm.image_base64 ? "Cambiar imagen" : "Subir imagen"}
-                        <input type="file" accept="image/*" hidden onChange={e => {
-                          const file = e.target.files[0];
-                          if (!file) return;
-                          if (file.size > 2 * 1024 * 1024) {
-                            alert("La imagen no debe superar 2 MB");
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = ev => setCampaignForm(p => ({ ...p, image_base64: ev.target.result }));
-                          reader.readAsDataURL(file);
-                        }} />
-                      </Button>
-                      {campaignForm.image_base64 && (
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Box component="img" src={campaignForm.image_base64}
-                            sx={{ height: 64, width: 64, objectFit: "cover", borderRadius: 2, border: "1px solid #e0e0e0" }} />
-                          <IconButton size="small" color="error"
-                            onClick={() => setCampaignForm(p => ({ ...p, image_base64: "" }))}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      )}
-                      {!campaignForm.image_base64 && (
-                        <Typography variant="caption" color="text.secondary" sx={{ pt: 1 }}>
-                          JPG, PNG o GIF · máx 2 MB
-                        </Typography>
-                      )}
-                    </Box>
-                  </Grid>
-
-                  {/* ── Mensaje full width ── */}
-                  <Grid item xs={12}>
-                    <TextField fullWidth multiline minRows={4} label="Mensaje" value={campaignForm.message_body}
-                      onChange={e => setCampaignForm(p => ({ ...p, message_body: e.target.value }))}
-                      helperText="Usa {nombre} para el nombre del cliente" required />
-                  </Grid>
                 </Grid>
+
+                {/* ── Fila 2: Imagen sola, ancho completo ── */}
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>
+                    IMAGEN ADJUNTA (opcional)
+                  </Typography>
+                  <Box display="flex" alignItems="flex-start" gap={2} flexWrap="wrap">
+                    <Button variant="outlined" component="label" size="small" startIcon={<span>🖼️</span>}
+                      sx={{ whiteSpace: "nowrap" }}>
+                      {campaignForm.image_base64 ? "Cambiar imagen" : "Subir imagen"}
+                      <input type="file" accept="image/*" hidden onChange={e => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        if (file.size > 2 * 1024 * 1024) { alert("La imagen no debe superar 2 MB"); return; }
+                        const reader = new FileReader();
+                        reader.onload = ev => setCampaignForm(p => ({ ...p, image_base64: ev.target.result }));
+                        reader.readAsDataURL(file);
+                      }} />
+                    </Button>
+                    {campaignForm.image_base64 && (
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Box component="img" src={campaignForm.image_base64}
+                          sx={{ height: 64, width: 64, objectFit: "cover", borderRadius: 2, border: "1px solid #e0e0e0" }} />
+                        <IconButton size="small" color="error"
+                          onClick={() => setCampaignForm(p => ({ ...p, image_base64: "" }))}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
+                    {!campaignForm.image_base64 && (
+                      <Typography variant="caption" color="text.secondary" sx={{ pt: 1 }}>
+                        JPG, PNG o GIF · máx 2 MB
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+
+                {/* ── Fila 3: Mensaje ancho completo ── */}
+                <Box sx={{ mt: 2 }}>
+                  <TextField fullWidth multiline minRows={4} label="Mensaje" value={campaignForm.message_body}
+                    onChange={e => setCampaignForm(p => ({ ...p, message_body: e.target.value }))}
+                    helperText="Usa {nombre} para el nombre del cliente" required />
+                </Box>
                 <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
                   <Button variant="outlined" onClick={() => { setCampaignForm(EMPTY_CAMPAIGN); setShowCampaignForm(false); }}>Cancelar</Button>
                   <Button variant="contained" startIcon={savingCampaign ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
