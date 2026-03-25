@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box, Paper, Typography, Tabs, Tab, Divider,
+  Box, Paper, Typography, Divider,
   Collapse, Chip, CircularProgress, Alert,
   Button, Stack, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TextField,
+  BottomNavigation, BottomNavigationAction,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -137,10 +138,10 @@ export default function ClientPortal() {
   );
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: brand.portal_bg_color, p: { xs: 1, sm: 3 } }}>
-      <Box sx={{ maxWidth: 700, mx: "auto" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: brand.portal_bg_color, pb: 8 }}>
+      <Box sx={{ maxWidth: 700, mx: "auto", p: { xs: 1, sm: 3 } }}>
         <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Box display="flex" alignItems="center" gap={1.5}>
               {brand.portal_logo_url && (
                 <Box component="img" src={brand.portal_logo_url} alt="logo"
@@ -160,26 +161,16 @@ export default function ClientPortal() {
             </Button>
           </Box>
 
-          <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth" sx={{ mb: 1,
-            "& .MuiTabs-indicator": { bgcolor: brand.portal_primary_color },
-            "& .Mui-selected": { color: `${brand.portal_primary_color} !important` },
-          }}>
-            <Tab icon={<HistoryIcon />} label="Historial" iconPosition="start" />
-            <Tab icon={<PersonIcon />} label="Mis Datos" iconPosition="start" />
-            <Tab icon={<LocalOfferIcon />} label="Descuentos" iconPosition="start" />
-            <Tab icon={<LockIcon />} label="Contraseña" iconPosition="start" />
-          </Tabs>
-
-          <Divider />
+          <Divider sx={{ mb: 2 }} />
 
           {/* HISTORIAL */}
-          <TabPanel value={tab} index={0}>
-            {orders.length === 0 ? (
+          {tab === 0 && (
+            orders.length === 0 ? (
               <Typography color="text.secondary" textAlign="center" py={4}>
                 Aún no tienes notas registradas.
               </Typography>
             ) : (
-<TableContainer sx={{ overflowX: "auto" }}>
+              <TableContainer sx={{ overflowX: "auto" }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -265,125 +256,146 @@ export default function ClientPortal() {
                   </TableBody>
                 </Table>
               </TableContainer>
-            )}
-          </TabPanel>
+            )
+          )}
 
           {/* MIS DATOS */}
-          <TabPanel value={tab} index={1}>
-            {me && (
-              <Stack spacing={1.5}>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography color="text.secondary">Nombre</Typography>
-                  <Typography fontWeight={500}>{me.full_name} {me.last_name || ""}</Typography>
-                </Box>
+          {tab === 1 && me && (
+            <Stack spacing={1.5}>
+              <Box display="flex" justifyContent="space-between">
+                <Typography color="text.secondary">Nombre</Typography>
+                <Typography fontWeight={500}>{me.full_name} {me.last_name || ""}</Typography>
+              </Box>
+              <Divider />
+              <Box display="flex" justifyContent="space-between">
+                <Typography color="text.secondary">Teléfono</Typography>
+                <Typography fontWeight={500}>{me.phone}</Typography>
+              </Box>
+              {me.email && <>
                 <Divider />
                 <Box display="flex" justifyContent="space-between">
-                  <Typography color="text.secondary">Teléfono</Typography>
-                  <Typography fontWeight={500}>{me.phone}</Typography>
+                  <Typography color="text.secondary">Correo</Typography>
+                  <Typography fontWeight={500}>{me.email}</Typography>
                 </Box>
-                {me.email && <>
-                  <Divider />
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography color="text.secondary">Correo</Typography>
-                    <Typography fontWeight={500}>{me.email}</Typography>
-                  </Box>
-                </>}
-                {me.client_type_name && <>
-                  <Divider />
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography color="text.secondary">Tipo de cliente</Typography>
-                    <Chip label={me.client_type_name} size="small" color="primary" />
-                  </Box>
-                </>}
-                {(me.date_of_birth_day || me.date_of_birth_month) && <>
-                  <Divider />
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography color="text.secondary">Cumpleaños</Typography>
-                    <Typography fontWeight={500}>
-                      {me.date_of_birth_day} de {MONTHS[me.date_of_birth_month] || ""}
-                    </Typography>
-                  </Box>
-                </>}
+              </>}
+              {me.client_type_name && <>
                 <Divider />
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "primary.50", borderRadius: 1, px: 2, py: 1.5, border: "1px solid", borderColor: "primary.200" }}>
-                  <Typography fontWeight={700} color="primary.main">Puntos acumulados</Typography>
-                  <Typography variant="h6" fontWeight={700} color="primary.main">{(me.points_balance || 0).toFixed(0)} pts</Typography>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography color="text.secondary">Tipo de cliente</Typography>
+                  <Chip label={me.client_type_name} size="small" color="primary" />
                 </Box>
-                <Alert severity="info" sx={{ mt: 1 }}>
-                  Para modificar tus datos acude a cualquier sucursal.
-                </Alert>
-              </Stack>
-            )}
-          </TabPanel>
+              </>}
+              {(me.date_of_birth_day || me.date_of_birth_month) && <>
+                <Divider />
+                <Box display="flex" justifyContent="space-between">
+                  <Typography color="text.secondary">Cumpleaños</Typography>
+                  <Typography fontWeight={500}>
+                    {me.date_of_birth_day} de {MONTHS[parseInt(me.date_of_birth_month, 10)] || ""}
+                  </Typography>
+                </Box>
+              </>}
+              <Divider />
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "primary.50", borderRadius: 1, px: 2, py: 1.5, border: "1px solid", borderColor: "primary.200" }}>
+                <Typography fontWeight={700} color="primary.main">Puntos acumulados</Typography>
+                <Typography variant="h6" fontWeight={700} color="primary.main">{(me.points_balance || 0).toFixed(0)} pts</Typography>
+              </Box>
+              <Alert severity="info" sx={{ mt: 1 }}>
+                Para modificar tus datos acude a cualquier sucursal.
+              </Alert>
+            </Stack>
+          )}
 
           {/* DESCUENTOS Y PROMOCIONES */}
-          <TabPanel value={tab} index={2}>
-            <Typography variant="subtitle2" fontWeight={700} mb={1}>Mis Descuentos</Typography>
-            {discounts.length === 0 ? (
-              <Typography color="text.secondary" variant="body2" mb={2}>
-                No tienes descuentos asignados actualmente.
-              </Typography>
-            ) : (
-              <Stack spacing={1} mb={3}>
-                {discounts.map(d => (
-                  <Paper key={d.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Typography fontWeight={600} color="primary">{d.discount_pct}% de descuento</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {d.created_at ? new Date(d.created_at).toLocaleDateString("es-MX") : ""}
-                      </Typography>
-                    </Box>
-                    {d.reason && <Typography variant="body2" color="text.secondary">{d.reason}</Typography>}
-                  </Paper>
-                ))}
-              </Stack>
-            )}
-
-            <Divider sx={{ mb: 2 }} />
-            <Typography variant="subtitle2" fontWeight={700} mb={1}>Promociones</Typography>
-            {promotions.length === 0 ? (
-              <Typography color="text.secondary" variant="body2">
-                No hay promociones activas para tu tipo de cliente.
-              </Typography>
-            ) : (
-              <Stack spacing={1}>
-                {promotions.map(p => (
-                  <Paper key={p.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2, borderColor: "primary.main" }}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
-                      <Typography fontWeight={600}>{p.title}</Typography>
-                      {p.discount_pct && (
-                        <Chip label={`${p.discount_pct}% OFF`} size="small" color="success" />
+          {tab === 2 && (
+            <>
+              <Typography variant="subtitle2" fontWeight={700} mb={1}>Mis Descuentos</Typography>
+              {discounts.length === 0 ? (
+                <Typography color="text.secondary" variant="body2" mb={2}>
+                  No tienes descuentos asignados actualmente.
+                </Typography>
+              ) : (
+                <Stack spacing={1} mb={3}>
+                  {discounts.map(d => (
+                    <Paper key={d.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Typography fontWeight={600} color="primary">{d.discount_pct}% de descuento</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {d.created_at ? new Date(d.created_at).toLocaleDateString("es-MX") : ""}
+                        </Typography>
+                      </Box>
+                      {d.reason && <Typography variant="body2" color="text.secondary">{d.reason}</Typography>}
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+              <Divider sx={{ mb: 2 }} />
+              <Typography variant="subtitle2" fontWeight={700} mb={1}>Promociones</Typography>
+              {promotions.length === 0 ? (
+                <Typography color="text.secondary" variant="body2">
+                  No hay promociones activas para tu tipo de cliente.
+                </Typography>
+              ) : (
+                <Stack spacing={1}>
+                  {promotions.map(p => (
+                    <Paper key={p.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2, borderColor: "primary.main" }}>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+                        <Typography fontWeight={600}>{p.title}</Typography>
+                        {p.discount_pct && (
+                          <Chip label={`${p.discount_pct}% OFF`} size="small" color="success" />
+                        )}
+                      </Box>
+                      {p.description && <Typography variant="body2" color="text.secondary">{p.description}</Typography>}
+                      {p.client_type_name && (
+                        <Typography variant="caption" color="text.secondary">Para clientes: {p.client_type_name}</Typography>
                       )}
-                    </Box>
-                    {p.description && <Typography variant="body2" color="text.secondary">{p.description}</Typography>}
-                    {p.client_type_name && (
-                      <Typography variant="caption" color="text.secondary">Para clientes: {p.client_type_name}</Typography>
-                    )}
-                  </Paper>
-                ))}
-              </Stack>
-            )}
-          </TabPanel>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </>
+          )}
 
           {/* CONTRASEÑA */}
-          <TabPanel value={tab} index={3}>
-            <Typography variant="h6" fontWeight={700} mb={2}>Cambiar Contraseña</Typography>
-            {cpMsg && <Alert severity={cpMsg.type} sx={{ mb: 2 }}>{cpMsg.text}</Alert>}
-            <Stack spacing={2} maxWidth={360}>
-              <TextField type="password" fullWidth label="Contraseña actual" value={cpForm.current}
-                onChange={e => setCpForm(p => ({ ...p, current: e.target.value }))} />
-              <TextField type="password" fullWidth label="Nueva contraseña" value={cpForm.next}
-                onChange={e => setCpForm(p => ({ ...p, next: e.target.value }))} helperText="Mínimo 6 caracteres" />
-              <TextField type="password" fullWidth label="Confirmar nueva contraseña" value={cpForm.confirm}
-                onChange={e => setCpForm(p => ({ ...p, confirm: e.target.value }))} />
-              <Button variant="contained" disabled={cpSaving} onClick={handleChangeClientPw}
-                startIcon={cpSaving ? <CircularProgress size={18} color="inherit" /> : <LockIcon />}>
-                {cpSaving ? "Guardando..." : "Cambiar Contraseña"}
-              </Button>
-            </Stack>
-          </TabPanel>
+          {tab === 3 && (
+            <>
+              <Typography variant="h6" fontWeight={700} mb={2}>Cambiar Contraseña</Typography>
+              {cpMsg && <Alert severity={cpMsg.type} sx={{ mb: 2 }}>{cpMsg.text}</Alert>}
+              <Stack spacing={2} maxWidth={360}>
+                <TextField type="password" fullWidth label="Contraseña actual" value={cpForm.current}
+                  onChange={e => setCpForm(p => ({ ...p, current: e.target.value }))} />
+                <TextField type="password" fullWidth label="Nueva contraseña" value={cpForm.next}
+                  onChange={e => setCpForm(p => ({ ...p, next: e.target.value }))} helperText="Mínimo 6 caracteres" />
+                <TextField type="password" fullWidth label="Confirmar nueva contraseña" value={cpForm.confirm}
+                  onChange={e => setCpForm(p => ({ ...p, confirm: e.target.value }))} />
+                <Button variant="contained" disabled={cpSaving} onClick={handleChangeClientPw}
+                  startIcon={cpSaving ? <CircularProgress size={18} color="inherit" /> : <LockIcon />}>
+                  {cpSaving ? "Guardando..." : "Cambiar Contraseña"}
+                </Button>
+              </Stack>
+            </>
+          )}
         </Paper>
       </Box>
+
+      {/* BOTTOM NAVIGATION — solo íconos */}
+      <Paper elevation={8} sx={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1300,
+        borderTop: "1px solid", borderColor: "divider",
+      }}>
+        <BottomNavigation
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          sx={{
+            "& .Mui-selected": { color: `${brand.portal_primary_color} !important` },
+            "& .MuiBottomNavigationAction-root": { minWidth: 0, padding: "6px 0" },
+          }}
+        >
+          <BottomNavigationAction icon={<HistoryIcon />} showLabel={false} />
+          <BottomNavigationAction icon={<PersonIcon />} showLabel={false} />
+          <BottomNavigationAction icon={<LocalOfferIcon />} showLabel={false} />
+          <BottomNavigationAction icon={<LockIcon />} showLabel={false} />
+        </BottomNavigation>
+      </Paper>
     </Box>
   );
 }
