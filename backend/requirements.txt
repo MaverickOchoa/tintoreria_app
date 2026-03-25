@@ -13,3 +13,5 @@ gunicorn==21.2.0
 Pillow==10.4.0
 python-barcode==0.15.1
 twilio==9.10.3
+
+sendgrid==6.11.0

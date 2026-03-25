@@ -2121,6 +2121,13 @@ class ClientResource(Resource):
         db.session.commit()
         return {"message": "Cliente actualizado", "client": client.to_dict()}, 200
 
+    @jwt_required()
+    def delete(self, client_id):
+        client = Client.query.get_or_404(client_id)
+        db.session.delete(client)
+        db.session.commit()
+        return {"message": "Cliente eliminado"}, 200
+
 class Color(db.Model):
     __tablename__ = 'colors'
     id = db.Column(db.Integer, primary_key=True)
