@@ -4009,10 +4009,13 @@ def _send_email(to_email, subject, body_text, portal_url=None):
 def fire_email_trigger(trigger_type, business_id, client, extra=None):
     try:
         if not client or not client.email:
+            app.logger.warning(f"[EMAIL] skip {trigger_type}: no email for client {client.id if client else None}")
             return
         # For welcome message always send regardless of consent (credentials must reach the client)
         if trigger_type != 'client_welcome' and not client.email_consent:
+            app.logger.warning(f"[EMAIL] skip {trigger_type}: email_consent={client.email_consent} for client {client.id}")
             return
+        app.logger.info(f"[EMAIL] sending {trigger_type} to {client.email}")
         template = EmailTemplate.query.filter_by(
             business_id=business_id,
             trigger_type=trigger_type,
@@ -4062,6 +4065,7 @@ def dispatch_trigger(trigger_type, business_id, client, extra=None):
     For client_welcome: always send email if client has email (credentials delivery).
     """
     try:
+        app.logger.info(f"[DISPATCH] trigger={trigger_type} biz={business_id} client_id={client.id if client else None} email={getattr(client,'email',None)} email_consent={getattr(client,'email_consent',None)}")
         # Welcome message: email takes priority to deliver credentials
         if trigger_type == 'client_welcome':
             if client and client.email:
@@ -4075,6 +4079,7 @@ def dispatch_trigger(trigger_type, business_id, client, extra=None):
             trigger_type=trigger_type
         ).first()
         channel = config.channel if config else 'none'
+        app.logger.info(f"[DISPATCH] config found={config is not None} channel={channel}")
         if channel == 'whatsapp':
             fire_whatsapp_trigger(trigger_type, business_id, client, extra)
         elif channel == 'email':
