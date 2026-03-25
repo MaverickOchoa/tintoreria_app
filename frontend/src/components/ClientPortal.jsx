@@ -185,7 +185,7 @@ export default function ClientPortal() {
                   </TableHead>
                   <TableBody>
                     {orders.map(order => {
-                      const fmt = (d) => d ? new Date(d).toLocaleDateString("es-MX") : "—";
+                      const fmt = (d) => d ? new Date(d).toLocaleDateString("es-MX", { day: "2-digit", month: "short" }) : "—";
                       const isOpen = expandedOrder === order.id;
                       return (
                         <React.Fragment key={order.id}>

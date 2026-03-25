@@ -47,10 +47,14 @@ const CreateClient = () => {
       .catch(() => {});
   }, []);
 
+  const [emailWarning, setEmailWarning] = useState(false);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     const titleFields = ["first_name", "last_name", "street_number", "neighborhood"];
-    setClientData({ ...clientData, [name]: titleFields.includes(name) ? toTitleCase(value) : value });
+    const updated = { ...clientData, [name]: titleFields.includes(name) ? toTitleCase(value) : value };
+    setClientData(updated);
+    if (name === "email") setEmailWarning(false);
   };
 
   const handleSubmit = async (e) => {
@@ -72,6 +76,9 @@ const CreateClient = () => {
       setResponse({ success: false, message: "El formato del correo electrónico no es válido." });
       setLoading(false);
       return;
+    }
+    if (!clientData.email.trim()) {
+      setEmailWarning(true);
     }
 
     const dataToSend = {};
@@ -95,7 +102,16 @@ const CreateClient = () => {
       });
       const data = await res.json();
       if (res.ok) { navigate("/clients"); return; }
-      setResponse({ success: false, message: data.message || "Error al registrar el cliente." });
+      if (res.status === 409) {
+        const msg = data.message || "";
+        if (msg.toLowerCase().includes("email") || msg.toLowerCase().includes("correo")) {
+          setResponse({ success: false, message: "Este correo ya está registrado en otro cliente." });
+        } else {
+          setResponse({ success: false, message: "Este número de teléfono ya está registrado." });
+        }
+      } else {
+        setResponse({ success: false, message: data.message || "Error al registrar el cliente." });
+      }
     } catch {
       setResponse({ success: false, message: "Error de conexión con el servidor." });
     } finally {
@@ -128,6 +144,11 @@ const CreateClient = () => {
             <TextField label="Correo Electrónico" name="email" type="email"
               value={clientData.email} onChange={handleChange} sx={{ flex: 1 }} />
           </Box>
+          {emailWarning && (
+            <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setEmailWarning(false)}>
+              Sin correo el cliente no recibirá notificaciones por email ni acceso al portal.
+            </Alert>
+          )}
 
           <Box sx={rowStyle}>
             <TextField select label="Tipo de Cliente" name="client_type_id"

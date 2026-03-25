@@ -428,7 +428,7 @@ class Client(db.Model):
     neighborhood = db.Column(db.String(100), nullable=True)
     zip_code = db.Column(db.String(20), nullable=True)
     phone = db.Column(db.String(20), nullable=False, index=True)
-    email = db.Column(db.String(120), nullable=True)
+    email = db.Column(db.String(120), nullable=True, unique=True)
     notes = db.Column(db.Text, nullable=True)
     date_of_birth_day = db.Column(db.Integer, nullable=True)
     date_of_birth_month = db.Column(db.Integer, nullable=True)
@@ -1997,6 +1997,9 @@ class ClientListResource(Resource):
             return {"message": "Nombre y teléfono son requeridos"}, 400
         if Client.query.filter_by(phone=phone).first():
             return {"message": "Ya existe un cliente con ese teléfono"}, 409
+        email = (data.get('email') or '').strip() or None
+        if email and Client.query.filter_by(email=email).first():
+            return {"message": "Este correo ya está registrado en otro cliente"}, 409
         branch_id = claims.get('branch_id')
         if not branch_id:
             branch_id = data.get('branch_id')
@@ -2015,7 +2018,7 @@ class ClientListResource(Resource):
             full_name=first_name.title(),
             last_name=last_name.title() if last_name else None,
             phone=phone,
-            email=(data.get('email') or '').strip() or None,
+            email=email,
             notes=(data.get('notes') or '').strip() or None,
             street_and_number=(data.get('street_number') or '').strip() or None,
             neighborhood=(data.get('neighborhood') or '').strip() or None,
