@@ -40,15 +40,6 @@ migrate = Migrate(app, db)
 api = Api(app)
 jwt = JWTManager(app)
 
-_db_initialized = False
-
-@app.before_request
-def ensure_tables():
-    global _db_initialized
-    if not _db_initialized:
-        db.create_all()
-        _db_initialized = True
-
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
     return {"message": "Token expirado. Inicia sesión nuevamente."}, 401
@@ -4475,3 +4466,11 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True)
+else:
+    # Running under gunicorn — create tables on startup
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception as e:
+            import logging
+            logging.warning(f"db.create_all() warning: {e}")
