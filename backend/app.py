@@ -726,6 +726,32 @@ class TriggerChannelConfig(db.Model):
         }
 
 
+class MessageLog(db.Model):
+    """Records every message sent (email or whatsapp) per client."""
+    __tablename__ = 'message_logs'
+    id          = db.Column(db.Integer, primary_key=True)
+    client_id   = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
+    business_id = db.Column(db.Integer, nullable=True)
+    channel     = db.Column(db.String(20))   # 'email' | 'whatsapp'
+    trigger_type= db.Column(db.String(50))
+    recipient   = db.Column(db.String(200))  # email address or phone
+    subject     = db.Column(db.String(300), nullable=True)
+    status      = db.Column(db.String(20), default='sent')  # 'sent' | 'failed'
+    sent_at     = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'client_id': self.client_id,
+            'channel': self.channel,
+            'trigger_type': self.trigger_type,
+            'recipient': self.recipient,
+            'subject': self.subject,
+            'status': self.status,
+            'sent_at': self.sent_at.isoformat() if self.sent_at else None,
+        }
+
+
 class DateCampaign(db.Model):
     """Date-based campaigns: birthday (yearly), or one-time on a specific date."""
     __tablename__ = 'date_campaigns'
@@ -2888,6 +2914,67 @@ api.add_resource(ClientListResource, '/api/v1/clients')
 api.add_resource(ClientResource, '/api/v1/clients/<int:client_id>')
 api.add_resource(ClientTypeListResource, '/api/v1/client-types')
 api.add_resource(ClientTypeResource, '/api/v1/client-types/<int:type_id>')
+
+
+# ── Message log endpoint ───────────────────────────────────────────────
+class ClientMessageLogsResource(Resource):
+    @jwt_required()
+    def get(self, client_id):
+        logs = MessageLog.query.filter_by(client_id=client_id)\
+                               .order_by(MessageLog.sent_at.desc()).limit(100).all()
+        return {'logs': [l.to_dict() for l in logs]}, 200
+
+api.add_resource(ClientMessageLogsResource, '/api/v1/clients/<int:client_id>/message-logs')
+
+
+# ── Client behavior report ─────────────────────────────────────────────
+class ClientBehaviorResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        branch_id  = claims.get('branch_id')
+        business_id = claims.get('business_id')
+        # Determine business scope
+        if not business_id and branch_id:
+            br = Branch.query.get(branch_id)
+            business_id = br.business_id if br else None
+        if not business_id:
+            return {'error': 'No business context'}, 400
+
+        clients = Client.query.filter_by(business_id=business_id).all()
+        result = []
+        now = datetime.utcnow()
+        for c in clients:
+            completed = Order.query.filter_by(client_id=c.id)\
+                            .filter(Order.status.in_(['Listo', 'Entregado'])).all()
+            total_orders = len(completed)
+            avg_ticket   = round(sum(float(o.total_amount or 0) for o in completed) / total_orders, 2) if total_orders else 0
+            last_order   = max((o.order_date for o in completed if o.order_date), default=None)
+            days_inactive = (now.date() - last_order).days if last_order else None
+            # Frequency: orders per month (over the span of first to last order)
+            if total_orders >= 2:
+                dates = sorted(o.order_date for o in completed if o.order_date)
+                span_days = (dates[-1] - dates[0]).days or 1
+                freq = round(total_orders / (span_days / 30), 2)
+            else:
+                freq = total_orders
+            result.append({
+                'client_id':     c.id,
+                'full_name':     f"{c.full_name or ''} {c.last_name or ''}".strip(),
+                'phone':         c.phone,
+                'email':         c.email,
+                'client_type':   c.client_type.name if c.client_type else None,
+                'total_orders':  total_orders,
+                'avg_ticket':    avg_ticket,
+                'last_visit':    last_order.isoformat() if last_order else None,
+                'days_inactive': days_inactive,
+                'freq_per_month': freq,
+            })
+        # Sort by days_inactive descending (most at-risk first)
+        result.sort(key=lambda x: (x['days_inactive'] is None, -(x['days_inactive'] or 0)))
+        return {'clients': result}, 200
+
+api.add_resource(ClientBehaviorResource, '/api/v1/reports/client-behavior')
 api.add_resource(ClientDiscountListResource, '/api/v1/clients/<int:client_id>/discounts')
 api.add_resource(ClientDiscountResource, '/api/v1/clients/<int:client_id>/discounts/<int:discount_id>')
 api.add_resource(PromotionListResource, '/api/v1/promotions')
@@ -3992,6 +4079,15 @@ def fire_whatsapp_trigger(trigger_type, business_id, client, extra=None):
                .replace('{contrasena}', contrasena)
                .replace('{portal}',    portal))
         send_whatsapp(client.phone, msg)
+        try:
+            db.session.add(MessageLog(
+                client_id=client.id, business_id=business_id,
+                channel='whatsapp', trigger_type=trigger_type,
+                recipient=client.phone, status='sent',
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
     except Exception as e:
         app.logger.error(f"[WhatsApp TRIGGER ERROR] {trigger_type}: {e}")
 
@@ -4079,8 +4175,26 @@ def fire_email_trigger(trigger_type, business_id, client, extra=None):
         include_button = trigger_type == 'client_welcome'
         _send_email(client.email, fill(subject_tpl), fill(body_tpl),
                     portal_url=portal if include_button else None)
+        try:
+            db.session.add(MessageLog(
+                client_id=client.id, business_id=business_id,
+                channel='email', trigger_type=trigger_type,
+                recipient=client.email, subject=fill(subject_tpl), status='sent',
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
     except Exception as e:
         app.logger.error(f"[Email TRIGGER ERROR] {trigger_type}: {e}")
+        try:
+            db.session.add(MessageLog(
+                client_id=client.id if client else None, business_id=business_id,
+                channel='email', trigger_type=trigger_type,
+                recipient=getattr(client, 'email', ''), status='failed',
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
 
 def dispatch_trigger(trigger_type, business_id, client, extra=None):

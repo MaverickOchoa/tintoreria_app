@@ -144,6 +144,16 @@ export default function OrderStatsCards() {
           size="small"
           variant="outlined"
           color="secondary"
+          startIcon={<AssessmentIcon />}
+          onClick={() => navigate("/reportes/clientes")}
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          Comportamiento
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          color="secondary"
           startIcon={<ReceiptLongIcon />}
           onClick={() => navigate("/gastos")}
           sx={{ whiteSpace: "nowrap" }}

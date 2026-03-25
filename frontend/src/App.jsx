@@ -63,6 +63,7 @@ import OperationalPanel from "./components/OperationalPanel.jsx";
 import CashCut from "./components/CashCut.jsx";
 import Reports from "./components/Reports.jsx";
 import Expenses from "./components/Expenses.jsx";
+import ClientBehaviorReport from "./components/ClientBehaviorReport.jsx";
 
 // Clinic vertical
 import ClinicLayout from "./components/clinic/ClinicLayout.jsx";
@@ -210,6 +211,7 @@ function App() {
               <Route path="/corte-de-caja" element={<CashCut />} />
               <Route path="/reportes" element={<Reports />} />
               <Route path="/gastos" element={<Expenses />} />
+              <Route path="/reportes/clientes" element={<ClientBehaviorReport />} />
 
               <Route path="/employees" element={<EmployeesPage />} />
 
