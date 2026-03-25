@@ -176,8 +176,8 @@ export default function ClientPortal() {
                     <TableRow>
                       <TableCell>Folio</TableCell>
                       <TableCell>Creada</TableCell>
-                      <TableCell>Entrega</TableCell>
-                      <TableCell>Entregada</TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>Entrega</TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>Entregada</TableCell>
                       <TableCell>Estatus</TableCell>
                       <TableCell align="right">Total</TableCell>
                       <TableCell />
@@ -192,8 +192,8 @@ export default function ClientPortal() {
                           <TableRow hover sx={{ cursor: "pointer" }} onClick={() => setExpandedOrder(isOpen ? null : order.id)}>
                             <TableCell>{order.folio || order.id}</TableCell>
                             <TableCell>{fmt(order.order_date)}</TableCell>
-                            <TableCell>{fmt(order.delivery_date)}</TableCell>
-                            <TableCell>{fmt(order.delivered_at)}</TableCell>
+                            <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>{fmt(order.delivery_date)}</TableCell>
+                            <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>{fmt(order.delivered_at)}</TableCell>
                             <TableCell>
                               <Chip label={order.status || "Pendiente"} size="small" color={statusColor(order.status)} />
                             </TableCell>
@@ -209,8 +209,8 @@ export default function ClientPortal() {
                                       <TableHead>
                                         <TableRow>
                                           <TableCell>Prenda / Artículo</TableCell>
-                                          <TableCell align="center">Cant.</TableCell>
-                                          <TableCell align="right">Precio unit.</TableCell>
+                                          <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }} align="center">Cant.</TableCell>
+                                          <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }} align="right">Precio unit.</TableCell>
                                           <TableCell align="right">Total línea</TableCell>
                                         </TableRow>
                                       </TableHead>
@@ -218,8 +218,8 @@ export default function ClientPortal() {
                                         {order.items.map((item, i) => (
                                           <TableRow key={i}>
                                             <TableCell>{item.product_name || item.item_name || "—"}</TableCell>
-                                            <TableCell align="center">{item.quantity}</TableCell>
-                                            <TableCell align="right">${parseFloat(item.unit_price || 0).toFixed(2)}</TableCell>
+                                            <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }} align="center">{item.quantity}</TableCell>
+                                            <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }} align="right">${parseFloat(item.unit_price || 0).toFixed(2)}</TableCell>
                                             <TableCell align="right">${parseFloat(item.line_total || 0).toFixed(2)}</TableCell>
                                           </TableRow>
                                         ))}
