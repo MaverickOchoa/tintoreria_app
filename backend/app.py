@@ -2449,6 +2449,14 @@ class OrderResource(Resource):
                 ).count()
                 if completed_orders == 3:
                     dispatch_trigger('client_recurring', branch.business_id, client)
+                if completed_orders >= 3:
+                    frecuente_type = ClientType.query.filter(
+                        ClientType.business_id == branch.business_id,
+                        db.func.lower(ClientType.name) == 'frecuente'
+                    ).first()
+                    if frecuente_type and client.client_type_id != frecuente_type.id:
+                        client.client_type_id = frecuente_type.id
+                        db.session.commit()
         return {"message": "Orden actualizada", "order": order.to_dict()}, 200
 
 class OrderPaymentResource(Resource):
