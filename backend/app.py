@@ -3953,7 +3953,7 @@ def fire_whatsapp_trigger(trigger_type, business_id, client, extra=None):
         folio    = (extra or {}).get('folio', '')
         usuario  = client.username or ''
         contrasena = (extra or {}).get('plain_password', '')
-        portal   = os.environ.get('CLIENT_PORTAL_URL', 'https://zentro-5b3g.onrender.com/#/client-portal')
+        portal   = 'https://zentro-5b3g.onrender.com/#/client-portal'
         msg = (template.message_body
                .replace('{nombre}',    nombre)
                .replace('{folio}',     folio)
@@ -4014,7 +4014,7 @@ def fire_email_trigger(trigger_type, business_id, client, extra=None):
         folio      = (extra or {}).get('folio', '')
         usuario    = client.username or ''
         contrasena = (extra or {}).get('plain_password', '')
-        portal     = os.environ.get('CLIENT_PORTAL_URL', 'https://zentro-5b3g.onrender.com/#/client-portal')
+        portal     = 'https://zentro-5b3g.onrender.com/#/client-portal'
 
         DEFAULT_SUBJECTS = {
             'client_welcome':   '¡Bienvenido/a a nuestra tintorería!',
