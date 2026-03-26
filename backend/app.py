@@ -2957,10 +2957,11 @@ class ClientBehaviorResource(Resource):
             total_orders = len(completed)
             avg_ticket   = round(sum(float(o.total_amount or 0) for o in completed) / total_orders, 2) if total_orders else 0
             last_order   = max((o.order_date for o in completed if o.order_date), default=None)
-            days_inactive = (now.date() - last_order).days if last_order else None
+            last_order_date = last_order.date() if hasattr(last_order, 'date') else last_order
+            days_inactive = (now.date() - last_order_date).days if last_order_date else None
             # Frequency: orders per month (over the span of first to last order)
             if total_orders >= 2:
-                dates = sorted(o.order_date for o in completed if o.order_date)
+                dates = sorted((o.order_date.date() if hasattr(o.order_date, 'date') else o.order_date) for o in completed if o.order_date)
                 span_days = (dates[-1] - dates[0]).days or 1
                 freq = round(total_orders / (span_days / 30), 2)
             else:
