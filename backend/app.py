@@ -2948,7 +2948,8 @@ class ClientBehaviorResource(Resource):
         if not business_id:
             return {'error': 'No business context'}, 400
 
-        clients = Client.query.filter_by(business_id=business_id).all()
+        clients = Client.query.join(Branch, Client.branch_id == Branch.id)\
+                              .filter(Branch.business_id == business_id).all()
         result = []
         now = datetime.utcnow()
         for c in clients:
