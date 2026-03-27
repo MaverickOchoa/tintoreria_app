@@ -420,7 +420,7 @@ export default function Reports() {
                         <SectionTitle>Nuevos vs Recurrentes</SectionTitle>
                         {clientsData.new_clients + clientsData.returning_clients > 0 ? (
                           <ResponsiveContainer width="100%" height={300}>
-                            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+                            <PieChart margin={{ top: 10, right: 60, bottom: 10, left: 60 }}>
                               <Pie data={[
                                 { name: "Recurrentes", value: clientsData.returning_clients },
                                 { name: "Nuevos", value: clientsData.new_clients },
