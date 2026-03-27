@@ -503,10 +503,10 @@ export default function Reports() {
                       <Grid item xs={12} md={6}>
                         <SectionTitle>Top 10 por cantidad</SectionTitle>
                         <ResponsiveContainer width="100%" height={320}>
-                          <BarChart data={topItems.slice(0, 10)} layout="vertical" margin={{ left: 80, right: 20 }}>
+                          <BarChart data={topItems.slice(0, 10)} layout="vertical" margin={{ left: 10, right: 20, top: 4, bottom: 4 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                             <XAxis type="number" tick={{ fontSize: 11 }} />
-                            <YAxis type="category" dataKey="item_name" tick={{ fontSize: 11 }} width={80} />
+                            <YAxis type="category" dataKey="item_name" tick={{ fontSize: 11 }} width={160} />
                             <Tooltip formatter={v => fmtNum(v)} />
                             <Bar dataKey="total_qty" fill="#1976d2" radius={[0, 4, 4, 0]} name="Cantidad">
                               {topItems.slice(0, 10).map((_, i) => (
@@ -519,10 +519,10 @@ export default function Reports() {
                       <Grid item xs={12} md={6}>
                         <SectionTitle>Top 10 por ingreso</SectionTitle>
                         <ResponsiveContainer width="100%" height={320}>
-                          <BarChart data={topItems.slice(0, 10)} layout="vertical" margin={{ left: 80, right: 20 }}>
+                          <BarChart data={topItems.slice(0, 10)} layout="vertical" margin={{ left: 10, right: 20, top: 4, bottom: 4 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                             <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                            <YAxis type="category" dataKey="item_name" tick={{ fontSize: 11 }} width={80} />
+                            <YAxis type="category" dataKey="item_name" tick={{ fontSize: 11 }} width={160} />
                             <Tooltip formatter={v => fmt(v)} />
                             <Bar dataKey="total_revenue" fill="#43a047" radius={[0, 4, 4, 0]} name="Ingreso">
                               {topItems.slice(0, 10).map((_, i) => (
