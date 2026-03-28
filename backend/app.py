@@ -3960,15 +3960,18 @@ class ReportClientsDetailResource(Resource):
                 db.session.query(db.distinct(Order.client_id))
                 .join(Branch, Branch.id == Order.branch_id)
                 .filter(Branch.business_id == business_id,
+                        Order.client_id != None,
                         Order.order_date >= date_from, Order.order_date <= date_to).all()]
-            new_clients_count = 0
-            for cid in all_ids_period:
-                first = (Order.query.join(Branch, Branch.id == Order.branch_id)
-                    .filter(Branch.business_id == business_id, Order.client_id == cid)
-                    .order_by(Order.order_date.asc()).first())
-                if first and first.order_date.strftime('%Y-%m-%d') >= date_from:
-                    new_clients_count += 1
-            returning = len(all_ids_period) - new_clients_count
+            # "New" = client whose first-ever order in this business is within the period
+            # Use a subquery: clients with ANY order before date_from are "returning"
+            returning_ids = set(r[0] for r in
+                db.session.query(db.distinct(Order.client_id))
+                .join(Branch, Branch.id == Order.branch_id)
+                .filter(Branch.business_id == business_id,
+                        Order.client_id != None,
+                        Order.order_date < date_from).all())
+            returning = len([cid for cid in all_ids_period if cid in returning_ids])
+            new_clients_count = len(all_ids_period) - returning
 
             avg_ticket_val = (db.session.query(db.func.avg(Order.total_amount))
                 .join(Branch, Branch.id == Order.branch_id)
