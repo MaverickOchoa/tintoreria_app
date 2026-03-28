@@ -3962,15 +3962,15 @@ class ReportClientsDetailResource(Resource):
                 .filter(Branch.business_id == business_id,
                         Order.client_id != None,
                         Order.order_date >= date_from, Order.order_date <= date_to).all()]
-            # "New" = client whose first-ever order in this business is within the period
-            # Use a subquery: clients with ANY order before date_from are "returning"
-            returning_ids = set(r[0] for r in
-                db.session.query(db.distinct(Order.client_id))
+            # "Returning" = client who has 2+ total orders in the business (regardless of period)
+            # "New" = client who has only 1 order total in the business
+            multi_order_ids = set(r[0] for r in
+                db.session.query(Order.client_id)
                 .join(Branch, Branch.id == Order.branch_id)
-                .filter(Branch.business_id == business_id,
-                        Order.client_id != None,
-                        Order.order_date < date_from).all())
-            returning = len([cid for cid in all_ids_period if cid in returning_ids])
+                .filter(Branch.business_id == business_id, Order.client_id != None)
+                .group_by(Order.client_id)
+                .having(db.func.count(Order.id) >= 2).all())
+            returning = len([cid for cid in all_ids_period if cid in multi_order_ids])
             new_clients_count = len(all_ids_period) - returning
 
             avg_ticket_val = (db.session.query(db.func.avg(Order.total_amount))
