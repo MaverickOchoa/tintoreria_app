@@ -212,7 +212,7 @@ export default function Reports() {
         )}
 
         {/* Tabs */}
-        <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid #e0e0e0", overflow: "hidden" }}>
+        <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid #e0e0e0" }}>
           <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto"
             sx={{ bgcolor: "#fff", borderBottom: "1px solid #e0e0e0", "& .MuiTab-root": { minHeight: 52, fontWeight: 600 } }}>
             {TABS.map((t, i) => (
@@ -502,7 +502,8 @@ export default function Reports() {
                     <Grid container spacing={3}>
                       <Grid item xs={12}>
                         <SectionTitle>Top 10 por cantidad</SectionTitle>
-                        <ResponsiveContainer width="100%" height={340}>
+                        <Box sx={{ width: "100%", height: 340 }}>
+                        <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={topItems.slice(0, 10).map(d => ({ ...d, short_name: d.item_name.length > 22 ? d.item_name.slice(0, 22) + "…" : d.item_name }))} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                             <XAxis type="number" tick={{ fontSize: 11 }} />
@@ -513,10 +514,12 @@ export default function Reports() {
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
+                        </Box>
                       </Grid>
                       <Grid item xs={12}>
                         <SectionTitle>Top 10 por ingreso</SectionTitle>
-                        <ResponsiveContainer width="100%" height={340}>
+                        <Box sx={{ width: "100%", height: 340 }}>
+                        <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={topItems.slice(0, 10).map(d => ({ ...d, short_name: d.item_name.length > 22 ? d.item_name.slice(0, 22) + "…" : d.item_name }))} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                             <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
@@ -527,6 +530,7 @@ export default function Reports() {
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
+                        </Box>
                       </Grid>
                     </Grid>
 
