@@ -502,32 +502,28 @@ export default function Reports() {
                     <Grid container spacing={3}>
                       <Grid item xs={12}>
                         <SectionTitle>Top 10 por cantidad</SectionTitle>
-                        <ResponsiveContainer width="100%" height={320}>
-                          <BarChart data={topItems.slice(0, 10)} layout="vertical" margin={{ left: 10, right: 30, top: 4, bottom: 4 }}>
+                        <ResponsiveContainer width="100%" height={340}>
+                          <BarChart data={topItems.slice(0, 10).map(d => ({ ...d, short_name: d.item_name.length > 22 ? d.item_name.slice(0, 22) + "…" : d.item_name }))} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                             <XAxis type="number" tick={{ fontSize: 11 }} />
-                            <YAxis type="category" dataKey="item_name" tick={{ fontSize: 12 }} width={200} />
-                            <Tooltip formatter={v => fmtNum(v)} />
-                            <Bar dataKey="total_qty" fill="#1976d2" radius={[0, 4, 4, 0]} name="Cantidad">
-                              {topItems.slice(0, 10).map((_, i) => (
-                                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                              ))}
+                            <YAxis type="category" dataKey="short_name" tick={{ fontSize: 12 }} width={185} />
+                            <Tooltip formatter={v => fmtNum(v)} labelFormatter={(_, p) => p?.[0]?.payload?.item_name || ""} />
+                            <Bar dataKey="total_qty" radius={[0, 4, 4, 0]} name="Cantidad">
+                              {topItems.slice(0, 10).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </Grid>
                       <Grid item xs={12}>
                         <SectionTitle>Top 10 por ingreso</SectionTitle>
-                        <ResponsiveContainer width="100%" height={320}>
-                          <BarChart data={topItems.slice(0, 10)} layout="vertical" margin={{ left: 10, right: 30, top: 4, bottom: 4 }}>
+                        <ResponsiveContainer width="100%" height={340}>
+                          <BarChart data={topItems.slice(0, 10).map(d => ({ ...d, short_name: d.item_name.length > 22 ? d.item_name.slice(0, 22) + "…" : d.item_name }))} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                             <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                            <YAxis type="category" dataKey="item_name" tick={{ fontSize: 12 }} width={200} />
-                            <Tooltip formatter={v => fmt(v)} />
-                            <Bar dataKey="total_revenue" fill="#43a047" radius={[0, 4, 4, 0]} name="Ingreso">
-                              {topItems.slice(0, 10).map((_, i) => (
-                                <Cell key={i} fill={COLORS[(i + 2) % COLORS.length]} />
-                              ))}
+                            <YAxis type="category" dataKey="short_name" tick={{ fontSize: 12 }} width={185} />
+                            <Tooltip formatter={v => fmt(v)} labelFormatter={(_, p) => p?.[0]?.payload?.item_name || ""} />
+                            <Bar dataKey="total_revenue" radius={[0, 4, 4, 0]} name="Ingreso">
+                              {topItems.slice(0, 10).map((_, i) => <Cell key={i} fill={COLORS[(i + 2) % COLORS.length]} />)}
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
