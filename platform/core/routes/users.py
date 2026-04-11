@@ -111,6 +111,7 @@ def create_employee(
         last_name=payload.last_name,
         email=payload.email,
         phone=payload.phone,
+        specialty=payload.specialty,
         branch_id=payload.branch_id,
         business_id=business_id,
         must_change_password=True,

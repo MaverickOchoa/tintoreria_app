@@ -45,6 +45,7 @@ class Employee(Base):
     last_name = Column(String(150), nullable=True)
     email = Column(String(200), nullable=True)
     phone = Column(String(20), nullable=True)
+    specialty = Column(String(200), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     must_change_password = Column(Boolean, default=True, nullable=False)
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
@@ -61,6 +62,7 @@ class Employee(Base):
             "last_name": self.last_name,
             "email": self.email,
             "phone": self.phone,
+            "specialty": self.specialty,
             "branch_id": self.branch_id,
             "business_id": self.business_id,
             "is_active": self.is_active,
