@@ -23,7 +23,7 @@ const ROLE_COLORS = { Doctor: "#4361ee", Empleado: "#7209b7", Gerente: "#f77f00"
 
 const toTitle = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const EMPTY_FORM = { full_name: "", last_name: "", phone: "", email: "", role: "Doctor" };
+const EMPTY_FORM = { full_name: "", last_name: "", phone: "", email: "", role: "Doctor", specialty: "" };
 
 function roleLabel(roles) {
   if (!roles) return "Empleado";
@@ -72,6 +72,7 @@ export default function ClinicUsers() {
       phone: emp.phone || "",
       email: emp.email || "",
       role: roleLabel(emp.roles),
+      specialty: emp.specialty || "",
     });
     setMsg(null);
     setDialog(true);
@@ -101,6 +102,7 @@ export default function ClinicUsers() {
           last_name:  form.last_name.trim() || null,
           phone:      form.phone.trim() || null,
           email:      form.email.trim() || null,
+          specialty:  form.specialty.trim() || null,
           role_names: [form.role],
           branch_id:  Number(branchId),
         });
@@ -112,6 +114,7 @@ export default function ClinicUsers() {
           last_name:  form.last_name.trim() || null,
           phone:      form.phone.trim(),
           email:      form.email.trim(),
+          specialty:  form.specialty.trim() || null,
           role_names: [form.role],
           branch_id:  Number(branchId),
         });
@@ -239,6 +242,10 @@ export default function ClinicUsers() {
               ))}
             </Select>
           </FormControl>
+
+          <TextField label="Especialidad" fullWidth value={form.specialty}
+            onChange={handleField("specialty")}
+            placeholder="Ej. Odontología General, Pediatría, Fisioterapia..." />
 
           <Divider />
 
