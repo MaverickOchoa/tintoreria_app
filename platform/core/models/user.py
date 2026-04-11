@@ -42,8 +42,11 @@ class Employee(Base):
     username = Column(String(80), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     full_name = Column(String(150), nullable=False)
+    last_name = Column(String(150), nullable=True)
+    email = Column(String(200), nullable=True)
     phone = Column(String(20), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    must_change_password = Column(Boolean, default=True, nullable=False)
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
     business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
 
@@ -52,7 +55,15 @@ class Employee(Base):
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id, "username": self.username, "full_name": self.full_name,
-            "phone": self.phone, "branch_id": self.branch_id, "business_id": self.business_id,
-            "is_active": self.is_active, "roles": [r.name for r in self.roles],
+            "id": self.id,
+            "username": self.username,
+            "full_name": self.full_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "phone": self.phone,
+            "branch_id": self.branch_id,
+            "business_id": self.business_id,
+            "is_active": self.is_active,
+            "must_change_password": self.must_change_password,
+            "roles": [r.name for r in self.roles],
         }

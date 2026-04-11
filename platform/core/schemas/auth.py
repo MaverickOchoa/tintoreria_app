@@ -16,6 +16,7 @@ class TokenResponse(BaseModel):
     branch_id: Optional[int] = None
     vertical_type: Optional[str] = None
     full_name: Optional[str] = None
+    must_change_password: Optional[bool] = False
 
 
 class SelectBranchRequest(BaseModel):

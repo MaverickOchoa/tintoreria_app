@@ -149,6 +149,10 @@ _STARTUP_MIGRATIONS = [
         end_time VARCHAR(5),
         reason VARCHAR(200)
     )""",
+    # Employee new columns (must_change_password, last_name, email)
+    "ALTER TABLE employees ADD COLUMN IF NOT EXISTS last_name VARCHAR(150)",
+    "ALTER TABLE employees ADD COLUMN IF NOT EXISTS email VARCHAR(200)",
+    "ALTER TABLE employees ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE",
     # Indexes
     "CREATE INDEX IF NOT EXISTS ix_appointments_business_branch ON appointments(business_id, branch_id)",
     "CREATE INDEX IF NOT EXISTS ix_appointments_scheduled_at ON appointments(scheduled_at)",

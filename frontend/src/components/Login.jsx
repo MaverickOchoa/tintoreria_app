@@ -92,6 +92,12 @@ const Login = () => {
       localStorage.setItem("role", data.role || "");
       localStorage.setItem("vertical_type", data.vertical_type || "laundry");
 
+      if (data.must_change_password) {
+        localStorage.setItem("clinic_must_change_password", "true");
+      } else {
+        localStorage.removeItem("clinic_must_change_password");
+      }
+
       const isClinic = data.vertical_type === "clinic";
 
       // 4) redirect por rol
@@ -113,6 +119,9 @@ const Login = () => {
           break;
 
         case "employee":
+        case "Doctor":
+        case "Empleado":
+        case "Gerente":
           navigate(isClinic ? "/clinic/kanban" : "/panel-operativo");
           break;
 

@@ -58,6 +58,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             branch_id=employee.branch_id,
             vertical_type=business.vertical_type if business else "laundry",
             full_name=employee.full_name,
+            must_change_password=employee.must_change_password,
         )
 
     raise HTTPException(status_code=401, detail="Credenciales inválidas.")
