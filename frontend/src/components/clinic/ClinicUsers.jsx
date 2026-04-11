@@ -11,7 +11,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import EmailIcon from "@mui/icons-material/Email";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
-const CLINIC_API = (import.meta.env.VITE_CLINIC_API_URL || "") + "/api/v2";
+const CLINIC_API = import.meta.env.VITE_CLINIC_API_URL || "";
 
 const ROLES = [
   { value: "Doctor",   label: "Doctor",            color: "#4361ee" },

@@ -20,7 +20,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import LockIcon from "@mui/icons-material/Lock";
 import { BRAND } from "../../brand";
 
-const CLINIC_API = (import.meta.env.VITE_CLINIC_API_URL || "") + "/api/v2";
+const CLINIC_API = import.meta.env.VITE_CLINIC_API_URL || "";
 const SIDEBAR_W = 220;
 const SIDEBAR_COLLAPSED = 64;
 
