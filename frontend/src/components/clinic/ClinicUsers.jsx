@@ -23,7 +23,7 @@ const ROLE_COLORS = { Doctor: "#4361ee", Empleado: "#7209b7", Gerente: "#f77f00"
 
 const toTitle = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const EMPTY_FORM = { full_name: "", last_name: "", phone: "", email: "", role: "Doctor", specialty: "" };
+const EMPTY_FORM = { full_name: "", last_name: "", phone: "", email: "", role: "Doctor", specialty: "", branch_id: "" };
 
 function roleLabel(roles) {
   if (!roles) return "Empleado";
@@ -39,12 +39,13 @@ function roleColor(roles) {
 }
 
 export default function ClinicUsers() {
-  const token   = localStorage.getItem("clinic_token") || localStorage.getItem("access_token");
-  const claims  = JSON.parse(localStorage.getItem("clinic_claims") || localStorage.getItem("user_claims") || "{}");
-  const branchId = claims.active_branch_id || claims.branch_id || localStorage.getItem("branch_id");
-  const headers  = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  const token      = localStorage.getItem("clinic_token") || localStorage.getItem("access_token");
+  const claims     = JSON.parse(localStorage.getItem("clinic_claims") || localStorage.getItem("user_claims") || "{}");
+  const businessId = claims.business_id;
+  const headers    = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
   const [employees, setEmployees] = useState([]);
+  const [branches,  setBranches]  = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [dialog,    setDialog]    = useState(false);
   const [editing,   setEditing]   = useState(null);
@@ -61,9 +62,28 @@ export default function ClinicUsers() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    if (businessId) {
+      fetch(`${CLINIC_API}/businesses/${businessId}`, { headers })
+        .then(r => r.json())
+        .then(d => {
+          const branchList = d.branches || [];
+          setBranches(branchList);
+          if (branchList.length > 0) {
+            setForm(p => ({ ...p, branch_id: branchList[0].id }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
 
-  const openNew  = () => { setEditing(null); setForm(EMPTY_FORM); setMsg(null); setDialog(true); };
+  const openNew  = () => {
+    setEditing(null);
+    setForm({ ...EMPTY_FORM, branch_id: branches.length > 0 ? branches[0].id : "" });
+    setMsg(null);
+    setDialog(true);
+  };
   const openEdit = (emp) => {
     setEditing(emp);
     setForm({
@@ -73,6 +93,7 @@ export default function ClinicUsers() {
       email: emp.email || "",
       role: roleLabel(emp.roles),
       specialty: emp.specialty || "",
+      branch_id: emp.branch_id || (branches.length > 0 ? branches[0].id : ""),
     });
     setMsg(null);
     setDialog(true);
@@ -93,6 +114,7 @@ export default function ClinicUsers() {
     setSaving(true);
     setMsg(null);
     try {
+      if (!form.branch_id) { setMsg({ type: "error", text: "Selecciona una sucursal." }); setSaving(false); return; }
       let url, method, body;
       if (editing) {
         url    = `${CLINIC_API}/employees/${editing.id}`;
@@ -104,7 +126,7 @@ export default function ClinicUsers() {
           email:      form.email.trim() || null,
           specialty:  form.specialty.trim() || null,
           role_names: [form.role],
-          branch_id:  Number(branchId),
+          branch_id:  Number(form.branch_id),
         });
       } else {
         url    = `${CLINIC_API}/employees`;
@@ -116,7 +138,7 @@ export default function ClinicUsers() {
           email:      form.email.trim(),
           specialty:  form.specialty.trim() || null,
           role_names: [form.role],
-          branch_id:  Number(branchId),
+          branch_id:  Number(form.branch_id),
         });
       }
       const res  = await fetch(url, { method, headers, body });
@@ -231,17 +253,30 @@ export default function ClinicUsers() {
               onChange={handleField("last_name")} />
           </Box>
 
-          <FormControl fullWidth required>
-            <InputLabel>Rol</InputLabel>
-            <Select label="Rol" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}>
-              {ROLES.map(r => (
-                <MenuItem key={r.value} value={r.value}>
-                  <Chip label={r.label} size="small" sx={{ bgcolor: r.color + "22", color: r.color, mr: 1 }} />
-                  {r.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box display="flex" gap={2}>
+            <FormControl fullWidth required>
+              <InputLabel>Rol</InputLabel>
+              <Select label="Rol" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}>
+                {ROLES.map(r => (
+                  <MenuItem key={r.value} value={r.value}>
+                    <Chip label={r.label} size="small" sx={{ bgcolor: r.color + "22", color: r.color, mr: 1 }} />
+                    {r.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {branches.length > 1 && (
+              <FormControl fullWidth required>
+                <InputLabel>Sucursal</InputLabel>
+                <Select label="Sucursal" value={form.branch_id}
+                  onChange={e => setForm(p => ({ ...p, branch_id: e.target.value }))}>
+                  {branches.map(b => (
+                    <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </Box>
 
           <TextField label="Especialidad" fullWidth value={form.specialty}
             onChange={handleField("specialty")}
