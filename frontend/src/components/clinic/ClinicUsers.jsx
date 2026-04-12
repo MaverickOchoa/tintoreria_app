@@ -41,7 +41,7 @@ function roleColor(roles) {
 export default function ClinicUsers() {
   const token   = localStorage.getItem("clinic_token") || localStorage.getItem("access_token");
   const claims  = JSON.parse(localStorage.getItem("clinic_claims") || localStorage.getItem("user_claims") || "{}");
-  const branchId = localStorage.getItem("branch_id") || claims.branch_id;
+  const branchId = claims.active_branch_id || claims.branch_id || localStorage.getItem("branch_id");
   const headers  = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
   const [employees, setEmployees] = useState([]);
