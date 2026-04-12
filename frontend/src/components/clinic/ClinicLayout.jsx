@@ -219,7 +219,7 @@ export default function ClinicLayout() {
                 {claims.full_name || claims.username || "Usuario"}
               </Typography>
               <Typography fontSize={10} color="#9ca3af" noWrap>
-                {claims.role === "business_admin" ? "Administrador" : claims.role === "Gerente" ? "Gerente" : claims.role || ""}
+                {claims.role === "business_admin" ? "Administrador" : claims.role === "Gerente" ? "Gerente" : claims.role === "Doctor" ? "Doctor" : claims.role === "Empleado" ? "Staff / Recepción" : claims.role === "employee" ? "Empleado" : claims.role || "Empleado"}
               </Typography>
             </Box>
           )}

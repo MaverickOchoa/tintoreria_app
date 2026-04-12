@@ -45,6 +45,9 @@ _STARTUP_MIGRATIONS = [
         name VARCHAR(50) UNIQUE NOT NULL,
         description VARCHAR(255)
     )""",
+    "INSERT INTO roles (name, description) VALUES ('Doctor', 'Doctor / Médico') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('Empleado', 'Staff / Recepción') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('Gerente', 'Administrador de Sucursal') ON CONFLICT (name) DO NOTHING",
     "INSERT INTO roles (name, description) VALUES ('doctor', 'Doctor / Médico') ON CONFLICT (name) DO NOTHING",
     "INSERT INTO roles (name, description) VALUES ('receptionist', 'Recepcionista') ON CONFLICT (name) DO NOTHING",
     "INSERT INTO roles (name, description) VALUES ('nurse', 'Enfermera') ON CONFLICT (name) DO NOTHING",
