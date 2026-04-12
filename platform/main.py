@@ -39,6 +39,21 @@ app.add_middleware(
 )
 
 _STARTUP_MIGRATIONS = [
+    # Core auth tables for clinic employees
+    """CREATE TABLE IF NOT EXISTS roles (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(50) UNIQUE NOT NULL,
+        description VARCHAR(255)
+    )""",
+    "INSERT INTO roles (name, description) VALUES ('doctor', 'Doctor / Médico') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('receptionist', 'Recepcionista') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('nurse', 'Enfermera') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('admin', 'Administrador') ON CONFLICT (name) DO NOTHING",
+    """CREATE TABLE IF NOT EXISTS employee_roles (
+        employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+        role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+        PRIMARY KEY (employee_id, role_id)
+    )""",
     # Consent columns
     "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_whatsapp BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_email BOOLEAN NOT NULL DEFAULT FALSE",
