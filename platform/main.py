@@ -196,12 +196,28 @@ async def apply_migrations():
         logger.error("Startup migration failed: %s", e)
 
 
+_ALLOW_ORIGINS_SET = {
+    "https://zentro-iik7.onrender.com",
+    "https://zentro-5b3g.onrender.com",
+    "https://zentro.onrender.com",
+    "https://tintoreria-frontend.onrender.com",
+    "http://localhost:5173",
+    "http://localhost:3000",
+}
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    origin = request.headers.get("origin", "")
+    cors_headers = {}
+    if origin in _ALLOW_ORIGINS_SET:
+        cors_headers["Access-Control-Allow-Origin"] = origin
+        cors_headers["Access-Control-Allow-Credentials"] = "true"
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error"},
+        content={"detail": str(exc)},
+        headers=cors_headers,
     )
 
 
