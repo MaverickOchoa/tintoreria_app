@@ -80,10 +80,12 @@ const Login = () => {
         role: data.role || null,
         business_id: data.business_id ?? null,
         branch_id: data.branch_id ?? null,
+        active_branch_id: data.branch_id ?? null,
         branches: data.branches || [],
         is_superadmin: data.is_superadmin ?? null,
         user_id: data.user_id ?? null,
         username: data.username ?? username,
+        full_name: data.full_name || null,
         agency_id: data.agency_id ?? null,
         vertical_type: data.vertical_type || "laundry",
       };
