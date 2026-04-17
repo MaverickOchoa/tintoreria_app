@@ -2796,7 +2796,14 @@ class LoginResource(Resource):
         employee = Employee.query.filter_by(username=username).first()
         if employee and check_password_hash(employee.password, password):
             role_names = [r.name for r in employee.roles]
-            role = "branch_manager" if "Gerente" in role_names else "employee"
+            if "Gerente" in role_names:
+                role = "branch_manager"
+            elif "Doctor" in role_names:
+                role = "Doctor"
+            elif "Empleado" in role_names:
+                role = "Empleado"
+            else:
+                role = role_names[0] if role_names else "employee"
             emp_full = employee.full_name or employee.username
             if getattr(employee, 'last_name', None):
                 emp_full += f" {employee.last_name}"
@@ -2814,7 +2821,7 @@ class LoginResource(Resource):
             })
             return {"access_token": token, "role": role, "business_id": employee.business_id,
                     "branch_id": employee.branch_id, "user_id": employee.id,
-                    "username": employee.username, "is_superadmin": False,
+                    "username": employee.username, "full_name": emp_full, "is_superadmin": False,
                     "vertical_type": emp_biz.vertical_type if emp_biz else "laundry"}, 200
         return {"message": "Credenciales invalidas"}, 401
 
