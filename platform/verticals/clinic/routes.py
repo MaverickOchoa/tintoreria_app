@@ -68,12 +68,20 @@ def _send_patient_credentials(email: str, full_name: str, username: str, passwor
         return False
 
 
-def _generate_username(full_name: str, last_name: str) -> str:
-    name = (full_name or "").strip().lower().replace(" ", "")
-    last = (last_name or "").strip().lower().replace(" ", "")
-    if last:
-        return f"{name}.{last}"
-    return name
+def _generate_username(full_name: str, last_name: str, db: Session) -> str:
+    import unicodedata, re
+    def slugify(s):
+        s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode()
+        return re.sub(r"[^a-z0-9]", "", s.lower())
+    name = slugify(full_name or "")
+    last = slugify(last_name or "")
+    base = f"{name}.{last}" if last else name
+    candidate = base
+    counter = 1
+    while db.query(Client).filter(Client.username == candidate).first():
+        candidate = f"{base}{counter}"
+        counter += 1
+    return candidate
 
 
 # ── Patients ──────────────────────────────────────────────────────────────────
@@ -121,7 +129,7 @@ def create_patient(
             raise HTTPException(status_code=409, detail="Ya existe un paciente con ese teléfono.")
 
     # Generate credentials — username=nombre.apellido, password=phone
-    username = _generate_username(payload.full_name, payload.last_name)
+    username = _generate_username(payload.full_name, payload.last_name or "", db)
     raw_password = payload.phone  # temp password = phone number
 
     # Create client record
@@ -168,10 +176,17 @@ def create_patient(
     db.commit()
     db.refresh(patient)
 
-    # Send email — patient is created even if email fails
+    # Send credentials — always send if email provided, regardless of consent_email
     email_sent = False
-    if payload.email and payload.consent_email:
-        email_sent = _send_patient_credentials(payload.email, payload.full_name, username, raw_password)
+    if payload.email:
+        email_sent = _send_patient_credentials(
+            payload.email,
+            f"{payload.full_name} {payload.last_name or ''}".strip(),
+            username,
+            raw_password,
+        )
+    elif not payload.email:
+        logger.warning("Patient created without email — credentials not sent for user %s", username)
 
     result = patient.to_dict()
     result["email_sent"] = email_sent
