@@ -61,6 +61,7 @@ export default function ClinicPatients() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [saveError, setSaveError] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -109,8 +110,6 @@ export default function ClinicPatients() {
       e.emergency_contact_phone = "Debe ser 10 dígitos";
     return e;
   };
-
-  const [saveError, setSaveError] = useState(null);
 
   const handleSave = async () => {
     const e = validate();
