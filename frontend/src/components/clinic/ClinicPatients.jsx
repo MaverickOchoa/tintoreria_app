@@ -15,19 +15,31 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { CLINIC_API } from "./clinicTheme";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const GENDERS = ["Masculino", "Femenino", "Otro"];
+const MARITAL_STATUS = ["Soltero/a", "Casado/a", "Divorciado/a", "Viudo/a", "Unión libre"];
+
+const EMPTY_FORM = {
+  full_name: "", last_name: "", phone: "", email: "",
+  birth_date: "", gender: "", marital_status: "",
+  blood_type: "", allergies: "",
+  app_history: "", current_medications: "",
+  weight_kg: "", height_cm: "",
+  medical_diagnosis: "", specialist_diagnosis: "", chief_complaint: "",
+  emergency_contact_name: "", emergency_contact_phone: "",
+  notes: "",
+  consent_whatsapp: false, consent_email: false,
+};
 
 function getInitials(name = "", last = "") {
   return ((name[0] || "") + (last[0] || "")).toUpperCase() || "?";
 }
 
-const EMPTY_FORM = {
-  full_name: "", last_name: "", phone: "", email: "",
-  birth_date: "", blood_type: "", allergies: "",
-  emergency_contact_name: "", emergency_contact_phone: "", notes: "",
-  consent_whatsapp: false, consent_email: false,
-};
-
-const capitalize = (v) => v ? v.charAt(0).toUpperCase() + v.slice(1) : v;
+function calcIMC(weight, height) {
+  const w = parseFloat(weight);
+  const h = parseFloat(height);
+  if (!w || !h || h === 0) return null;
+  return (w / ((h / 100) ** 2)).toFixed(1);
+}
 
 export default function ClinicPatients() {
   const { token, claims } = useOutletContext();
@@ -122,10 +134,18 @@ export default function ClinicPatients() {
   const set = (k) => (e) => setForm(f => ({
     ...f,
     [k]: ["full_name","last_name","emergency_contact_name"].includes(k)
-      ? capitalize(e.target.value)
+      ? (e.target.value ? e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1) : e.target.value)
       : e.target.value
   }));
+  const setNum = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const setCheck = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.checked }));
+  const imc = calcIMC(form.weight_kg, form.height_cm);
+
+  const SectionTitle = ({ children }) => (
+    <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1.5}>
+      {children}
+    </Typography>
+  );
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -256,9 +276,7 @@ export default function ClinicPatients() {
 
             {/* ── Datos personales ── */}
             <Box>
-              <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1.5}>
-                Datos personales
-              </Typography>
+              <SectionTitle>Datos personales</SectionTitle>
               <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
                 <TextField label="Nombre *" fullWidth size="small" value={form.full_name}
                   onChange={set("full_name")} error={!!errors.full_name} helperText={errors.full_name} />
@@ -267,11 +285,25 @@ export default function ClinicPatients() {
                 <TextField label="Teléfono * (10 dígitos)" fullWidth size="small" value={form.phone}
                   onChange={set("phone")} error={!!errors.phone} helperText={errors.phone}
                   inputProps={{ maxLength: 10 }} />
-                <TextField label="Email" fullWidth size="small" value={form.email}
+                <TextField label="Correo electrónico" fullWidth size="small" value={form.email}
                   onChange={set("email")} error={!!errors.email} helperText={errors.email} />
                 <TextField label="Fecha de nacimiento" fullWidth size="small" type="date"
                   value={form.birth_date} onChange={set("birth_date")}
                   InputLabelProps={{ shrink: true }} />
+                <FormControl fullWidth size="small">
+                  <InputLabel>Género</InputLabel>
+                  <Select label="Género" value={form.gender} onChange={set("gender")}>
+                    <MenuItem value=""><em>No especificado</em></MenuItem>
+                    {GENDERS.map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Estado civil</InputLabel>
+                  <Select label="Estado civil" value={form.marital_status} onChange={set("marital_status")}>
+                    <MenuItem value=""><em>No especificado</em></MenuItem>
+                    {MARITAL_STATUS.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                  </Select>
+                </FormControl>
                 <FormControl fullWidth size="small">
                   <InputLabel>Tipo de sangre</InputLabel>
                   <Select label="Tipo de sangre" value={form.blood_type} onChange={set("blood_type")}>
@@ -282,24 +314,59 @@ export default function ClinicPatients() {
               </Box>
             </Box>
 
-            {/* ── Datos clínicos ── */}
+            {/* ── Motivo de consulta ── */}
             <Box>
-              <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1.5}>
-                Datos clínicos
-              </Typography>
+              <SectionTitle>Motivo de consulta</SectionTitle>
+              <TextField label="Motivo de consulta" fullWidth size="small" multiline rows={2}
+                value={form.chief_complaint} onChange={set("chief_complaint")}
+                placeholder="Describa el motivo principal de la consulta…" />
+            </Box>
+
+            {/* ── Antecedentes clínicos ── */}
+            <Box>
+              <SectionTitle>Antecedentes clínicos</SectionTitle>
               <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                <TextField label="APP (Antecedentes Patológicos Personales)" fullWidth size="small"
+                  multiline rows={2} value={form.app_history} onChange={set("app_history")}
+                  placeholder="Enfermedades previas, cirugías, hospitalizaciones…" />
+                <TextField label="Medicamentos actuales" fullWidth size="small"
+                  multiline rows={2} value={form.current_medications} onChange={set("current_medications")}
+                  placeholder="Nombre, dosis y frecuencia…" />
                 <TextField label="Alergias" fullWidth size="small" value={form.allergies}
                   onChange={set("allergies")} placeholder="Ej: Penicilina, látex…" />
-                <TextField label="Notas generales" fullWidth size="small" value={form.notes}
-                  onChange={set("notes")} placeholder="Observaciones iniciales…" />
+              </Box>
+            </Box>
+
+            {/* ── Peso, Talla, IMC ── */}
+            <Box>
+              <SectionTitle>Antropometría</SectionTitle>
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 2 }}>
+                <TextField label="Peso (kg)" fullWidth size="small" type="number"
+                  value={form.weight_kg} onChange={setNum("weight_kg")}
+                  inputProps={{ step: "0.1", min: 0 }} />
+                <TextField label="Talla (cm)" fullWidth size="small" type="number"
+                  value={form.height_cm} onChange={setNum("height_cm")}
+                  inputProps={{ step: "0.1", min: 0 }} />
+                <TextField label="IMC" fullWidth size="small" value={imc ?? "—"}
+                  InputProps={{ readOnly: true }}
+                  sx={{ "& .MuiInputBase-root": { bgcolor: "#f8f9fa" } }} />
+              </Box>
+            </Box>
+
+            {/* ── Diagnósticos ── */}
+            <Box>
+              <SectionTitle>Diagnósticos de ingreso</SectionTitle>
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                <TextField label="Diagnóstico médico" fullWidth size="small" multiline rows={2}
+                  value={form.medical_diagnosis} onChange={set("medical_diagnosis")} />
+                <TextField label="Diagnóstico especializado" fullWidth size="small" multiline rows={2}
+                  value={form.specialist_diagnosis} onChange={set("specialist_diagnosis")} />
               </Box>
             </Box>
 
             {/* ── Contacto de emergencia ── */}
             <Box>
-              <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1.5}>
-                Contacto de emergencia
-              </Typography>
+              <SectionTitle>Contacto de emergencia</SectionTitle>
               <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
                 <TextField label="Nombre del contacto" fullWidth size="small"
                   value={form.emergency_contact_name} onChange={set("emergency_contact_name")} />
@@ -312,9 +379,7 @@ export default function ClinicPatients() {
 
             {/* ── Permisos de comunicación ── */}
             <Box>
-              <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1}>
-                Permisos de comunicación
-              </Typography>
+              <SectionTitle>Permisos de comunicación</SectionTitle>
               <Typography fontSize={12} color="text.secondary" mb={1.5}>
                 El paciente autoriza recibir comunicaciones a través de los siguientes medios:
               </Typography>

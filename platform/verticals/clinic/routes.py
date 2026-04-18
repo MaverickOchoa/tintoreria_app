@@ -150,8 +150,17 @@ def create_patient(
     # Create patient profile
     patient = Patient(
         client_id=client.id,
+        gender=payload.gender,
+        marital_status=payload.marital_status,
         blood_type=payload.blood_type,
         allergies=payload.allergies,
+        app_history=payload.app_history,
+        current_medications=payload.current_medications,
+        weight_kg=payload.weight_kg,
+        height_cm=payload.height_cm,
+        medical_diagnosis=payload.medical_diagnosis,
+        specialist_diagnosis=payload.specialist_diagnosis,
+        chief_complaint=payload.chief_complaint,
         emergency_contact_name=payload.emergency_contact_name,
         emergency_contact_phone=payload.emergency_contact_phone,
     )

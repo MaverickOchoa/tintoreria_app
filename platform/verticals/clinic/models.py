@@ -20,11 +20,31 @@ class Patient(Base):
 
     id = Column(Integer, primary_key=True)
     client_id = Column(Integer, ForeignKey("clients.id"), unique=True, nullable=False, index=True)
+
+    # Datos personales clínicos
+    gender = Column(String(20), nullable=True)           # Masculino / Femenino / Otro
+    marital_status = Column(String(30), nullable=True)   # Soltero, Casado, etc.
     blood_type = Column(String(10), nullable=True)
+    occupation = Column(String(100), nullable=True)
+
+    # Antecedentes y medicamentos
+    app_history = Column(Text, nullable=True)            # APP - Antecedentes Patológicos Personales
+    current_medications = Column(Text, nullable=True)    # Medicamentos actuales
     allergies = Column(Text, nullable=True)
+
+    # Signos vitales / antropometría
+    weight_kg = Column(Float, nullable=True)             # Peso en kg
+    height_cm = Column(Float, nullable=True)             # Talla en cm
+
+    # Diagnósticos de ingreso
+    medical_diagnosis = Column(Text, nullable=True)      # Diagnóstico médico
+    specialist_diagnosis = Column(Text, nullable=True)   # Diagnóstico especializado
+    chief_complaint = Column(Text, nullable=True)        # Motivo de consulta
+
+    # Contacto de emergencia
     emergency_contact_name = Column(String(150), nullable=True)
     emergency_contact_phone = Column(String(20), nullable=True)
-    occupation = Column(String(100), nullable=True)
+
     medical_history = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -34,14 +54,27 @@ class Patient(Base):
 
     def to_dict(self) -> dict:
         client_data = self.client.to_dict() if self.client else {}
+        w = self.weight_kg
+        h = self.height_cm
+        imc = round(w / ((h / 100) ** 2), 1) if w and h and h > 0 else None
         return {
             **client_data,
             "patient_id": self.id,
+            "gender": self.gender,
+            "marital_status": self.marital_status,
             "blood_type": self.blood_type,
+            "occupation": self.occupation,
+            "app_history": self.app_history,
+            "current_medications": self.current_medications,
             "allergies": self.allergies,
+            "weight_kg": self.weight_kg,
+            "height_cm": self.height_cm,
+            "imc": imc,
+            "medical_diagnosis": self.medical_diagnosis,
+            "specialist_diagnosis": self.specialist_diagnosis,
+            "chief_complaint": self.chief_complaint,
             "emergency_contact_name": self.emergency_contact_name,
             "emergency_contact_phone": self.emergency_contact_phone,
-            "occupation": self.occupation,
             "medical_history": self.medical_history,
         }
 

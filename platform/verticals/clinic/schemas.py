@@ -19,8 +19,17 @@ class PatientCreateFull(BaseModel):
     phone: str
     email: Optional[str] = None
     birth_date: Optional[str] = None
+    gender: Optional[str] = None
+    marital_status: Optional[str] = None
     blood_type: Optional[str] = None
     allergies: Optional[str] = None
+    app_history: Optional[str] = None
+    current_medications: Optional[str] = None
+    weight_kg: Optional[float] = None
+    height_cm: Optional[float] = None
+    medical_diagnosis: Optional[str] = None
+    specialist_diagnosis: Optional[str] = None
+    chief_complaint: Optional[str] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
     notes: Optional[str] = None

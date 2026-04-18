@@ -72,6 +72,15 @@ _STARTUP_MIGRATIONS = [
         medical_history TEXT,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )""",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS gender VARCHAR(20)",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS marital_status VARCHAR(30)",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS app_history TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS current_medications TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS weight_kg FLOAT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS height_cm FLOAT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS medical_diagnosis TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS specialist_diagnosis TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS chief_complaint TEXT",
     """CREATE TABLE IF NOT EXISTS clinic_services (
         id SERIAL PRIMARY KEY,
         business_id INTEGER NOT NULL REFERENCES businesses(id),
