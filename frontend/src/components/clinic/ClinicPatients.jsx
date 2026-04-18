@@ -14,6 +14,15 @@ import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { CLINIC_API } from "./clinicTheme";
 
+// Defined outside component to avoid re-creation on every render
+function SectionTitle({ children }) {
+  return (
+    <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1.5}>
+      {children}
+    </Typography>
+  );
+}
+
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const GENDERS = ["Masculino", "Femenino", "Otro"];
 const MARITAL_STATUS = ["Soltero/a", "Casado/a", "Divorciado/a", "Viudo/a", "Unión libre"];
@@ -140,12 +149,6 @@ export default function ClinicPatients() {
   const setNum = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const setCheck = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.checked }));
   const imc = calcIMC(form.weight_kg, form.height_cm);
-
-  const SectionTitle = ({ children }) => (
-    <Typography fontSize={11} fontWeight={700} color="#4361ee" textTransform="uppercase" letterSpacing={1} mb={1.5}>
-      {children}
-    </Typography>
-  );
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
