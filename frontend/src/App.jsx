@@ -255,7 +255,7 @@ function App() {
           </Route>
 
           {/* CLINIC VERTICAL */}
-          <Route element={<ProtectedRoute allowedRoles={["business_admin", "branch_manager", "employee", "super_admin"]} />}>
+          <Route element={<ProtectedRoute allowedRoles={["business_admin", "branch_manager", "employee", "super_admin", "Doctor", "Empleado", "Gerente"]} />}>
             <Route path="/clinic" element={<ClinicLayout />}>
               <Route index element={<Navigate to="/clinic/kanban" replace />} />
               <Route path="kanban" element={<ClinicKanban />} />
