@@ -117,10 +117,34 @@ export default function ClinicPatients() {
     setSaving(true);
     setSaveError(null);
     try {
+      const body = {
+        full_name:               form.full_name.trim(),
+        last_name:               form.last_name.trim() || null,
+        phone:                   form.phone.trim(),
+        email:                   form.email.trim() || null,
+        birth_date:              form.birth_date || null,
+        gender:                  form.gender || null,
+        marital_status:          form.marital_status || null,
+        blood_type:              form.blood_type || null,
+        allergies:               form.allergies.trim() || null,
+        app_history:             form.app_history.trim() || null,
+        current_medications:     form.current_medications.trim() || null,
+        weight_kg:               form.weight_kg !== "" ? parseFloat(form.weight_kg) || null : null,
+        height_cm:               form.height_cm !== "" ? parseFloat(form.height_cm) || null : null,
+        medical_diagnosis:       form.medical_diagnosis.trim() || null,
+        specialist_diagnosis:    form.specialist_diagnosis.trim() || null,
+        chief_complaint:         form.chief_complaint.trim() || null,
+        emergency_contact_name:  form.emergency_contact_name.trim() || null,
+        emergency_contact_phone: form.emergency_contact_phone.trim() || null,
+        notes:                   form.notes.trim() || null,
+        consent_whatsapp:        form.consent_whatsapp,
+        consent_email:           form.consent_email,
+        business_id:             claims.business_id,
+      };
       const r = await fetch(`${CLINIC_API}/clinic/patients`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, business_id: claims.business_id }),
+        body: JSON.stringify(body),
       });
       const data = await r.json();
       if (r.ok) {
@@ -130,7 +154,12 @@ export default function ClinicPatients() {
         setSaveError(null);
         load(search);
       } else {
-        setSaveError(data.detail || `Error ${r.status}: no se pudo crear el paciente`);
+        const msg = typeof data.detail === "string"
+          ? data.detail
+          : Array.isArray(data.detail)
+            ? data.detail.map(d => d.msg || JSON.stringify(d)).join(" | ")
+            : `Error ${r.status}`;
+        setSaveError(msg);
       }
     } catch (err) {
       setSaveError("Error de conexión. Verifica tu red e intenta de nuevo.");
