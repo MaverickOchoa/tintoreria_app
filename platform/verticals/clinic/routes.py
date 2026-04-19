@@ -306,6 +306,24 @@ def portal_records(claims: dict = Depends(get_current_claims), db: Session = Dep
     return {"records": [r.to_dict() for r in records]}
 
 
+@router.get("/portal/form-entries")
+def portal_form_entries(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    """Returns finalized clinical form entries visible to the patient."""
+    if claims.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+    import json as _json
+    entries = (
+        db.query(ClinicalFormEntry)
+        .filter(
+            ClinicalFormEntry.patient_id == claims.get("patient_id"),
+            ClinicalFormEntry.status == "final",
+        )
+        .order_by(ClinicalFormEntry.created_at.desc())
+        .all()
+    )
+    return {"entries": [e.to_dict() for e in entries]}
+
+
 @router.get("/portal/payments")
 def portal_payments(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     if claims.get("role") != "patient":
