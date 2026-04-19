@@ -195,7 +195,7 @@ _STARTUP_MIGRATIONS = [
         patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
         appointment_id INTEGER REFERENCES appointments(id) ON DELETE SET NULL,
         business_id INTEGER NOT NULL REFERENCES businesses(id),
-        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        branch_id INTEGER REFERENCES branches(id),
         form_type VARCHAR(60) NOT NULL DEFAULT 'neurologica',
         form_data TEXT NOT NULL DEFAULT '{}',
         status VARCHAR(20) NOT NULL DEFAULT 'draft',
@@ -205,6 +205,8 @@ _STARTUP_MIGRATIONS = [
     )""",
     "CREATE INDEX IF NOT EXISTS ix_form_entries_patient ON clinical_form_entries(patient_id)",
     "CREATE INDEX IF NOT EXISTS ix_form_entries_appointment ON clinical_form_entries(appointment_id)",
+    # Make branch_id nullable in case table already existed with NOT NULL constraint
+    "ALTER TABLE clinical_form_entries ALTER COLUMN branch_id DROP NOT NULL",
 ]
 
 

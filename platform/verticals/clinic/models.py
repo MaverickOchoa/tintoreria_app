@@ -272,7 +272,7 @@ class ClinicalFormEntry(Base):
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
     appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=True, index=True)
     business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
-    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=True)
     form_type = Column(String(60), nullable=False, default="neurologica")   # extensible to other forms
     form_data = Column(Text, nullable=False, default="{}")                   # JSON blob
     status = Column(String(20), nullable=False, default="draft")             # draft | final

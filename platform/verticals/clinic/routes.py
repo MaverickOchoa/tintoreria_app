@@ -954,14 +954,14 @@ def create_form_entry(
     branch_id = payload.get("branch_id") or claims.get("active_branch_id") or claims.get("branch_id")
     if not business_id:
         raise HTTPException(status_code=422, detail="business_id es requerido.")
-    if not branch_id:
-        branch_id = 0  # fallback seguro si no hay branch en claims
+    # branch_id es opcional — la tabla lo acepta NULL
+    branch_id_val = int(branch_id) if branch_id and int(branch_id) != 0 else None
 
     entry = ClinicalFormEntry(
         patient_id=patient_id,
         appointment_id=payload.get("appointment_id"),
         business_id=int(business_id),
-        branch_id=int(branch_id),
+        branch_id=branch_id_val,
         form_type=payload.get("form_type", "neurologica"),
         form_data=json.dumps(payload.get("form_data", {})),
         status=payload.get("status", "draft"),
