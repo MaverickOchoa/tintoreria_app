@@ -47,13 +47,22 @@ export default function ClinicPatientProfile() {
       safe(fetch(`${CLINIC_API}/clinic/patients/${patientId}`, { headers })),
       safe(fetch(`${CLINIC_API}/clinic/patients/${patientId}/records`, { headers })),
       safe(fetch(`${CLINIC_API}/clinic/appointments?patient_id=${patientId}`, { headers })),
-      safe(fetch(`${CLINIC_API}/clinic/patients/${patientId}/form-entries`, { headers })),
-    ]).then(([p, rec, apt, fe]) => {
+    ]).then(([p, rec, apt]) => {
       setPatient(p?.id ? p : null);
       setRecords(rec.records || []);
       setAppointments(apt.appointments || []);
-      setFormEntries(fe.entries || []);
     }).finally(() => setLoading(false));
+  }, [patientId, token]);
+
+  // Fetch form-entries independently so other errors don't block it
+  useEffect(() => {
+    if (!token || !patientId) return;
+    fetch(`${CLINIC_API}/clinic/patients/${patientId}/form-entries`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : { entries: [] })
+      .then(data => setFormEntries(data.entries || []))
+      .catch(() => setFormEntries([]));
   }, [patientId, token]);
 
   const openEdit = () => {
