@@ -10,6 +10,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PersonIcon from "@mui/icons-material/Person";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { STATUS_CONFIG, DOCTOR_COLORS, CLINIC_API } from "./clinicTheme";
 import ClinicNewAppointment from "./ClinicNewAppointment";
 import ClinicRecordModal from "./ClinicRecordModal";
@@ -21,7 +22,7 @@ function getDoctorColor(doctorId) {
   return DOCTOR_COLORS[doctorId % DOCTOR_COLORS.length];
 }
 
-function AptCard({ apt, onStatusChange, onViewRecord, doctorColorMap }) {
+function AptCard({ apt, onStatusChange, onViewRecord, onOpenHoja, doctorColorMap }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const cfg = STATUS_CONFIG[apt.status] || STATUS_CONFIG["Agendada"];
   const time = apt.scheduled_at
@@ -98,12 +99,15 @@ function AptCard({ apt, onStatusChange, onViewRecord, doctorColorMap }) {
         <MenuItem dense onClick={() => { onViewRecord(apt); setAnchorEl(null); }}>
           <MedicalServicesIcon fontSize="small" sx={{ mr: 1 }} /> Ver / Crear expediente
         </MenuItem>
+        <MenuItem dense onClick={() => { onOpenHoja(apt); setAnchorEl(null); }}>
+          <DescriptionIcon fontSize="small" sx={{ mr: 1 }} /> Hoja Clínica
+        </MenuItem>
       </Menu>
     </Paper>
   );
 }
 
-function KanbanColumn({ status, appointments, onStatusChange, onViewRecord, doctorColorMap }) {
+function KanbanColumn({ status, appointments, onStatusChange, onViewRecord, onOpenHoja, doctorColorMap }) {
   const cfg = STATUS_CONFIG[status];
   return (
     <Box sx={{
@@ -141,6 +145,7 @@ function KanbanColumn({ status, appointments, onStatusChange, onViewRecord, doct
             apt={apt}
             onStatusChange={onStatusChange}
             onViewRecord={onViewRecord}
+            onOpenHoja={onOpenHoja}
             doctorColorMap={doctorColorMap}
           />
         ))}
@@ -151,6 +156,7 @@ function KanbanColumn({ status, appointments, onStatusChange, onViewRecord, doct
 
 export default function ClinicKanban() {
   const { token, claims } = useOutletContext();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openNew, setOpenNew] = useState(false);
@@ -254,6 +260,7 @@ export default function ClinicKanban() {
                 appointments={byStatus(status)}
                 onStatusChange={handleStatusChange}
                 onViewRecord={setRecordApt}
+                onOpenHoja={(apt) => navigate(`/clinic/patients/${apt.patient_id}/hoja-clinica?appointment_id=${apt.id}`)}
                 doctorColorMap={doctorColorMap}
               />
             ))}
