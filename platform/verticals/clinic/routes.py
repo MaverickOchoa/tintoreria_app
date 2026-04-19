@@ -17,7 +17,7 @@ from core.models.client import Client
 from verticals.clinic.models import (
     Patient, Appointment, ClinicalRecord, ClinicService, AppointmentStatus,
     BranchSchedule, BranchMessage, ClinicPromotion,
-    DoctorSchedule, DoctorScheduleBlock,
+    DoctorSchedule, DoctorScheduleBlock, ClinicalFormEntry,
 )
 from verticals.clinic.schemas import (
     PatientCreate, PatientCreateFull, PatientUpdate,
@@ -899,5 +899,104 @@ def delete_doctor_block(
     if not block:
         raise HTTPException(status_code=404, detail="Bloqueo no encontrado.")
     db.delete(block)
+    db.commit()
+    return
+
+
+# ─── Clinical Form Entries ─────────────────────────────────────────────────────
+
+@router.get("/patients/{patient_id}/form-entries")
+def list_form_entries(
+    patient_id: int,
+    form_type: Optional[str] = None,
+    appointment_id: Optional[int] = None,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    """List all form entries for a patient (optionally filtered by form_type or appointment)."""
+    q = db.query(ClinicalFormEntry).filter(ClinicalFormEntry.patient_id == patient_id)
+    if form_type:
+        q = q.filter(ClinicalFormEntry.form_type == form_type)
+    if appointment_id:
+        q = q.filter(ClinicalFormEntry.appointment_id == appointment_id)
+    entries = q.order_by(ClinicalFormEntry.created_at.desc()).all()
+    return {"entries": [e.to_dict() for e in entries]}
+
+
+@router.get("/form-entries/{entry_id}")
+def get_form_entry(
+    entry_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    entry = db.query(ClinicalFormEntry).filter_by(id=entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Formulario no encontrado.")
+    return entry.to_dict()
+
+
+@router.post("/form-entries", status_code=201)
+def create_form_entry(
+    payload: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    import json
+    patient_id = payload.get("patient_id")
+    if not patient_id:
+        raise HTTPException(status_code=422, detail="patient_id es requerido.")
+    patient = db.query(Patient).filter_by(id=patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+    entry = ClinicalFormEntry(
+        patient_id=patient_id,
+        appointment_id=payload.get("appointment_id"),
+        business_id=payload.get("business_id") or patient.client.business_id,
+        branch_id=payload.get("branch_id") or patient.client.branch_id or 0,
+        form_type=payload.get("form_type", "neurologica"),
+        form_data=json.dumps(payload.get("form_data", {})),
+        status=payload.get("status", "draft"),
+        created_by=claims.get("username") or claims.get("sub"),
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry.to_dict()
+
+
+@router.patch("/form-entries/{entry_id}")
+def update_form_entry(
+    entry_id: int,
+    payload: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    import json
+    entry = db.query(ClinicalFormEntry).filter_by(id=entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Formulario no encontrado.")
+    if "form_data" in payload:
+        entry.form_data = json.dumps(payload["form_data"])
+    if "status" in payload:
+        entry.status = payload["status"]
+    if "appointment_id" in payload:
+        entry.appointment_id = payload["appointment_id"]
+    from datetime import datetime as _dt
+    entry.updated_at = _dt.utcnow()
+    db.commit()
+    db.refresh(entry)
+    return entry.to_dict()
+
+
+@router.delete("/form-entries/{entry_id}", status_code=204)
+def delete_form_entry(
+    entry_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    entry = db.query(ClinicalFormEntry).filter_by(id=entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Formulario no encontrado.")
+    db.delete(entry)
     db.commit()
     return

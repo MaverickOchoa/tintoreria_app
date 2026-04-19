@@ -189,6 +189,22 @@ _STARTUP_MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS ix_patients_client ON patients(client_id)",
     "CREATE INDEX IF NOT EXISTS ix_doctor_schedule_doctor ON clinic_doctor_schedules(doctor_id)",
     "CREATE INDEX IF NOT EXISTS ix_doctor_blocks_date ON clinic_doctor_blocks(blocked_date)",
+    # Clinical form entries (structured forms per appointment)
+    """CREATE TABLE IF NOT EXISTS clinical_form_entries (
+        id SERIAL PRIMARY KEY,
+        patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+        appointment_id INTEGER REFERENCES appointments(id) ON DELETE SET NULL,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        form_type VARCHAR(60) NOT NULL DEFAULT 'neurologica',
+        form_data TEXT NOT NULL DEFAULT '{}',
+        status VARCHAR(20) NOT NULL DEFAULT 'draft',
+        created_by VARCHAR(120),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_form_entries_patient ON clinical_form_entries(patient_id)",
+    "CREATE INDEX IF NOT EXISTS ix_form_entries_appointment ON clinical_form_entries(appointment_id)",
 ]
 
 

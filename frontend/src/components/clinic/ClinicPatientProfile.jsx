@@ -9,6 +9,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { CLINIC_API, STATUS_CONFIG } from "./clinicTheme";
 
 function InfoRow({ label, value }) {
@@ -103,6 +104,15 @@ export default function ClinicPatientProfile() {
           <Button startIcon={<EditIcon />} size="small" onClick={openEdit}
             sx={{ borderRadius: 2, border: "1px solid #e0e0e0" }}>
             Editar perfil clínico
+          </Button>
+          <Button
+            startIcon={<DescriptionIcon />}
+            size="small"
+            variant="contained"
+            onClick={() => navigate(`/clinic/patients/${patientId}/hoja-clinica`)}
+            sx={{ borderRadius: 2, bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, fontWeight: 700 }}
+          >
+            Hoja Clínica
           </Button>
         </Box>
       </Box>

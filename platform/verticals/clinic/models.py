@@ -264,6 +264,42 @@ class Appointment(Base):
         }
 
 
+class ClinicalFormEntry(Base):
+    """Structured clinical form data per appointment (one row per form per visit)."""
+    __tablename__ = "clinical_form_entries"
+
+    id = Column(Integer, primary_key=True)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
+    appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
+    form_type = Column(String(60), nullable=False, default="neurologica")   # extensible to other forms
+    form_data = Column(Text, nullable=False, default="{}")                   # JSON blob
+    status = Column(String(20), nullable=False, default="draft")             # draft | final
+    created_by = Column(String(120), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    patient = relationship("Patient", backref="form_entries")
+    appointment = relationship("Appointment", backref="form_entries")
+
+    def to_dict(self) -> dict:
+        import json
+        return {
+            "id": self.id,
+            "patient_id": self.patient_id,
+            "appointment_id": self.appointment_id,
+            "business_id": self.business_id,
+            "branch_id": self.branch_id,
+            "form_type": self.form_type,
+            "form_data": json.loads(self.form_data) if self.form_data else {},
+            "status": self.status,
+            "created_by": self.created_by,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
 class ClinicalRecord(Base):
     __tablename__ = "clinical_records"
 
