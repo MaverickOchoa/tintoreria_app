@@ -10,6 +10,10 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import DescriptionIcon from "@mui/icons-material/Description";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import AddIcon from "@mui/icons-material/Add";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DraftIcon from "@mui/icons-material/EditNote";
 import { CLINIC_API, STATUS_CONFIG } from "./clinicTheme";
 
 function InfoRow({ label, value }) {
@@ -30,6 +34,7 @@ export default function ClinicPatientProfile() {
   const [patient, setPatient] = useState(null);
   const [records, setRecords] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [formEntries, setFormEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({});
@@ -41,10 +46,12 @@ export default function ClinicPatientProfile() {
       fetch(`${CLINIC_API}/clinic/patients/${patientId}`, { headers }).then(r => r.json()),
       fetch(`${CLINIC_API}/clinic/patients/${patientId}/records`, { headers }).then(r => r.json()),
       fetch(`${CLINIC_API}/clinic/appointments?patient_id=${patientId}`, { headers }).then(r => r.json()),
-    ]).then(([p, rec, apt]) => {
+      fetch(`${CLINIC_API}/clinic/patients/${patientId}/form-entries`, { headers }).then(r => r.json()),
+    ]).then(([p, rec, apt, fe]) => {
       setPatient(p);
       setRecords(rec.records || []);
       setAppointments(apt.appointments || []);
+      setFormEntries(fe.entries || []);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [patientId, token]);
 
@@ -133,6 +140,74 @@ export default function ClinicPatientProfile() {
                 <InfoRow label="Teléfono emergencia" value={patient.emergency_contact_phone} />
               </Grid>
             </Paper>
+
+            {/* ── Hojas Clínicas ───────────────────────────── */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+              <Typography fontWeight={700} fontSize={15}>
+                Hojas Clínicas ({formEntries.length})
+              </Typography>
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => navigate(`/clinic/patients/${patientId}/hoja-clinica`)}
+                variant="contained"
+                sx={{ ml: "auto", borderRadius: 2, bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, fontSize: 12 }}
+              >
+                Nueva hoja
+              </Button>
+            </Box>
+
+            {formEntries.length === 0 ? (
+              <Paper elevation={0} sx={{ border: "1px dashed #c7d2fe", borderRadius: 3, p: 3, textAlign: "center", mb: 3, bgcolor: "#f8f9ff" }}>
+                <DescriptionIcon sx={{ color: "#c7d2fe", fontSize: 36, mb: 1 }} />
+                <Typography color="text.secondary" fontSize={13}>
+                  Sin hojas clínicas. Crea la primera con el botón "Nueva hoja".
+                </Typography>
+              </Paper>
+            ) : (
+              <Box sx={{ mb: 3 }}>
+                {formEntries.map(entry => {
+                  const isFinal = entry.status === "final";
+                  const date = entry.created_at
+                    ? new Date(entry.created_at).toLocaleDateString("es-MX", { dateStyle: "long" })
+                    : `Hoja #${entry.id}`;
+                  return (
+                    <Paper
+                      key={entry.id}
+                      elevation={0}
+                      onClick={() => navigate(`/clinic/patients/${patientId}/hoja-clinica?entry_id=${entry.id}`)}
+                      sx={{
+                        display: "flex", alignItems: "center", gap: 2, p: 2, mb: 1,
+                        border: `1px solid ${isFinal ? "#bbf7d0" : "#e8eaed"}`,
+                        borderRadius: 2, cursor: "pointer",
+                        bgcolor: isFinal ? "#f0fdf4" : "#fff",
+                        "&:hover": { boxShadow: 2, borderColor: "#4361ee" },
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <DescriptionIcon sx={{ color: isFinal ? "#16a34a" : "#9ca3af", fontSize: 28, flexShrink: 0 }} />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography fontSize={13} fontWeight={700}>{date}</Typography>
+                        <Typography fontSize={11} color="text.secondary">
+                          {entry.form_type === "neurologica" ? "Hoja Neurológica" : entry.form_type}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        icon={isFinal ? <CheckCircleIcon sx={{ fontSize: "14px !important" }} /> : <DraftIcon sx={{ fontSize: "14px !important" }} />}
+                        label={isFinal ? "En expediente" : "Borrador"}
+                        size="small"
+                        sx={{
+                          bgcolor: isFinal ? "#dcfce7" : "#f3f4f6",
+                          color: isFinal ? "#16a34a" : "#6b7280",
+                          fontWeight: 700, fontSize: 11,
+                        }}
+                      />
+                      <OpenInNewIcon sx={{ color: "#9ca3af", fontSize: 18 }} />
+                    </Paper>
+                  );
+                })}
+              </Box>
+            )}
 
             {/* Clinical records */}
             <Typography fontWeight={700} fontSize={15} mb={1.5}>

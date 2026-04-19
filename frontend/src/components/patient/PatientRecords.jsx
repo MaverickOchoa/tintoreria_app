@@ -182,9 +182,15 @@ export default function PatientRecords() {
         )
       ) : (
         hojas.length === 0 ? (
-          <Typography color="text.secondary" fontSize={14} textAlign="center" mt={6}>
-            No hay hojas clínicas en tu expediente todavía.
-          </Typography>
+          <Box sx={{ textAlign: "center", mt: 6, px: 2 }}>
+            <DescriptionIcon sx={{ fontSize: 48, color: "#c7d2fe", mb: 1.5 }} />
+            <Typography color="text.secondary" fontSize={14} fontWeight={600}>
+              Sin hojas clínicas todavía
+            </Typography>
+            <Typography color="text.secondary" fontSize={13} mt={0.5}>
+              Tu doctor las agregará a tu expediente después de cada consulta.
+            </Typography>
+          </Box>
         ) : (
           hojas.map(e => <HojaCard key={e.id} entry={e} />)
         )
