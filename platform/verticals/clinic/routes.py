@@ -948,11 +948,20 @@ def create_form_entry(
     patient = db.query(Patient).filter_by(id=patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+
+    # business_id y branch_id vienen del payload o del JWT (no del objeto Client)
+    business_id = payload.get("business_id") or claims.get("business_id")
+    branch_id = payload.get("branch_id") or claims.get("active_branch_id") or claims.get("branch_id")
+    if not business_id:
+        raise HTTPException(status_code=422, detail="business_id es requerido.")
+    if not branch_id:
+        branch_id = 0  # fallback seguro si no hay branch en claims
+
     entry = ClinicalFormEntry(
         patient_id=patient_id,
         appointment_id=payload.get("appointment_id"),
-        business_id=payload.get("business_id") or patient.client.business_id,
-        branch_id=payload.get("branch_id") or patient.client.branch_id or 0,
+        business_id=int(business_id),
+        branch_id=int(branch_id),
         form_type=payload.get("form_type", "neurologica"),
         form_data=json.dumps(payload.get("form_data", {})),
         status=payload.get("status", "draft"),

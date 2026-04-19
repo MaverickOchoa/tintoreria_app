@@ -139,7 +139,7 @@ export default function ClinicFormHoja() {
   const [searchParams] = useSearchParams();
   const entryId = searchParams.get("entry_id");
   const appointmentId = searchParams.get("appointment_id");
-  const { token } = useOutletContext();
+  const { token, claims } = useOutletContext();
   const navigate = useNavigate();
 
   const [patient, setPatient] = useState(null);
@@ -288,6 +288,8 @@ export default function ClinicFormHoja() {
       const body = {
         patient_id: Number(patientId),
         appointment_id: appointmentId ? Number(appointmentId) : null,
+        business_id: claims?.business_id,
+        branch_id: claims?.active_branch_id || claims?.branch_id,
         form_type: "neurologica",
         form_data: form,
         status: finalStatus,
