@@ -324,6 +324,23 @@ def portal_form_entries(claims: dict = Depends(get_current_claims), db: Session 
     return {"entries": [e.to_dict() for e in entries]}
 
 
+@router.get("/portal/form-entries/{entry_id}")
+def portal_form_entry_detail(
+    entry_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    """Returns a single finalized form entry for the authenticated patient."""
+    if claims.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+    entry = db.query(ClinicalFormEntry).filter_by(id=entry_id, status="final").first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Hoja no encontrada.")
+    if entry.patient_id != claims.get("patient_id"):
+        raise HTTPException(status_code=403, detail="Sin acceso a esta hoja.")
+    return entry.to_dict()
+
+
 @router.get("/portal/payments")
 def portal_payments(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     if claims.get("role") != "patient":

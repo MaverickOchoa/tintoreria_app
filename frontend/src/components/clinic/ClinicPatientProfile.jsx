@@ -42,17 +42,18 @@ export default function ClinicPatientProfile() {
 
   useEffect(() => {
     const headers = { Authorization: `Bearer ${token}` };
+    const safe = (p) => p.then(r => r.ok ? r.json() : {}).catch(() => ({}));
     Promise.all([
-      fetch(`${CLINIC_API}/clinic/patients/${patientId}`, { headers }).then(r => r.json()),
-      fetch(`${CLINIC_API}/clinic/patients/${patientId}/records`, { headers }).then(r => r.json()),
-      fetch(`${CLINIC_API}/clinic/appointments?patient_id=${patientId}`, { headers }).then(r => r.json()),
-      fetch(`${CLINIC_API}/clinic/patients/${patientId}/form-entries`, { headers }).then(r => r.json()),
+      safe(fetch(`${CLINIC_API}/clinic/patients/${patientId}`, { headers })),
+      safe(fetch(`${CLINIC_API}/clinic/patients/${patientId}/records`, { headers })),
+      safe(fetch(`${CLINIC_API}/clinic/appointments?patient_id=${patientId}`, { headers })),
+      safe(fetch(`${CLINIC_API}/clinic/patients/${patientId}/form-entries`, { headers })),
     ]).then(([p, rec, apt, fe]) => {
-      setPatient(p);
+      setPatient(p?.id ? p : null);
       setRecords(rec.records || []);
       setAppointments(apt.appointments || []);
       setFormEntries(fe.entries || []);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).finally(() => setLoading(false));
   }, [patientId, token]);
 
   const openEdit = () => {
