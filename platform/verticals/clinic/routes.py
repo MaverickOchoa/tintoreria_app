@@ -36,13 +36,16 @@ PORTAL_URL = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patien
 
 
 def _send_patient_credentials(email: str, full_name: str, username: str, password: str) -> bool:
-    if not SENDGRID_KEY or not email:
-        logger.warning("Email not sent: SENDGRID_KEY missing or no email address.")
+    sendgrid_key  = os.getenv("SENDGRID_API_KEY", "")
+    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
+    portal_url    = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patient/login")
+    if not sendgrid_key or not email:
+        logger.warning("Email not sent: SENDGRID_API_KEY missing or no email. Key set: %s", bool(sendgrid_key))
         return False
     try:
-        sg = sg_module.SendGridAPIClient(SENDGRID_KEY)
+        sg = sg_module.SendGridAPIClient(sendgrid_key)
         message = Mail(
-            from_email=SENDER_EMAIL,
+            from_email=sender_email,
             to_emails=email,
             subject="Bienvenido a Zentro Clinic — Tus credenciales de acceso",
             html_content=f"""
@@ -55,7 +58,7 @@ def _send_patient_credentials(email: str, full_name: str, username: str, passwor
                 <p style="margin:4px 0;color:#555">Contraseña temporal: <strong>{password}</strong></p>
                 <p style="margin:12px 0 0;color:#888;font-size:12px">Tu contraseña temporal es tu número de teléfono. Te recomendamos cambiarla después de tu primer acceso.</p>
               </div>
-              <a href="{PORTAL_URL}" style="display:inline-block;background:#4361ee;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Acceder a mi portal</a>
+              <a href="{portal_url}" style="display:inline-block;background:#4361ee;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Acceder a mi portal</a>
               <p style="color:#aaa;font-size:12px;margin-top:24px">Zentro Clinic · Powered by Zentro</p>
             </div>
             """
