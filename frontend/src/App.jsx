@@ -77,6 +77,9 @@ import ClinicServices from "./components/clinic/ClinicServices.jsx";
 import ClinicPayments from "./components/clinic/ClinicPayments.jsx";
 import ClinicUsers from "./components/clinic/ClinicUsers.jsx";
 import ClinicAdminDashboard from "./components/clinic/ClinicAdminDashboard.jsx";
+import FormTemplateManager from "./components/clinic/FormTemplateManager.jsx";
+import FormTemplateEditor from "./components/clinic/FormTemplateEditor.jsx";
+import FormViewer from "./components/clinic/FormViewer.jsx";
 import ManageAgencies from "./components/ManageAgencies.jsx";
 import AgencyAdminDashboard from "./components/AgencyAdminDashboard.jsx";
 
@@ -269,6 +272,10 @@ function App() {
               <Route path="payments" element={<ClinicPayments />} />
               <Route path="users" element={<ClinicUsers />} />
               <Route path="admin" element={<ClinicAdminDashboard />} />
+              <Route path="form-templates" element={<FormTemplateManager />} />
+              <Route path="form-templates/:templateId/edit" element={<FormTemplateEditor />} />
+              <Route path="form-templates/:templateId/fill" element={<FormViewer />} />
+              <Route path="form-templates/:templateId/fill/:entryId" element={<FormViewer />} />
             </Route>
           </Route>
 

@@ -17,6 +17,7 @@ import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import GroupIcon from "@mui/icons-material/Group";
 import StoreIcon from "@mui/icons-material/Store";
 import SettingsIcon from "@mui/icons-material/Settings";
+import ArticleIcon from "@mui/icons-material/Article";
 import LockIcon from "@mui/icons-material/Lock";
 import { BRAND } from "../../brand";
 
@@ -34,6 +35,7 @@ const NAV = [
 ];
 
 const ADMIN_NAV = [
+  { icon: <ArticleIcon />, label: "Formularios", path: "/clinic/form-templates" },
   { icon: <SettingsIcon />, label: "Configuración", path: "/clinic/admin" },
 ];
 
