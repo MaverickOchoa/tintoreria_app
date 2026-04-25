@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form as FForm
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 from datetime import datetime, date, timedelta
-import secrets, string, os, logging
+import secrets, string, os, logging, json, tempfile, io, requests
 
 import sendgrid as sg_module
 from sendgrid.helpers.mail import Mail
@@ -17,7 +18,7 @@ from core.models.client import Client
 from verticals.clinic.models import (
     Patient, Appointment, ClinicalRecord, ClinicService, AppointmentStatus,
     BranchSchedule, BranchMessage, ClinicPromotion,
-    DoctorSchedule, DoctorScheduleBlock, ClinicalFormEntry,
+    DoctorSchedule, DoctorScheduleBlock, ClinicalFormEntry, FormTemplate,
 )
 from verticals.clinic.schemas import (
     PatientCreate, PatientCreateFull, PatientUpdate,
@@ -1044,3 +1045,307 @@ def delete_form_entry(
     db.delete(entry)
     db.commit()
     return
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FORM TEMPLATES — PDF dynamic forms
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _cloudinary_upload(file_bytes: bytes, public_id: str, resource_type: str = "auto") -> str:
+    """Upload bytes to Cloudinary, return secure URL."""
+    import cloudinary
+    import cloudinary.uploader
+    cloudinary.config(
+        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+        api_key=os.getenv("CLOUDINARY_API_KEY", ""),
+        api_secret=os.getenv("CLOUDINARY_API_SECRET", ""),
+    )
+    result = cloudinary.uploader.upload(
+        file_bytes,
+        public_id=public_id,
+        overwrite=True,
+        resource_type=resource_type,
+    )
+    return result["secure_url"]
+
+
+def _detect_fields_from_pdf(pdf_bytes: bytes) -> tuple[list[str], list[dict]]:
+    """
+    Renders PDF pages to images, detects horizontal lines with OpenCV.
+    Returns (page_image_bytes_list, candidate_fields_list).
+    candidate_fields: [{page, x, y, w, h, key, label, type}] all in % of page dims.
+    """
+    import fitz
+    import cv2
+    import numpy as np
+
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    SCALE = 2.5
+    page_images = []
+    all_fields = []
+
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        mat = fitz.Matrix(SCALE, SCALE)
+        pix = page.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+        img_bytes = pix.tobytes("png")
+        page_images.append(img_bytes)
+
+        # OpenCV line detection
+        img_array = np.frombuffer(img_bytes, np.uint8)
+        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        h, w = img.shape[:2]
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY_INV)
+
+        kernel_len = max(10, w // 30)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_len, 1))
+        h_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
+
+        contours, _ = cv2.findContours(h_lines, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        raw = []
+        for cnt in contours:
+            rx, ry, rw, rh = cv2.boundingRect(cnt)
+            if rw < w * 0.05:
+                continue
+            cy = ry + rh // 2
+            raw.append({
+                "x0_pct": round(rx / w * 100, 2),
+                "y_pct":  round(cy / h * 100, 2),
+                "w_pct":  round(rw / w * 100, 2),
+            })
+
+        raw.sort(key=lambda l: (round(l["y_pct"] * 2) / 2, l["x0_pct"]))
+
+        # Deduplicate nearby lines
+        deduped = []
+        for ln in raw:
+            if not deduped or abs(ln["y_pct"] - deduped[-1]["y_pct"]) > 0.4 or abs(ln["x0_pct"] - deduped[-1]["x0_pct"]) > 2:
+                deduped.append(ln)
+
+        # Convert to field candidates
+        for i, ln in enumerate(deduped):
+            all_fields.append({
+                "key":   f"p{page_num + 1}_field_{i:02d}",
+                "label": f"Campo {i + 1}",
+                "type":  "text",
+                "page":  page_num,
+                "x":     ln["x0_pct"],
+                "y":     ln["y_pct"] - 2.0,    # top of input sits above the line
+                "w":     ln["w_pct"],
+                "h":     2.2,
+            })
+
+    doc.close()
+    return page_images, all_fields
+
+
+@router.post("/form-templates")
+async def create_form_template(
+    name: str = FForm(...),
+    description: str = FForm(""),
+    pdf_file: UploadFile = File(...),
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    """Upload PDF, auto-detect fields, create template."""
+    business_id = claims.get("business_id")
+    if not business_id:
+        raise HTTPException(status_code=400, detail="business_id requerido")
+
+    pdf_bytes = await pdf_file.read()
+    if not pdf_bytes:
+        raise HTTPException(status_code=400, detail="Archivo PDF vacío")
+
+    # Upload original PDF to Cloudinary
+    pdf_public_id = f"clinica/templates/{business_id}/{name.replace(' ', '_')}_original"
+    pdf_url = _cloudinary_upload(pdf_bytes, pdf_public_id, resource_type="raw")
+
+    # Detect fields and render page images
+    try:
+        page_images, fields = _detect_fields_from_pdf(pdf_bytes)
+    except Exception as e:
+        logger.error(f"PDF processing error: {e}")
+        raise HTTPException(status_code=422, detail=f"Error procesando PDF: {str(e)}")
+
+    # Upload page images to Cloudinary
+    pages_urls = []
+    for i, img_bytes in enumerate(page_images):
+        img_public_id = f"clinica/templates/{business_id}/{name.replace(' ', '_')}_p{i+1}"
+        url = _cloudinary_upload(img_bytes, img_public_id, resource_type="image")
+        pages_urls.append(url)
+
+    template = FormTemplate(
+        business_id=business_id,
+        name=name,
+        description=description,
+        pdf_url=pdf_url,
+        pages_urls=json.dumps(pages_urls),
+        field_map=json.dumps(fields),
+    )
+    db.add(template)
+    db.commit()
+    db.refresh(template)
+    return template.to_dict()
+
+
+@router.get("/form-templates")
+def list_form_templates(
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    business_id = claims.get("business_id")
+    templates = db.query(FormTemplate).filter_by(
+        business_id=business_id, is_active=True
+    ).order_by(FormTemplate.created_at.desc()).all()
+    return [t.to_dict() for t in templates]
+
+
+@router.get("/form-templates/{template_id}")
+def get_form_template(
+    template_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    t = db.query(FormTemplate).filter_by(id=template_id).first()
+    if not t:
+        raise HTTPException(status_code=404, detail="Template no encontrado")
+    return t.to_dict()
+
+
+@router.patch("/form-templates/{template_id}/fields")
+def update_template_fields(
+    template_id: int,
+    body: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    """Save the field_map after admin configures it in the visual editor."""
+    t = db.query(FormTemplate).filter_by(id=template_id).first()
+    if not t:
+        raise HTTPException(status_code=404, detail="Template no encontrado")
+    if "field_map" in body:
+        t.field_map = json.dumps(body["field_map"])
+    if "name" in body:
+        t.name = body["name"]
+    if "description" in body:
+        t.description = body["description"]
+    t.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(t)
+    return t.to_dict()
+
+
+@router.delete("/form-templates/{template_id}", status_code=204)
+def delete_form_template(
+    template_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    t = db.query(FormTemplate).filter_by(id=template_id).first()
+    if not t:
+        raise HTTPException(status_code=404, detail="Template no encontrado")
+    t.is_active = False
+    db.commit()
+    return
+
+
+@router.post("/form-entries/{entry_id}/generate-pdf")
+def generate_filled_pdf(
+    entry_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a filled PDF by writing form_data values into the original PDF
+    at the positions defined in the template field_map.
+    Returns the URL of the generated PDF (stored in Cloudinary).
+    """
+    import fitz
+
+    entry = db.query(ClinicalFormEntry).filter_by(id=entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Formulario no encontrado")
+
+    if not entry.template_id:
+        raise HTTPException(status_code=400, detail="Este formulario no tiene template asociado")
+
+    template = db.query(FormTemplate).filter_by(id=entry.template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template no encontrado")
+
+    form_data = json.loads(entry.form_data) if entry.form_data else {}
+    field_map = json.loads(template.field_map) if template.field_map else []
+    pages_urls = json.loads(template.pages_urls) if template.pages_urls else []
+
+    # Download original PDF
+    pdf_response = requests.get(template.pdf_url, timeout=30)
+    if not pdf_response.ok:
+        raise HTTPException(status_code=502, detail="No se pudo descargar el PDF original")
+
+    pdf_bytes = pdf_response.content
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+    # Write each field value onto the PDF
+    for field in field_map:
+        key = field.get("key", "")
+        value = str(form_data.get(key, "")).strip()
+        if not value:
+            continue
+
+        page_num = field.get("page", 0)
+        if page_num >= len(doc):
+            continue
+
+        page = doc[page_num]
+        pw = page.rect.width
+        ph = page.rect.height
+
+        # field coords in % → convert to PDF points
+        # field.y is top of input box (the line is at y + h)
+        x_pt = field["x"] / 100 * pw
+        # Write text just above the detected line: y_pt = (y + h - 0.3) / 100 * ph
+        y_pt = (field["y"] + field["h"] - 0.5) / 100 * ph
+
+        # Font size: ~9pt is standard for filled forms
+        font_size = max(7, min(10, field["h"] / 100 * ph * 0.75))
+
+        page.insert_text(
+            (x_pt + 2, y_pt),
+            value,
+            fontsize=font_size,
+            color=(0.1, 0.1, 0.1),
+        )
+
+    # Save filled PDF to bytes
+    filled_bytes = doc.tobytes(deflate=True)
+    doc.close()
+
+    # Upload to Cloudinary
+    public_id = f"clinica/filled/{entry.business_id}/entry_{entry_id}"
+    filled_url = _cloudinary_upload(filled_bytes, public_id, resource_type="raw")
+
+    # Save URL in entry
+    entry.filled_pdf_url = filled_url
+    entry.status = "final"
+    db.commit()
+
+    return {"filled_pdf_url": filled_url, "entry_id": entry_id}
+
+
+@router.patch("/form-entries/{entry_id}/template")
+def assign_template_to_entry(
+    entry_id: int,
+    body: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    """Associate a template_id with an existing form entry."""
+    entry = db.query(ClinicalFormEntry).filter_by(id=entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Formulario no encontrado")
+    entry.template_id = body.get("template_id")
+    db.commit()
+    return {"ok": True}

@@ -264,6 +264,36 @@ class Appointment(Base):
         }
 
 
+class FormTemplate(Base):
+    """PDF form template uploaded by a clinic admin. Stores field map as JSON."""
+    __tablename__ = "form_templates"
+
+    id = Column(Integer, primary_key=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    pdf_url = Column(Text, nullable=False)                # original PDF on Cloudinary
+    pages_urls = Column(Text, nullable=False, default="[]")  # JSON array of page image URLs
+    field_map = Column(Text, nullable=False, default="[]")   # JSON: [{key,page,x,y,w,h,label,type}]
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def to_dict(self) -> dict:
+        import json
+        return {
+            "id": self.id,
+            "business_id": self.business_id,
+            "name": self.name,
+            "description": self.description,
+            "pdf_url": self.pdf_url,
+            "pages_urls": json.loads(self.pages_urls) if self.pages_urls else [],
+            "field_map": json.loads(self.field_map) if self.field_map else [],
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class ClinicalFormEntry(Base):
     """Structured clinical form data per appointment (one row per form per visit)."""
     __tablename__ = "clinical_form_entries"
@@ -273,15 +303,18 @@ class ClinicalFormEntry(Base):
     appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=True, index=True)
     business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=True)
-    form_type = Column(String(60), nullable=False, default="neurologica")   # extensible to other forms
-    form_data = Column(Text, nullable=False, default="{}")                   # JSON blob
-    status = Column(String(20), nullable=False, default="draft")             # draft | final
+    template_id = Column(Integer, ForeignKey("form_templates.id"), nullable=True, index=True)
+    form_type = Column(String(60), nullable=False, default="neurologica")
+    form_data = Column(Text, nullable=False, default="{}")       # JSON blob
+    status = Column(String(20), nullable=False, default="draft") # draft | final
+    filled_pdf_url = Column(Text, nullable=True)                 # generated filled PDF
     created_by = Column(String(120), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     patient = relationship("Patient", backref="form_entries")
     appointment = relationship("Appointment", backref="form_entries")
+    template = relationship("FormTemplate", backref="entries")
 
     def to_dict(self) -> dict:
         import json
@@ -291,9 +324,11 @@ class ClinicalFormEntry(Base):
             "appointment_id": self.appointment_id,
             "business_id": self.business_id,
             "branch_id": self.branch_id,
+            "template_id": self.template_id,
             "form_type": self.form_type,
             "form_data": json.loads(self.form_data) if self.form_data else {},
             "status": self.status,
+            "filled_pdf_url": self.filled_pdf_url,
             "created_by": self.created_by,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
