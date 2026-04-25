@@ -207,6 +207,23 @@ _STARTUP_MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS ix_form_entries_appointment ON clinical_form_entries(appointment_id)",
     # Make branch_id nullable in case table already existed with NOT NULL constraint
     "ALTER TABLE clinical_form_entries ALTER COLUMN branch_id DROP NOT NULL",
+    # PDF form templates system
+    """CREATE TABLE IF NOT EXISTS form_templates (
+        id          SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        name        VARCHAR(200) NOT NULL,
+        description TEXT,
+        pdf_url     TEXT NOT NULL DEFAULT '',
+        pages_urls  TEXT NOT NULL DEFAULT '[]',
+        field_map   TEXT NOT NULL DEFAULT '[]',
+        is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at  TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_form_templates_business ON form_templates(business_id)",
+    "ALTER TABLE clinical_form_entries ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES form_templates(id)",
+    "ALTER TABLE clinical_form_entries ADD COLUMN IF NOT EXISTS filled_pdf_url TEXT",
+    "CREATE INDEX IF NOT EXISTS ix_cfe_template_id ON clinical_form_entries(template_id)",
 ]
 
 
