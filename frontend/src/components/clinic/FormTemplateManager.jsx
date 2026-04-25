@@ -32,7 +32,7 @@ export default function FormTemplateManager() {
   const load = async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${CLINIC_API}/api/v2/clinic/form-templates`, { headers });
+      const r = await fetch(`${CLINIC_API}/clinic/form-templates`, { headers });
       const data = await r.json();
       setTemplates(Array.isArray(data) ? data : []);
     } catch {
@@ -56,7 +56,7 @@ export default function FormTemplateManager() {
       fd.append("pdf_file", file);
 
       setProgress("Detectando campos automáticamente...");
-      const r = await fetch(`${CLINIC_API}/api/v2/clinic/form-templates`, {
+      const r = await fetch(`${CLINIC_API}/clinic/form-templates`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -79,7 +79,7 @@ export default function FormTemplateManager() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("¿Eliminar este formulario?")) return;
-    await fetch(`${CLINIC_API}/api/v2/clinic/form-templates/${id}`, {
+    await fetch(`${CLINIC_API}/clinic/form-templates/${id}`, {
       method: "DELETE", headers,
     });
     await load();

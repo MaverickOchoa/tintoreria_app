@@ -104,7 +104,7 @@ export default function FormViewer() {
     const loadData = async () => {
       try {
         // Load template
-        const tr = await fetch(`${CLINIC_API}/api/v2/clinic/form-templates/${templateId}`, {
+        const tr = await fetch(`${CLINIC_API}/clinic/form-templates/${templateId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const t = await tr.json();
@@ -112,7 +112,7 @@ export default function FormViewer() {
 
         // Load existing entry if present
         if (entryId) {
-          const er = await fetch(`${CLINIC_API}/api/v2/clinic/form-entries/${entryId}`, {
+          const er = await fetch(`${CLINIC_API}/clinic/form-entries/${entryId}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (er.ok) {
@@ -141,7 +141,7 @@ export default function FormViewer() {
 
       if (!eid) {
         // Create new entry
-        const r = await fetch(`${CLINIC_API}/api/v2/clinic/form-entries`, {
+        const r = await fetch(`${CLINIC_API}/clinic/form-entries`, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -158,7 +158,7 @@ export default function FormViewer() {
         setEntryIdState(eid);
       } else {
         // Update existing
-        const r = await fetch(`${CLINIC_API}/api/v2/clinic/form-entries/${eid}`, {
+        const r = await fetch(`${CLINIC_API}/clinic/form-entries/${eid}`, {
           method: "PATCH",
           headers,
           body: JSON.stringify({
@@ -171,7 +171,7 @@ export default function FormViewer() {
 
       if (andGenerate) {
         setGenerating(true);
-        const r = await fetch(`${CLINIC_API}/api/v2/clinic/form-entries/${eid}/generate-pdf`, {
+        const r = await fetch(`${CLINIC_API}/clinic/form-entries/${eid}/generate-pdf`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
         });

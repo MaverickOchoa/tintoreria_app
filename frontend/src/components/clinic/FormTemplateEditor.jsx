@@ -233,7 +233,7 @@ export default function FormTemplateEditor() {
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    fetch(`${CLINIC_API}/api/v2/clinic/form-templates/${templateId}`, { headers })
+    fetch(`${CLINIC_API}/clinic/form-templates/${templateId}`, { headers })
       .then(r => r.json())
       .then(t => {
         setTemplate(t);
@@ -245,7 +245,7 @@ export default function FormTemplateEditor() {
   const save = async () => {
     setSaving(true);
     try {
-      const r = await fetch(`${CLINIC_API}/api/v2/clinic/form-templates/${templateId}/fields`, {
+      const r = await fetch(`${CLINIC_API}/clinic/form-templates/${templateId}/fields`, {
         method: "PATCH",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ field_map: fields }),
