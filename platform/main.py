@@ -242,6 +242,12 @@ async def apply_migrations():
     except Exception as e:
         logger.error("Startup migration failed: %s", e)
 
+    # Log env var status for debugging
+    import os
+    logger.info("CLOUDINARY_CLOUD_NAME set: %s", bool(os.getenv("CLOUDINARY_CLOUD_NAME")))
+    logger.info("SENDGRID_API_KEY set: %s", bool(os.getenv("SENDGRID_API_KEY")))
+    logger.info("DATABASE_URL set: %s", bool(os.getenv("DATABASE_URL")))
+
 
 _ALLOW_ORIGINS_SET = {
     "https://zentro-iik7.onrender.com",

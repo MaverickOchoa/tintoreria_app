@@ -1159,23 +1159,35 @@ async def create_form_template(
     if not pdf_bytes:
         raise HTTPException(status_code=400, detail="Archivo PDF vacío")
 
+    logger.info(f"[form-templates] Uploading PDF for business {business_id}, size={len(pdf_bytes)}")
+
     # Upload original PDF to Cloudinary
     pdf_public_id = f"clinica/templates/{business_id}/{name.replace(' ', '_')}_original"
-    pdf_url = _cloudinary_upload(pdf_bytes, pdf_public_id, resource_type="raw")
+    try:
+        pdf_url = _cloudinary_upload(pdf_bytes, pdf_public_id, resource_type="raw")
+    except Exception as e:
+        logger.error(f"[form-templates] Cloudinary PDF upload failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Error subiendo PDF a Cloudinary: {str(e)}")
 
-    # Detect fields and render page images
+    logger.info(f"[form-templates] PDF uploaded: {pdf_url}")
+
+    # Detect fields and render page images (optional — skip if libs not available)
+    page_images, fields = [], []
     try:
         page_images, fields = _detect_fields_from_pdf(pdf_bytes)
+        logger.info(f"[form-templates] Detected {len(fields)} fields across {len(page_images)} pages")
     except Exception as e:
-        logger.error(f"PDF processing error: {e}")
-        raise HTTPException(status_code=422, detail=f"Error procesando PDF: {str(e)}")
+        logger.warning(f"[form-templates] Field detection skipped (will use empty map): {e}")
 
     # Upload page images to Cloudinary
     pages_urls = []
     for i, img_bytes in enumerate(page_images):
         img_public_id = f"clinica/templates/{business_id}/{name.replace(' ', '_')}_p{i+1}"
-        url = _cloudinary_upload(img_bytes, img_public_id, resource_type="image")
-        pages_urls.append(url)
+        try:
+            url = _cloudinary_upload(img_bytes, img_public_id, resource_type="image")
+            pages_urls.append(url)
+        except Exception as e:
+            logger.error(f"[form-templates] Page image upload failed page {i}: {e}")
 
     template = FormTemplate(
         business_id=business_id,
@@ -1186,8 +1198,15 @@ async def create_form_template(
         field_map=json.dumps(fields),
     )
     db.add(template)
-    db.commit()
-    db.refresh(template)
+    try:
+        db.commit()
+        db.refresh(template)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[form-templates] DB commit failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Error guardando en base de datos: {str(e)}")
+
+    logger.info(f"[form-templates] Template created id={template.id}")
     return template.to_dict()
 
 
