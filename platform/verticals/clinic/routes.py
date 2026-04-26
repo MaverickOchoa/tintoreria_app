@@ -1053,12 +1053,26 @@ def delete_form_entry(
 
 def _cloudinary_upload(file_bytes: bytes, public_id: str, resource_type: str = "auto") -> str:
     """Upload bytes to Cloudinary, return secure URL."""
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
+    api_key    = os.getenv("CLOUDINARY_API_KEY", "")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET", "")
+
+    if not cloud_name or not api_key or not api_secret:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Cloudinary no está configurado. "
+                "Agrega las variables CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y "
+                "CLOUDINARY_API_SECRET en los Environment Variables de Render."
+            ),
+        )
+
     import cloudinary
     import cloudinary.uploader
     cloudinary.config(
-        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
-        api_key=os.getenv("CLOUDINARY_API_KEY", ""),
-        api_secret=os.getenv("CLOUDINARY_API_SECRET", ""),
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret,
     )
     result = cloudinary.uploader.upload(
         file_bytes,
@@ -1067,6 +1081,21 @@ def _cloudinary_upload(file_bytes: bytes, public_id: str, resource_type: str = "
         resource_type=resource_type,
     )
     return result["secure_url"]
+
+
+@router.get("/form-templates/health")
+def form_templates_health():
+    """Check if form-templates dependencies are configured."""
+    return {
+        "cloudinary_configured": all([
+            os.getenv("CLOUDINARY_CLOUD_NAME"),
+            os.getenv("CLOUDINARY_API_KEY"),
+            os.getenv("CLOUDINARY_API_SECRET"),
+        ]),
+        "cloudinary_cloud_name": os.getenv("CLOUDINARY_CLOUD_NAME", "NOT SET"),
+        "pymupdf_available": False,
+        "opencv_available": False,
+    }
 
 
 def _detect_fields_from_pdf(pdf_bytes: bytes) -> tuple[list[str], list[dict]]:
