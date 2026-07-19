@@ -12,6 +12,7 @@ import atexit
 from datetime import datetime, date, timedelta, time as dt_time
 import os
 from dotenv import load_dotenv
+from .routes import clinical_records
 
 load_dotenv()
 
@@ -255,6 +256,7 @@ class Business(db.Model):
     admin_user = db.relationship('Admin', back_populates='business', uselist=False)
     branches = db.relationship('Branch', backref='owner_business', lazy=True, cascade="all, delete-orphan")
     items = db.relationship('Item', backref='business', lazy=True)
+    clinical_forms = db.relationship('ClinicalForm', back_populates='business', cascade="all, delete-orphan")
     business_hours = db.relationship('BusinessHour', backref='business', lazy=True, cascade="all, delete-orphan")
     holidays = db.relationship('BusinessHoliday', backref='business', lazy=True, cascade="all, delete-orphan")
     def to_dict(self, include_branches=False):
