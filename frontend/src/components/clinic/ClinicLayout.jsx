@@ -22,6 +22,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import { BRAND } from "../../brand";
 
 const CLINIC_API = import.meta.env.VITE_CLINIC_API_URL || "";
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 const SIDEBAR_W = 220;
 const SIDEBAR_COLLAPSED = 64;
 
@@ -32,6 +33,7 @@ const NAV = [
   { icon: <MedicalServicesIcon />, label: "Servicios", path: "/clinic/services" },
   { icon: <ReceiptIcon />, label: "Caja", path: "/clinic/payments" },
   { icon: <GroupIcon />, label: "Equipo", path: "/clinic/users" },
+  { icon: <ArticleIcon />, label: "Subir PDF Hojas", href: `${API_URL}/static/clinical_records.html` },
 ];
 
 const ADMIN_NAV = [
@@ -120,11 +122,11 @@ export default function ClinicLayout() {
     }
   };
 
-  const NavItem = ({ icon, label, path }) => {
-    const active = pathname.startsWith(path);
+  const NavItem = ({ icon, label, path, href }) => {
+    const active = path ? pathname.startsWith(path) : false;
     return (
       <Tooltip title={collapsed ? label : ""} placement="right">
-        <Box onClick={() => navigate(path)} sx={{
+        <Box onClick={() => href ? window.open(href, '_blank') : navigate(path)} sx={{
           display: "flex", alignItems: "center", gap: 1.5,
           px: collapsed ? 1.5 : 2, py: 1, mx: 1, mb: 0.3, borderRadius: 1.5,
           cursor: "pointer",
@@ -195,7 +197,7 @@ export default function ClinicLayout() {
         </Box>
 
         <Box sx={{ flex: 1, py: 1.5 }}>
-          {NAV.map(n => <NavItem key={n.path} {...n} />)}
+          {NAV.map((n, i) => <NavItem key={n.path || i} {...n} />)}
           {isAdmin && (
             <>
               <Divider sx={{ borderColor: "#e5e7eb", my: 1, mx: 1 }} />
