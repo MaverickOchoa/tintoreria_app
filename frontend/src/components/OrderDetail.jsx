@@ -9,7 +9,7 @@ import PrintIcon from "@mui/icons-material/Print";
 import OrderReceipt, { usePrintReceipt } from "./OrderReceipt";
 import JsBarcode from "jsbarcode";
 
-const API = import.meta.env.VITE_API_URL || API;
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 const paymentLabel = { cash: "Efectivo", card: "Tarjeta", points: "Puntos" };
 const payStatusColor = { paid: "success", partial: "warning", pending: "error" };
 const payStatusLabel = { paid: "Pagado", partial: "Pago parcial", pending: "Pendiente de pago" };

@@ -9,7 +9,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import BusinessIcon from "@mui/icons-material/Business";
 import { isValidPhone, isValidEmail } from "../utils";
 
-const API = import.meta.env.VITE_API_URL || API;
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 const emptyForm = {
   name: "", phone: "", email: "",

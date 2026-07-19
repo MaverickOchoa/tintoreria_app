@@ -23,7 +23,7 @@ import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 
 import { toTitleCase } from "../utils";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || API;
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 function CreateBusiness() {
   const [businessName, setBusinessName] = useState("");

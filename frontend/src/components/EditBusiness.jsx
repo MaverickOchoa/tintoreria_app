@@ -8,7 +8,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import { isValidPhone, isValidEmail } from "../utils";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || API;
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 const EMPTY = {
   name: "", rfc: "", curp: "", sime: "", regimen_fiscal: "",

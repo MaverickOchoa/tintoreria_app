@@ -9,7 +9,7 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import EmailIcon from "@mui/icons-material/Email";
 import { toTitleCase, isValidPhone, isValidEmail } from "../utils";
 
-const API = import.meta.env.VITE_API_URL || API;
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 const rowStyle = {
   display: "flex",
