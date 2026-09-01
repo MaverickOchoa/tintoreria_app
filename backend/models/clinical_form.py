@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, func, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-from .database import Base
+from app import db
 
-class ClinicalForm(Base):
+class ClinicalForm(db.Model):
     __tablename__ = "clinical_forms"
     id = Column(Integer, primary_key=True)
     business_id = Column(Integer, ForeignKey('businesses.id'), nullable=False)

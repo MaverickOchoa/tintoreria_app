@@ -3,11 +3,10 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt
 from werkzeug.utils import secure_filename
+from flask_restful import Resource
 
-from ..app import db, api
-from ..models.clinical_form import ClinicalForm
-
-clinical_bp = Blueprint('clinical', __name__)
+from app import db
+from models.clinical_form import ClinicalForm
 
 # Helper to ensure upload directory exists
 def ensure_upload_dir(business_id):
@@ -16,7 +15,7 @@ def ensure_upload_dir(business_id):
     os.makedirs(business_dir, exist_ok=True)
     return business_dir
 
-class ClinicalRecordUploadResource:
+class ClinicalRecordUploadResource(Resource):
     @jwt_required()
     def post(self):
         claims = get_jwt()
@@ -48,7 +47,7 @@ class ClinicalRecordUploadResource:
         db.session.commit()
         return {'success': True, 'record': form.to_dict()}, 201
 
-class ClinicalRecordListResource:
+class ClinicalRecordListResource(Resource):
     @jwt_required()
     def get(self):
         claims = get_jwt()
@@ -58,7 +57,7 @@ class ClinicalRecordListResource:
         records = ClinicalForm.query.filter_by(business_id=business_id).all()
         return {'records': [r.to_dict() for r in records]}, 200
 
-class ClinicalRecordDownloadResource:
+class ClinicalRecordDownloadResource(Resource):
     @jwt_required()
     def get(self, record_id):
         claims = get_jwt()
@@ -69,7 +68,3 @@ class ClinicalRecordDownloadResource:
         directory, filename = os.path.split(os.path.join(current_app.root_path, record.pdf_url))
         return send_from_directory(directory, filename, as_attachment=True)
 
-# Register routes with Flask‑Restful
-api.add_resource(ClinicalRecordUploadResource, '/api/clinical-records/upload')
-api.add_resource(ClinicalRecordListResource, '/api/clinical-records')
-api.add_resource(ClinicalRecordDownloadResource, '/api/clinical-records/<int:record_id>/download')

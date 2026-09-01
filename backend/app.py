@@ -12,7 +12,7 @@ import atexit
 from datetime import datetime, date, timedelta, time as dt_time
 import os
 from dotenv import load_dotenv
-from .routes import clinical_records
+
 
 load_dotenv()
 
@@ -4725,6 +4725,91 @@ api.add_resource(AgencyAssignBusinessResource, '/api/v1/agencies/<int:agency_id>
 api.add_resource(AgencyAdminCreateResource, '/api/v1/agencies/<int:agency_id>/create-admin')
 api.add_resource(AgencyBusinessesResource, '/api/v1/agencies/<int:agency_id>/businesses')
 
+# --- CLINICAL RECORDS (Inline) ---
+from werkzeug.utils import secure_filename
+from flask import send_from_directory
+import os
+
+class ClinicalForm(db.Model):
+    __tablename__ = "clinical_forms"
+    id = db.Column(db.Integer, primary_key=True)
+    business_id = db.Column(db.Integer, db.ForeignKey('businesses.id'), nullable=False)
+    name = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    pdf_url = db.Column(db.String(500), nullable=True)
+    version = db.Column(db.Integer, default=1)
+    schema = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    
+    business = db.relationship('Business', back_populates='clinical_forms')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'business_id': self.business_id,
+            'name': self.name,
+            'description': self.description,
+            'pdf_url': self.pdf_url,
+            'version': self.version,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+def ensure_upload_dir(business_id):
+    upload_root = os.path.join(app.root_path, 'uploads', 'clinical_records')
+    business_dir = os.path.join(upload_root, str(business_id))
+    os.makedirs(business_dir, exist_ok=True)
+    return business_dir
+
+class ClinicalRecordUploadResource(Resource):
+    @jwt_required()
+    def post(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        if not business_id: return {'message': 'Business not found in token'}, 403
+        if 'file' not in request.files: return {'message': 'No file part'}, 400
+        file = request.files['file']
+        if file.filename == '': return {'message': 'No selected file'}, 400
+        if file.mimetype != 'application/pdf': return {'message': 'Only PDF files are allowed'}, 400
+        
+        filename = secure_filename(file.filename)
+        upload_dir = ensure_upload_dir(business_id)
+        file_path = os.path.join(upload_dir, filename)
+        file.save(file_path)
+        
+        form = ClinicalForm(
+            business_id=business_id, name=filename,
+            description='Clinical form uploaded via UI',
+            pdf_url=os.path.relpath(file_path, app.root_path).replace('\\', '/'),
+            version=1
+        )
+        db.session.add(form)
+        db.session.commit()
+        return {'success': True, 'record': form.to_dict()}, 201
+
+class ClinicalRecordListResource(Resource):
+    @jwt_required()
+    def get(self):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        if not business_id: return {'message': 'Business not found in token'}, 403
+        records = ClinicalForm.query.filter_by(business_id=business_id).all()
+        return {'records': [r.to_dict() for r in records]}, 200
+
+class ClinicalRecordDownloadResource(Resource):
+    @jwt_required()
+    def get(self, record_id):
+        claims = get_jwt()
+        business_id = claims.get('business_id')
+        record = ClinicalForm.query.filter_by(id=record_id, business_id=business_id).first_or_404()
+        if not record.pdf_url: return {'message': 'No PDF attached'}, 404
+        directory, filename = os.path.split(os.path.join(app.root_path, record.pdf_url))
+        return send_from_directory(directory, filename, as_attachment=True)
+
+api.add_resource(ClinicalRecordUploadResource, '/api/v1/clinical-records/upload')
+api.add_resource(ClinicalRecordListResource, '/api/v1/clinical-records')
+api.add_resource(ClinicalRecordDownloadResource, '/api/v1/clinical-records/<int:record_id>/download')
 
 if __name__ == '__main__':
     with app.app_context():

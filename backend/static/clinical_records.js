@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const token = localStorage.getItem('access_token'); // Adjust per your auth storage
 
-  const apiBase = '/api/clinical-records';
+  const apiBase = '/api/v1/clinical-records';
 
   const showMessage = (msg, isError = false) => {
     statusEl.textContent = msg;
