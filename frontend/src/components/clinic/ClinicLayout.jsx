@@ -33,7 +33,7 @@ const NAV = [
   { icon: <MedicalServicesIcon />, label: "Servicios", path: "/clinic/services" },
   { icon: <ReceiptIcon />, label: "Caja", path: "/clinic/payments" },
   { icon: <ScienceIcon />, label: "Estudios (Próximamente)", path: "/clinic/studies" },
-  { icon: <ArticleIcon />, label: "Subir PDF Hojas", href: `${API_URL}/static/clinical_records.html?token=${localStorage.getItem('access_token')}` },
+  { icon: <ArticleIcon />, label: "Subir PDF Hojas", path: "/clinic/clinical-records" },
 ];
 
 const ADMIN_NAV = [
