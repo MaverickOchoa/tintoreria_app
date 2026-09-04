@@ -32,7 +32,7 @@ const NAV = [
   { icon: <CalendarMonthIcon />, label: "Agenda", path: "/clinic/calendar" },
   { icon: <MedicalServicesIcon />, label: "Servicios", path: "/clinic/services" },
   { icon: <ReceiptIcon />, label: "Caja", path: "/clinic/payments" },
-  { icon: <ScienceIcon />, label: "Estudios (Próximamente)", path: "/clinic/studies" },
+  { icon: <GroupIcon />, label: "Equipo", path: "/clinic/users" },
   { icon: <ArticleIcon />, label: "Subir PDF Hojas", path: "/clinic/clinical-records" },
 ];
 
