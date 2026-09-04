@@ -32,8 +32,8 @@ const NAV = [
   { icon: <CalendarMonthIcon />, label: "Agenda", path: "/clinic/calendar" },
   { icon: <MedicalServicesIcon />, label: "Servicios", path: "/clinic/services" },
   { icon: <ReceiptIcon />, label: "Caja", path: "/clinic/payments" },
-  { icon: <GroupIcon />, label: "Equipo", path: "/clinic/users" },
-  { icon: <ArticleIcon />, label: "Subir PDF Hojas", href: `${API_URL}/static/clinical_records.html` },
+  { icon: <ScienceIcon />, label: "Estudios (Próximamente)", path: "/clinic/studies" },
+  { icon: <ArticleIcon />, label: "Subir PDF Hojas", href: `${API_URL}/static/clinical_records.html?token=${localStorage.getItem('access_token')}` },
 ];
 
 const ADMIN_NAV = [

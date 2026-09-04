@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusEl = document.getElementById('uploadStatus');
   const recordsList = document.getElementById('recordsList');
 
-  const token = localStorage.getItem('access_token'); // Adjust per your auth storage
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token') || localStorage.getItem('access_token');
 
   const apiBase = '/api/v1/clinical-records';
 
