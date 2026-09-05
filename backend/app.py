@@ -4774,14 +4774,28 @@ class ClinicalRecordUploadResource(Resource):
         if file.mimetype != 'application/pdf': return {'message': 'Only PDF files are allowed'}, 400
         
         filename = secure_filename(file.filename)
-        upload_dir = ensure_upload_dir(business_id)
-        file_path = os.path.join(upload_dir, filename)
-        file.save(file_path)
+        import uuid
+        unique_filename = f"{business_id}/{uuid.uuid4().hex}_{filename}"
+        
+        supabase_url = os.environ.get('SUPABASE_URL')
+        supabase_key = os.environ.get('SUPABASE_KEY')
+        
+        import requests
+        upload_url = f"{supabase_url}/storage/v1/object/clinical-records/{unique_filename}"
+        headers = {
+            "Authorization": f"Bearer {supabase_key}",
+            "apikey": supabase_key,
+            "Content-Type": "application/pdf"
+        }
+        
+        resp = requests.post(upload_url, headers=headers, data=file.read())
+        if not resp.ok:
+            return {'message': f'Failed to upload to cloud: {resp.text}'}, 500
         
         form = ClinicalForm(
             business_id=business_id, name=filename,
             description='Clinical form uploaded via UI',
-            pdf_url=os.path.relpath(file_path, app.root_path).replace('\\', '/'),
+            pdf_url=unique_filename,
             version=1
         )
         db.session.add(form)
@@ -4804,8 +4818,26 @@ class ClinicalRecordDownloadResource(Resource):
         business_id = claims.get('business_id')
         record = ClinicalForm.query.filter_by(id=record_id, business_id=business_id).first_or_404()
         if not record.pdf_url: return {'message': 'No PDF attached'}, 404
-        directory, filename = os.path.split(os.path.join(app.root_path, record.pdf_url))
-        return send_from_directory(directory, filename, as_attachment=True)
+        
+        supabase_url = os.environ.get('SUPABASE_URL')
+        supabase_key = os.environ.get('SUPABASE_KEY')
+        
+        import requests
+        # Create signed url valid for 60 seconds (download parameter forces browser to download)
+        sign_url = f"{supabase_url}/storage/v1/object/sign/clinical-records/{record.pdf_url}?download={record.name}"
+        headers = {
+            "Authorization": f"Bearer {supabase_key}",
+            "apikey": supabase_key,
+            "Content-Type": "application/json"
+        }
+        data = {"expiresIn": 60}
+        resp = requests.post(sign_url, headers=headers, json=data)
+        
+        if resp.ok:
+            signed_url_data = resp.json()
+            return redirect(supabase_url + signed_url_data['signedURL'])
+        else:
+            return {'message': f'File not found in cloud: {resp.text}'}, 404
 
 api.add_resource(ClinicalRecordUploadResource, '/api/v1/clinical-records/upload')
 api.add_resource(ClinicalRecordListResource, '/api/v1/clinical-records')
