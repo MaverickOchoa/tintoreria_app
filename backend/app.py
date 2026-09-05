@@ -4837,7 +4837,7 @@ class ClinicalRecordDownloadResource(Resource):
         
         if resp.ok:
             signed_url_data = resp.json()
-            return redirect(supabase_url + signed_url_data['signedURL'])
+            return redirect(f"{supabase_url}/storage/v1{signed_url_data['signedURL']}")
         else:
             return {'message': f'File not found in cloud: {resp.text}'}, 404
 
