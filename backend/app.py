@@ -34,7 +34,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgres
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-only-fallback-key-change-in-prod')
 app.config['PROPAGATE_EXCEPTIONS'] = True
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB max upload size
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
