@@ -107,14 +107,14 @@ export default function ClinicalRecords() {
             <ListItem key={r.id} divider>
               <ListItemText 
                 primary={r.name} 
-                secondary={new Date(r.uploaded_at).toLocaleString()}
+                secondary={new Date(r.created_at).toLocaleString()}
               />
               <ListItemSecondaryAction>
                 <IconButton 
                   edge="end" 
                   color="primary" 
                   component="a" 
-                  href={`${API_BASE}/api/v1/clinical-records/${r.id}/download`} 
+                  href={`${API_BASE}/api/v1/clinical-records/${r.id}/download?token=${token}`} 
                   target="_blank"
                 >
                   <DownloadIcon />

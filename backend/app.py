@@ -30,9 +30,11 @@ except ImportError:
     _SENDGRID_AVAILABLE = False
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:YoYo158087@localhost/tintoreria_db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://user:password@localhost/tintoreria')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-only-fallback-key-change-in-prod')
+app.config['JWT_TOKEN_LOCATION'] = ['headers', 'query_string']
+app.config['JWT_QUERY_STRING_NAME'] = 'token'
 app.config['PROPAGATE_EXCEPTIONS'] = True
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB max upload size
 
