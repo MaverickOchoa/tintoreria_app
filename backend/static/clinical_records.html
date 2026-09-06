@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Hojas Clínicas - Subida de PDF</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/main.css">
+    <script defer src="/static/clinical_records.js"></script>
+</head>
+<body>
+    <section class="container">
+        <h1>Gestión de Hojas Clínicas</h1>
+        <div class="upload-section">
+            <h2>Subir nueva hoja</h2>
+            <input type="file" id="pdfFile" accept="application/pdf" />
+            <button id="uploadBtn">Subir PDF</button>
+            <p id="uploadStatus" class="status-msg"></p>
+        </div>
+        <hr />
+        <div class="list-section">
+            <h2>Hojas Clínicas Disponibles</h2>
+            <ul id="recordsList" class="records-list"></ul>
+        </div>
+    </section>
+</body>
+</html>
