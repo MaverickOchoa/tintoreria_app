@@ -173,6 +173,8 @@ export default function ClinicCalendar() {
             open={showNewApt}
             onClose={() => setShowNewApt(false)}
             onCreated={() => { setShowNewApt(false); loadAppointments(selectedDate); }}
+            token={token}
+            claims={claims}
           />
         )}
       </Box>
