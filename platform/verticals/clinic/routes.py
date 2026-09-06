@@ -146,8 +146,8 @@ def create_patient(
         branch_id=branch_id,
         username=username,
         password=generate_password_hash(raw_password),
-        consent_whatsapp=payload.consent_whatsapp,
-        consent_email=payload.consent_email,
+        whatsapp_consent=payload.consent_whatsapp,
+        email_consent=payload.consent_email,
     )
     if payload.birth_date:
         try:
@@ -180,7 +180,7 @@ def create_patient(
     db.commit()
     db.refresh(patient)
 
-    # Send credentials — always send if email provided, regardless of consent_email
+    # Send credentials — always send if email provided, regardless of email_consent
     email_sent = False
     if payload.email:
         email_sent = _send_patient_credentials(

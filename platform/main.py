@@ -51,8 +51,8 @@ _STARTUP_MIGRATIONS = [
         PRIMARY KEY (employee_id, role_id)
     )""",
     # Consent columns
-    "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_whatsapp BOOLEAN NOT NULL DEFAULT FALSE",
-    "ALTER TABLE clients ADD COLUMN IF NOT EXISTS consent_email BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE clients ADD COLUMN IF NOT EXISTS whatsapp_consent BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE clients ADD COLUMN IF NOT EXISTS email_consent BOOLEAN NOT NULL DEFAULT FALSE",
     # Clinic core tables
     """CREATE TABLE IF NOT EXISTS patients (
         id SERIAL PRIMARY KEY,
