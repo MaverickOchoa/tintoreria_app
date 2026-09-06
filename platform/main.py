@@ -255,9 +255,9 @@ _ALLOW_ORIGINS_SET = {
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
-    origin = request.headers.get("origin", "")
+    origin = request.headers.get("origin")
     cors_headers = {}
-    if origin in _ALLOW_ORIGINS_SET:
+    if origin:
         cors_headers["Access-Control-Allow-Origin"] = origin
         cors_headers["Access-Control-Allow-Credentials"] = "true"
     return JSONResponse(
