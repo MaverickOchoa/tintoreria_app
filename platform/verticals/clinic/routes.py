@@ -456,6 +456,24 @@ def create_appointment(
     db: Session = Depends(get_db),
 ):
     business_id = claims.get("business_id")
+
+    if payload.doctor_id:
+        end_time = payload.scheduled_at + timedelta(minutes=payload.duration_minutes or 30)
+        day_start = payload.scheduled_at.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        
+        daily_apts = db.query(Appointment).filter(
+            Appointment.doctor_id == payload.doctor_id,
+            Appointment.status.notin_(["Cancelada", "Completada", "No Show"]),
+            Appointment.scheduled_at >= day_start,
+            Appointment.scheduled_at < day_end
+        ).all()
+        
+        for apt in daily_apts:
+            apt_end = apt.scheduled_at + timedelta(minutes=apt.duration_minutes or 30)
+            if payload.scheduled_at < apt_end and end_time > apt.scheduled_at:
+                raise HTTPException(status_code=409, detail="El doctor ya tiene una cita empalmada en ese horario.")
+
     appointment = Appointment(
         business_id=business_id,
         branch_id=payload.branch_id,
@@ -487,7 +505,31 @@ def update_appointment(
     ).first()
     if not apt:
         raise HTTPException(status_code=404, detail="Cita no encontrada.")
-    for field, value in payload.model_dump(exclude_none=True).items():
+
+    # Check overlaps if time or doctor changes
+    new_doctor_id = payload.doctor_id if payload.doctor_id is not None else apt.doctor_id
+    new_status = payload.status if payload.status is not None else apt.status
+    if new_doctor_id and new_status not in ["Cancelada", "Completada", "No Show"]:
+        new_scheduled = payload.scheduled_at if payload.scheduled_at is not None else apt.scheduled_at
+        new_duration = payload.duration_minutes if payload.duration_minutes is not None else apt.duration_minutes
+        end_time = new_scheduled + timedelta(minutes=new_duration or 30)
+        day_start = new_scheduled.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        
+        daily_apts = db.query(Appointment).filter(
+            Appointment.doctor_id == new_doctor_id,
+            Appointment.id != apt.id,
+            Appointment.status.notin_(["Cancelada", "Completada", "No Show"]),
+            Appointment.scheduled_at >= day_start,
+            Appointment.scheduled_at < day_end
+        ).all()
+        
+        for daily_apt in daily_apts:
+            apt_end = daily_apt.scheduled_at + timedelta(minutes=daily_apt.duration_minutes or 30)
+            if new_scheduled < apt_end and end_time > daily_apt.scheduled_at:
+                raise HTTPException(status_code=409, detail="El doctor ya tiene otra cita empalmada en ese nuevo horario.")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(apt, field, value)
     try:
         resolved_status = AppointmentStatus(apt.status)
