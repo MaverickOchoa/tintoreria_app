@@ -7,12 +7,15 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
+import "dayjs/locale/es";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddIcon from "@mui/icons-material/Add";
+import EditCalendarIcon from "@mui/icons-material/EditCalendar";
 import TodayIcon from "@mui/icons-material/Today";
 import { CLINIC_API } from "./clinicTheme";
 import ClinicNewAppointment from "./ClinicNewAppointment";
+import DoctorScheduleModal from "./DoctorScheduleModal";
 
 const API = import.meta.env.VITE_API_URL || "";
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7am - 7pm
@@ -41,6 +44,7 @@ export default function ClinicCalendar() {
   const [filterDoctor, setFilterDoctor] = useState("");
   const [loading, setLoading] = useState(false);
   const [showNewApt, setShowNewApt] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -89,15 +93,22 @@ export default function ClinicCalendar() {
               <Typography variant="body2" color="text.secondary">{selectedDate.format("dddd, D [de] MMMM [de] YYYY")}</Typography>
             </Box>
           </Box>
-          <Box display="flex" alignItems="center" gap={1}>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel>Doctor</InputLabel>
-              <Select label="Doctor" value={filterDoctor} onChange={e => setFilterDoctor(e.target.value)}>
-                <MenuItem value="">Todos</MenuItem>
-                {doctors.map(d => <MenuItem key={d.id} value={d.id}>{d.full_name}</MenuItem>)}
-              </Select>
-            </FormControl>
-            <DatePicker value={selectedDate} onChange={v => v && setSelectedDate(v)}
+            <Box display="flex" alignItems="center" gap={1}>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>Doctor</InputLabel>
+                <Select label="Doctor" value={filterDoctor} onChange={e => setFilterDoctor(e.target.value)}>
+                  <MenuItem value="">Todos</MenuItem>
+                  {doctors.map(d => <MenuItem key={d.id} value={d.id}>{d.full_name}</MenuItem>)}
+                </Select>
+              </FormControl>
+              {filterDoctor && (
+                <Tooltip title="Horarios de este Doctor">
+                  <IconButton color="primary" onClick={() => setShowScheduleModal(true)}>
+                    <EditCalendarIcon />
+                  </IconButton>
+                </Tooltip>
+              )}
+              <DatePicker value={selectedDate} onChange={v => v && setSelectedDate(v)}
               slotProps={{ textField: { size: "small" } }} />
             <IconButton onClick={prevDay}><ChevronLeftIcon /></IconButton>
             <Button variant="outlined" size="small" onClick={today}>Hoy</Button>
@@ -175,6 +186,15 @@ export default function ClinicCalendar() {
             onCreated={() => { setShowNewApt(false); loadAppointments(selectedDate); }}
             token={token}
             claims={claims}
+          />
+        )}
+        
+        {showScheduleModal && (
+          <DoctorScheduleModal
+            open={showScheduleModal}
+            onClose={() => setShowScheduleModal(false)}
+            doctorId={filterDoctor}
+            token={token}
           />
         )}
       </Box>
