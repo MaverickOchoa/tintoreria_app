@@ -462,6 +462,28 @@ def create_appointment(
         day_start = payload.scheduled_at.replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = day_start + timedelta(days=1)
         
+        # Validar horario laboral
+        from core.models.user import DoctorSchedule
+        sch = db.query(DoctorSchedule).filter_by(
+            doctor_id=payload.doctor_id,
+            day_of_week=payload.scheduled_at.weekday()
+        ).first()
+        
+        req_start = payload.scheduled_at.strftime("%H:%M")
+        req_end = end_time.strftime("%H:%M")
+        
+        if sch:
+            if not sch.is_working:
+                raise HTTPException(status_code=409, detail="El doctor no trabaja este día.")
+            if req_start < sch.start_time or req_end > sch.end_time:
+                raise HTTPException(status_code=409, detail=f"Horario fuera del turno ({sch.start_time} a {sch.end_time}).")
+        else:
+            # Default schedule if not configured
+            if payload.scheduled_at.weekday() == 6:
+                raise HTTPException(status_code=409, detail="El doctor no trabaja este día (Domingo).")
+            if req_start < "09:00" or req_end > "18:00":
+                raise HTTPException(status_code=409, detail="Horario fuera del turno (09:00 a 18:00).")
+
         daily_apts = db.query(Appointment).filter(
             Appointment.doctor_id == payload.doctor_id,
             Appointment.status.notin_(["Cancelada", "Completada", "No Show"]),
@@ -516,6 +538,27 @@ def update_appointment(
         day_start = new_scheduled.replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = day_start + timedelta(days=1)
         
+        # Validar horario laboral
+        from core.models.user import DoctorSchedule
+        sch = db.query(DoctorSchedule).filter_by(
+            doctor_id=new_doctor_id,
+            day_of_week=new_scheduled.weekday()
+        ).first()
+        
+        req_start = new_scheduled.strftime("%H:%M")
+        req_end = end_time.strftime("%H:%M")
+        
+        if sch:
+            if not sch.is_working:
+                raise HTTPException(status_code=409, detail="El doctor no trabaja este día.")
+            if req_start < sch.start_time or req_end > sch.end_time:
+                raise HTTPException(status_code=409, detail=f"Horario fuera del turno ({sch.start_time} a {sch.end_time}).")
+        else:
+            if new_scheduled.weekday() == 6:
+                raise HTTPException(status_code=409, detail="El doctor no trabaja este día (Domingo).")
+            if req_start < "09:00" or req_end > "18:00":
+                raise HTTPException(status_code=409, detail="Horario fuera del turno (09:00 a 18:00).")
+
         daily_apts = db.query(Appointment).filter(
             Appointment.doctor_id == new_doctor_id,
             Appointment.id != apt.id,
@@ -1437,5 +1480,35 @@ def assign_template_to_entry(
     if not entry:
         raise HTTPException(status_code=404, detail="Formulario no encontrado")
     entry.template_id = body.get("template_id")
+    db.commit()
+    return {"ok": True}
+
+# ── Doctor Schedules ──────────────────────────────────────────────────────────
+
+@router.get("/doctors/{doctor_id}/schedule")
+def get_doctor_schedule(doctor_id: int, db: Session = Depends(get_db)):
+    from core.models.user import DoctorSchedule
+    schedules = db.query(DoctorSchedule).filter_by(doctor_id=doctor_id).all()
+    # Default schedule if empty
+    if not schedules:
+        return {
+            "schedules": [
+                {"day_of_week": i, "start_time": "09:00", "end_time": "18:00", "is_working": True if i < 6 else False} for i in range(7)
+            ]
+        }
+    return {"schedules": [s.to_dict() for s in schedules]}
+
+@router.put("/doctors/{doctor_id}/schedule")
+def update_doctor_schedule(doctor_id: int, payload: DoctorScheduleUpdate, db: Session = Depends(get_db)):
+    from core.models.user import DoctorSchedule
+    db.query(DoctorSchedule).filter_by(doctor_id=doctor_id).delete()
+    for sch in payload.schedules:
+        db.add(DoctorSchedule(
+            doctor_id=doctor_id,
+            day_of_week=sch.day_of_week,
+            start_time=sch.start_time,
+            end_time=sch.end_time,
+            is_working=sch.is_working
+        ))
     db.commit()
     return {"ok": True}
