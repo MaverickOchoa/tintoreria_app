@@ -68,4 +68,25 @@ class Employee(Base):
             "is_active": self.is_active,
             "must_change_password": self.must_change_password,
             "roles": [r.name for r in self.roles],
+            "role": self.roles[0].name if self.roles else None,
+        }
+
+class DoctorSchedule(Base):
+    __tablename__ = "doctor_schedules"
+
+    id = Column(Integer, primary_key=True)
+    doctor_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False)
+    day_of_week = Column(Integer, nullable=False)  # 0=Monday, 6=Sunday
+    start_time = Column(String(5), nullable=False, default="09:00")
+    end_time = Column(String(5), nullable=False, default="18:00")
+    is_working = Column(Boolean, nullable=False, default=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "doctor_id": self.doctor_id,
+            "day_of_week": self.day_of_week,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "is_working": self.is_working,
         }

@@ -67,6 +67,10 @@ export default function ClinicPatientProfile() {
 
   const openEdit = () => {
     setEditForm({
+      full_name: patient?.full_name || "",
+      last_name: patient?.last_name || "",
+      phone: patient?.phone || "",
+      email: patient?.email || "",
       blood_type: patient?.blood_type || "",
       allergies: patient?.allergies || "",
       emergency_contact_name: patient?.emergency_contact_name || "",
@@ -291,11 +295,15 @@ export default function ClinicPatientProfile() {
       </Box>
 
       {/* Edit dialog */}
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-        <DialogTitle fontWeight={800}>Editar Datos Clínicos</DialogTitle>
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle fontWeight={800}>Editar Perfil y Datos Clínicos</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2}>
             {[
+              ["full_name", "Nombre(s)"],
+              ["last_name", "Apellidos"],
+              ["phone", "Teléfono"],
+              ["email", "Correo Electrónico"],
               ["blood_type", "Tipo de sangre"],
               ["occupation", "Ocupación"],
               ["allergies", "Alergias"],

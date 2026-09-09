@@ -40,6 +40,13 @@ class PatientCreateFull(BaseModel):
 
 
 class PatientUpdate(BaseModel):
+    full_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    birth_date: Optional[str] = None
+    gender: Optional[str] = None
+    marital_status: Optional[str] = None
     blood_type: Optional[str] = None
     allergies: Optional[str] = None
     emergency_contact_name: Optional[str] = None
@@ -104,3 +111,13 @@ class ClinicalRecordUpdate(BaseModel):
     prescription: Optional[str] = None
     next_appointment_notes: Optional[str] = None
     vital_signs: Optional[str] = None
+
+
+class DoctorScheduleBase(BaseModel):
+    day_of_week: int = Field(..., ge=0, le=6)
+    start_time: str
+    end_time: str
+    is_working: bool
+
+class DoctorScheduleUpdate(BaseModel):
+    schedules: list[DoctorScheduleBase]

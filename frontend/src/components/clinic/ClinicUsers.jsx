@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import GroupIcon from "@mui/icons-material/Group";
 import EmailIcon from "@mui/icons-material/Email";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -46,12 +47,13 @@ export default function ClinicUsers() {
 
   const [employees, setEmployees] = useState([]);
   const [branches,  setBranches]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [dialog,    setDialog]    = useState(false);
-  const [editing,   setEditing]   = useState(null);
-  const [form,      setForm]      = useState(EMPTY_FORM);
-  const [saving,    setSaving]    = useState(false);
-  const [msg,       setMsg]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [dialog, setDialog] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [msg, setMsg] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -105,6 +107,21 @@ export default function ClinicUsers() {
       val = toTitle(val);
     }
     setForm(p => ({ ...p, [field]: val }));
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      const res = await fetch(`${CLINIC_API}/users/employees/${confirmDelete.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Error al eliminar");
+      setConfirmDelete(null);
+      load();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleSave = async () => {
@@ -224,9 +241,14 @@ export default function ClinicUsers() {
                     <Typography fontSize={11} color="text.secondary">{emp.email || ""}</Typography>
                   </TableCell>
                   <TableCell>
-                    <Tooltip title="Editar">
-                      <IconButton size="small" onClick={() => openEdit(emp)}><EditIcon fontSize="small" /></IconButton>
-                    </Tooltip>
+                    <Box display="flex" gap={1}>
+                      <Tooltip title="Editar">
+                        <IconButton size="small" onClick={() => openEdit(emp)}><EditIcon fontSize="small" /></IconButton>
+                      </Tooltip>
+                      <Tooltip title="Eliminar">
+                        <IconButton size="small" color="error" onClick={() => setConfirmDelete(emp)}><DeleteOutlineIcon fontSize="small" /></IconButton>
+                      </Tooltip>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
@@ -301,6 +323,19 @@ export default function ClinicUsers() {
             sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3451d1" } }}>
             {saving ? <CircularProgress size={18} color="inherit" /> : editing ? "Guardar Cambios" : "Crear y Enviar Credenciales"}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!confirmDelete} onClose={() => setConfirmDelete(null)}>
+        <DialogTitle>¿Eliminar personal?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Estás seguro que deseas eliminar a <strong>{confirmDelete?.full_name}</strong>? Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDelete(null)}>Cancelar</Button>
+          <Button onClick={handleDelete} color="error" variant="contained">Eliminar</Button>
         </DialogActions>
       </Dialog>
     </Box>

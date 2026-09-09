@@ -225,8 +225,22 @@ def update_patient(
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+    
+    client_fields = ["full_name", "last_name", "phone", "email"]
+    
     for field, value in payload.model_dump(exclude_none=True).items():
-        setattr(patient, field, value)
+        if field in client_fields:
+            if patient.client:
+                setattr(patient.client, field, value)
+        elif field == "birth_date":
+            if patient.client:
+                from datetime import datetime
+                try:
+                    patient.client.date_of_birth = datetime.strptime(value, "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+        else:
+            setattr(patient, field, value)
     db.commit()
     return patient.to_dict()
 
