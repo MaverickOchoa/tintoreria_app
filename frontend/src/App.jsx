@@ -6,6 +6,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import GlobalStyles from "@mui/material/GlobalStyles";
 import Box from "@mui/material/Box";
 import theme from "./components/Theme";
+import InstallPWA from "./components/InstallPWA";
 
 // Public
 import Login from "./components/Login.jsx";
@@ -291,6 +292,7 @@ function App() {
             <Route path="records/:entryId" element={<PatientFormView />} />
           </Route>
         </Routes>
+        <InstallPWA />
       </Box>
     </ThemeProvider>
   );
