@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -49,6 +53,15 @@ _STARTUP_MIGRATIONS = [
         employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
         role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
         PRIMARY KEY (employee_id, role_id)
+    )""",
+    """CREATE TABLE IF NOT EXISTS doctor_schedules (
+        id SERIAL PRIMARY KEY,
+        doctor_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+        day_of_week INTEGER NOT NULL CHECK (day_of_week >= 0 AND day_of_week <= 6),
+        start_time VARCHAR(5) NOT NULL DEFAULT '09:00',
+        end_time VARCHAR(5) NOT NULL DEFAULT '18:00',
+        is_working BOOLEAN NOT NULL DEFAULT TRUE,
+        UNIQUE (doctor_id, day_of_week)
     )""",
     # Consent columns
     "ALTER TABLE clients ADD COLUMN IF NOT EXISTS whatsapp_consent BOOLEAN NOT NULL DEFAULT FALSE",
