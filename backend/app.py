@@ -4208,14 +4208,15 @@ def fire_whatsapp_trigger(trigger_type, business_id, client, extra=None):
         app.logger.error(f"[WhatsApp TRIGGER ERROR] {trigger_type}: {e}")
 
 
-def _send_email(to_email, subject, body_text, portal_url=None):
+def _send_email(to_email, subject, body_text, portal_url=None, business_name="Zentro", business_email=None):
     """Send an HTML email via SendGrid. Includes a button if portal_url is provided."""
     api_key = os.environ.get('SENDGRID_API_KEY', '')
-    from_email = os.environ.get('SENDGRID_FROM_EMAIL', 'noreply@zentro.app')
+    sender_email = os.environ.get('SENDGRID_FROM_EMAIL', 'noreply@zentro.app')
     if not api_key or not _SENDGRID_AVAILABLE:
         app.logger.warning("[EMAIL] SendGrid not configured - skipping")
         return
     try:
+        from sendgrid.helpers.mail import Email, ReplyTo
         sg = sendgrid.SendGridAPIClient(api_key=api_key)
         lines_html = "".join(f"<p style='margin:6px 0;color:#374151;'>{l}</p>" for l in body_text.split("\n") if l.strip())
         button_html = ""
@@ -4233,9 +4234,13 @@ def _send_email(to_email, subject, body_text, portal_url=None):
           {lines_html}
           {button_html}
           <hr style='border:none;border-top:1px solid #e5e7eb;margin:24px 0;'>
-          <p style='font-size:12px;color:#9ca3af;text-align:center;'>Zentro Cleaner · Powered by Zentro</p>
+          <p style='font-size:12px;color:#9ca3af;text-align:center;'>{business_name} – Powered by Zentro</p>
         </div>"""
-        message = Mail(from_email=from_email, to_emails=to_email, subject=subject, html_content=html)
+        sender = Email(email=sender_email, name=business_name)
+        message = Mail(from_email=sender, to_emails=to_email, subject=subject, html_content=html)
+        if business_email:
+            message.reply_to = ReplyTo(business_email)
+        
         sg.send(message)
     except Exception as e:
         app.logger.error(f"[EMAIL SEND ERROR] {to_email}: {e}")
@@ -4289,8 +4294,14 @@ def fire_email_trigger(trigger_type, business_id, client, extra=None):
                      .replace('{portal}',    portal))
 
         include_button = trigger_type == 'client_welcome'
+        
+        biz = Business.query.get(business_id)
+        biz_name = biz.name if biz else "Zentro"
+        biz_email = biz.email if biz else None
+
         _send_email(client.email, fill(subject_tpl), fill(body_tpl),
-                    portal_url=portal if include_button else None)
+                    portal_url=portal if include_button else None,
+                    business_name=biz_name, business_email=biz_email)
         try:
             db.session.add(MessageLog(
                 client_id=client.id, business_id=business_id,

@@ -39,16 +39,16 @@ def _generate_username(first: str, last: str, db: Session) -> str:
     return username
 
 
-def _send_staff_credentials(email: str, full_name: str, username: str, password: str):
+def _send_staff_credentials(email: str, full_name: str, username: str, password: str, business_name: str = "Zentro", business_email: str = None):
     api_key = os.getenv("SENDGRID_API_KEY")
-    sender  = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
+    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "noreply@zentro.app")
     if not api_key:
-        logger.warning("SENDGRID_API_KEY not set — skipping staff email")
+        logger.warning("SENDGRID_API_KEY not set - skipping staff email")
         return
     portal_url = f"{FRONTEND_URL}/#/clinic/login"
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:540px;margin:0 auto;padding:24px;border:1px solid #e0e0e0;border-radius:8px">
-      <h2 style="color:#1565c0">Bienvenido a Zentro Clinic</h2>
+      <h2 style="color:#1565c0">Bienvenido a {business_name}</h2>
       <p>Hola <strong>{full_name}</strong>,</p>
       <p>Tu cuenta ha sido creada. Aquí están tus credenciales de acceso:</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0">
@@ -61,20 +61,26 @@ def _send_staff_credentials(email: str, full_name: str, username: str, password:
       <a href="{portal_url}" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1565c0;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold">
         Iniciar Sesión
       </a>
-      <p style="margin-top:24px;font-size:12px;color:#999">Zentro Clinic · Powered by Zentro</p>
+      <p style="margin-top:24px;font-size:12px;color:#999">{business_name} – Powered by Zentro</p>
     </div>
     """
-    message = Mail(
-        from_email=sender,
-        to_emails=email,
-        subject="Bienvenido a Zentro Clinic — Tus credenciales",
-        html_content=html,
-    )
     try:
-        sg = SendGridAPIClient(api_key)
+        from sendgrid.helpers.mail import Email, ReplyTo
+        import sendgrid
+        sg = sendgrid.SendGridAPIClient(api_key=api_key)
+        sender = Email(email=sender_email, name=business_name)
+        message = Mail(
+            from_email=sender,
+            to_emails=email,
+            subject=f"Bienvenido a {business_name} - Tus credenciales",
+            html_content=html,
+        )
+        if business_email:
+            message.reply_to = ReplyTo(business_email)
+        
         sg.send(message)
-    except Exception as exc:
-        logger.error(f"Failed to send staff credentials to {email}: {exc}")
+    except Exception as e:
+        logger.error(f"Failed to send staff email: {e}")
 
 
 @router.get("/roles", response_model=List[RoleOut])
@@ -121,12 +127,18 @@ def create_employee(
     db.commit()
     db.refresh(employee)
 
-    _send_staff_credentials(
-        email=payload.email,
-        full_name=f"{payload.full_name} {payload.last_name or ''}".strip(),
-        username=username,
-        password=temp_password,
-    )
+    from core.models.tenant import Business
+    biz = db.query(Business).filter(Business.id == business_id).first()
+    
+    if payload.email:
+        _send_staff_credentials(
+            email=payload.email,
+            full_name=f"{payload.full_name} {payload.last_name or ''}".strip(),
+            username=username,
+            password=temp_password,
+            business_name=biz.name if biz else "Zentro",
+            business_email=biz.email if biz else None
+        )
 
     return employee.to_dict()
 

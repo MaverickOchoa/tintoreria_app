@@ -36,22 +36,24 @@ SENDER_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
 PORTAL_URL = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patient/login")
 
 
-def _send_patient_credentials(email: str, full_name: str, username: str, password: str) -> bool:
+def _send_patient_credentials(email: str, full_name: str, username: str, password: str, business_name: str = "Zentro", business_email: str = None) -> bool:
     sendgrid_key  = os.getenv("SENDGRID_API_KEY", "")
-    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
+    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "noreply@zentro.app")
     portal_url    = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patient/login")
     if not sendgrid_key or not email:
         logger.warning("Email not sent: SENDGRID_API_KEY missing or no email. Key set: %s", bool(sendgrid_key))
         return False
     try:
+        from sendgrid.helpers.mail import Email, ReplyTo
         sg = sg_module.SendGridAPIClient(sendgrid_key)
+        sender = Email(email=sender_email, name=business_name)
         message = Mail(
-            from_email=sender_email,
+            from_email=sender,
             to_emails=email,
-            subject="Bienvenido a Zentro Clinic — Tus credenciales de acceso",
+            subject=f"Bienvenido a {business_name} — Tus credenciales de acceso",
             html_content=f"""
             <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;background:#f8f9fa;border-radius:12px">
-              <h2 style="color:#4361ee;margin-bottom:4px">Zentro Clinic</h2>
+              <h2 style="color:#4361ee;margin-bottom:4px">{business_name}</h2>
               <p style="color:#555">Hola <strong>{full_name}</strong>, tu perfil ha sido creado.</p>
               <div style="background:#fff;border-radius:8px;padding:20px;margin:20px 0;border:1px solid #e0e0e0">
                 <p style="margin:0 0 8px;color:#333;font-size:15px"><strong>Tus datos de acceso al portal:</strong></p>
@@ -60,10 +62,13 @@ def _send_patient_credentials(email: str, full_name: str, username: str, passwor
                 <p style="margin:12px 0 0;color:#888;font-size:12px">Tu contraseña temporal es tu número de teléfono. Te recomendamos cambiarla después de tu primer acceso.</p>
               </div>
               <a href="{portal_url}" style="display:inline-block;background:#4361ee;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Acceder a mi portal</a>
-              <p style="color:#aaa;font-size:12px;margin-top:24px">Zentro Clinic · Powered by Zentro</p>
+              <p style="color:#aaa;font-size:12px;margin-top:24px">{business_name} – Powered by Zentro</p>
             </div>
             """
         )
+        if business_email:
+            message.reply_to = ReplyTo(business_email)
+        
         response = sg.send(message)
         logger.info(f"Email sent to {email}, status={response.status_code}")
         return True
@@ -180,14 +185,19 @@ def create_patient(
     db.commit()
     db.refresh(patient)
 
-    # Send credentials — always send if email provided, regardless of email_consent
+    # Send credentials - always send if email provided, regardless of email_consent
     email_sent = False
     if payload.email:
+        from core.models.tenant import Business
+        biz = db.query(Business).filter(Business.id == business_id).first()
+        
         email_sent = _send_patient_credentials(
-            payload.email,
-            f"{payload.full_name} {payload.last_name or ''}".strip(),
-            username,
-            raw_password,
+            email=payload.email,
+            full_name=f"{payload.full_name} {payload.last_name or ''}".strip(),
+            username=username,
+            password=raw_password,
+            business_name=biz.name if biz else "Zentro",
+            business_email=biz.email if biz else None
         )
     elif not payload.email:
         logger.warning("Patient created without email — credentials not sent for user %s", username)
