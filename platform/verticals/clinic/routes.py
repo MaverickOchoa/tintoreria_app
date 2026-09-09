@@ -25,6 +25,7 @@ from verticals.clinic.schemas import (
     ClinicServiceCreate, ClinicServiceUpdate,
     AppointmentCreate, AppointmentUpdate,
     ClinicalRecordCreate, ClinicalRecordUpdate,
+    DoctorScheduleUpdate
 )
 
 router = APIRouter(prefix="/clinic", tags=["clinic"])
