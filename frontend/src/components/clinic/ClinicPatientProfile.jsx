@@ -94,6 +94,24 @@ export default function ClinicPatientProfile() {
     setSaving(false);
   };
 
+  const handleResendCredentials = async () => {
+    if (!patientId) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${CLINIC_API}/clinic/patients/${patientId}/resend-credentials`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Error al reenviar credenciales.");
+      alert("Credenciales reenviadas con éxito.");
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return (
     <Box p={3}><Skeleton variant="rectangular" height={200} sx={{ borderRadius: 3, mb: 2 }} />
       {[1, 2, 3].map(i => <Skeleton key={i} variant="rectangular" height={60} sx={{ borderRadius: 2, mb: 1 }} />)}</Box>
@@ -320,13 +338,18 @@ export default function ClinicPatientProfile() {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditOpen(false)}>Cancelar</Button>
-          <Button variant="contained" disabled={saving} startIcon={<SaveIcon />} onClick={handleSaveEdit}
-            sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, fontWeight: 700 }}>
-            Guardar
-          </Button>
-        </DialogActions>
+          <DialogActions sx={{ px: 3, pb: 2, justifyContent: "space-between" }}>
+            <Button color="secondary" onClick={handleResendCredentials} disabled={saving}>
+              Reenviar Credenciales
+            </Button>
+            <Box display="flex" gap={1}>
+              <Button onClick={() => setEditOpen(false)}>Cancelar</Button>
+              <Button variant="contained" disabled={saving} startIcon={<SaveIcon />} onClick={handleSaveEdit}
+                sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, fontWeight: 700 }}>
+                Guardar
+              </Button>
+            </Box>
+          </DialogActions>
       </Dialog>
     </Box>
   );

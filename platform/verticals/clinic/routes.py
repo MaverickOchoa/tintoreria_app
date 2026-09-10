@@ -216,6 +216,46 @@ def get_patient(patient_id: int, claims: dict = Depends(get_current_claims), db:
     return patient.to_dict()
 
 
+@router.post("/patients/{patient_id}/resend-credentials")
+def resend_patient_credentials(
+    patient_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    business_id = claims.get("business_id")
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient or not patient.client:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+    
+    client = patient.client
+    if not client.email:
+        raise HTTPException(status_code=400, detail="El paciente no tiene un correo electrónico configurado.")
+    if not client.phone:
+        raise HTTPException(status_code=400, detail="El paciente no tiene número de teléfono (necesario para la contraseña temporal).")
+    
+    # Generate new temporary password
+    temp_password = client.phone
+    client.password = generate_password_hash(temp_password)
+    db.commit()
+    
+    from core.models.tenant import Business
+    biz = db.query(Business).filter(Business.id == business_id).first()
+    
+    email_sent = _send_patient_credentials(
+        email=client.email,
+        full_name=f"{client.full_name} {client.last_name or ''}".strip(),
+        username=client.username,
+        password=temp_password,
+        business_name=biz.name if biz else "Zentro",
+        business_email=biz.email if biz else None
+    )
+    
+    if not email_sent:
+        raise HTTPException(status_code=500, detail="Error al enviar el correo electrónico.")
+        
+    return {"message": "Credenciales reenviadas con éxito."}
+
+
 @router.put("/patients/{patient_id}")
 def update_patient(
     patient_id: int,

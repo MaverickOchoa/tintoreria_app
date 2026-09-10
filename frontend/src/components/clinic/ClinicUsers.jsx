@@ -127,6 +127,24 @@ export default function ClinicUsers() {
     }
   };
 
+  const handleResendCredentials = async () => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${CLINIC_API}/users/employees/${editing.id}/resend-credentials`, {
+        method: "POST",
+        headers,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Error al reenviar credenciales.");
+      setMsg({ type: "success", text: "Credenciales reenviadas con éxito." });
+    } catch (e) {
+      setMsg({ type: "error", text: e.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!form.full_name.trim()) { setMsg({ type: "error", text: "El nombre es obligatorio." }); return; }
     if (!editing && !form.email.trim()) { setMsg({ type: "error", text: "El correo es obligatorio para enviar las credenciales." }); return; }
@@ -320,12 +338,19 @@ export default function ClinicUsers() {
               InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment> }} />
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialog(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={handleSave} disabled={saving}
-            sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3451d1" } }}>
-            {saving ? <CircularProgress size={18} color="inherit" /> : editing ? "Guardar Cambios" : "Crear y Enviar Credenciales"}
-          </Button>
+        <DialogActions sx={{ justifyContent: editing ? "space-between" : "flex-end", px: 3, pb: 2 }}>
+          {editing ? (
+            <Button color="secondary" onClick={handleResendCredentials} disabled={saving} startIcon={<EmailIcon />}>
+              Reenviar Credenciales
+            </Button>
+          ) : <Box />}
+          <Box gap={1} display="flex">
+            <Button onClick={() => setDialog(false)}>Cancelar</Button>
+            <Button variant="contained" onClick={handleSave} disabled={saving}
+              sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3451d1" } }}>
+              {saving ? <CircularProgress size={18} color="inherit" /> : editing ? "Guardar Cambios" : "Crear y Enviar Credenciales"}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
 

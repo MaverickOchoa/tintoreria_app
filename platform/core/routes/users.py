@@ -162,6 +162,44 @@ def change_password(
     return {"message": "Contraseña actualizada correctamente."}
 
 
+@router.post("/employees/{employee_id}/resend-credentials")
+def resend_employee_credentials(
+    employee_id: int,
+    claims: dict = Depends(require_business_admin),
+    db: Session = Depends(get_db),
+):
+    business_id = claims["business_id"]
+    employee = db.query(Employee).filter(
+        Employee.id == employee_id,
+        Employee.business_id == business_id
+    ).first()
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado.")
+        
+    if not employee.email:
+        raise HTTPException(status_code=400, detail="El empleado no tiene un correo electrónico configurado.")
+        
+    temp_password = employee.phone.strip() if employee.phone else "zentro2024"
+    employee.password = hash_password(temp_password)
+    employee.must_change_password = True
+    db.commit()
+    
+    from core.models.tenant import Business
+    biz = db.query(Business).filter(Business.id == business_id).first()
+    
+    _send_staff_credentials(
+        email=employee.email,
+        full_name=f"{employee.full_name} {employee.last_name or ''}".strip(),
+        username=employee.username,
+        password=temp_password,
+        business_name=biz.name if biz else "Zentro",
+        business_email=biz.email if biz else None
+    )
+    
+    return {"message": "Credenciales reenviadas con éxito."}
+
+
 @router.put("/employees/{employee_id}")
 def update_employee(
     employee_id: int,
