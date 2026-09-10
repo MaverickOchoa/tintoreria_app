@@ -39,7 +39,7 @@ PORTAL_URL = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patien
 
 def _send_patient_credentials(email: str, full_name: str, username: str, password: str, business_name: str = "Zentro", business_email: str = None) -> bool:
     sendgrid_key  = os.getenv("SENDGRID_API_KEY", "")
-    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "noreply@zentro.app")
+    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
     portal_url    = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patient/login")
     if not sendgrid_key or not email:
         logger.warning("Email not sent: SENDGRID_API_KEY missing or no email. Key set: %s", bool(sendgrid_key))

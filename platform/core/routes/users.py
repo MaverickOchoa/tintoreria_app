@@ -41,7 +41,7 @@ def _generate_username(first: str, last: str, db: Session) -> str:
 
 def _send_staff_credentials(email: str, full_name: str, username: str, password: str, business_name: str = "Zentro", business_email: str = None):
     api_key = os.getenv("SENDGRID_API_KEY")
-    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "noreply@zentro.app")
+    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
     if not api_key:
         logger.warning("SENDGRID_API_KEY not set - skipping staff email")
         return

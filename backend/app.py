@@ -4211,7 +4211,7 @@ def fire_whatsapp_trigger(trigger_type, business_id, client, extra=None):
 def _send_email(to_email, subject, body_text, portal_url=None, business_name="Zentro", business_email=None):
     """Send an HTML email via SendGrid. Includes a button if portal_url is provided."""
     api_key = os.environ.get('SENDGRID_API_KEY', '')
-    sender_email = os.environ.get('SENDGRID_FROM_EMAIL', 'noreply@zentro.app')
+    sender_email = os.environ.get('SENDGRID_FROM_EMAIL', 'huttmanochoa@gmail.com')
     if not api_key or not _SENDGRID_AVAILABLE:
         app.logger.warning("[EMAIL] SendGrid not configured - skipping")
         return
