@@ -256,10 +256,20 @@ def delete_patient(
     if not patient:
         raise HTTPException(status_code=404, detail="Paciente no encontrado.")
     client = db.query(Client).filter(Client.id == patient.client_id).first()
-    db.delete(patient)
-    if client:
-        db.delete(client)
-    db.commit()
+    
+    try:
+        from sqlalchemy import text
+        if client:
+            # Delete orphaned message logs
+            db.execute(text("DELETE FROM message_logs WHERE client_id = :cid"), {"cid": client.id})
+        
+        db.delete(patient)
+        if client:
+            db.delete(client)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="No se puede eliminar el paciente porque tiene registros asociados (citas, historial, órdenes de tintorería).")
     return
 
 

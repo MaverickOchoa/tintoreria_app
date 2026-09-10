@@ -69,13 +69,19 @@ export default function ClinicPatients() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await fetch(`${CLINIC_API}/clinic/patients/${deleteTarget.patient_id}`, {
+      const res = await fetch(`${CLINIC_API}/clinic/patients/${deleteTarget.patient_id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || "No se puede eliminar el paciente");
+      }
       setDeleteTarget(null);
       load(search);
-    } catch {}
+    } catch (e) {
+      alert(e.message);
+    }
     setDeleting(false);
   };
 

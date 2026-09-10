@@ -197,5 +197,15 @@ def delete_employee(
     ).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Empleado no encontrado.")
-    db.delete(employee)
-    db.commit()
+    
+    try:
+        from sqlalchemy import text
+        # Clean up safely deletable dependent rows
+        db.execute(text("DELETE FROM clinic_doctor_schedules WHERE doctor_id = :eid"), {"eid": employee.id})
+        db.execute(text("DELETE FROM clinic_doctor_blocks WHERE doctor_id = :eid"), {"eid": employee.id})
+        
+        db.delete(employee)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="No se puede eliminar el empleado porque tiene registros asociados (citas, historial, etc).")

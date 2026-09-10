@@ -116,11 +116,14 @@ export default function ClinicUsers() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Error al eliminar");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || "No se puede eliminar el empleado");
+      }
       setConfirmDelete(null);
       load();
     } catch (err) {
-      console.error(err);
+      alert(err.message);
     }
   };
 
