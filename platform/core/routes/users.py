@@ -40,9 +40,10 @@ def _generate_username(first: str, last: str, db: Session) -> str:
 
 
 def _send_staff_credentials(email: str, full_name: str, username: str, password: str, business_name: str = "Zentro", business_email: str = None):
-    sender_email  = os.getenv("GMAIL_USER", "huttmanochoa@gmail.com")
-    gmail_pass    = os.getenv("GMAIL_APP_PASSWORD", "mzuu fsya ipef scem")
-    if not email:
+    api_key = os.getenv("SENDGRID_API_KEY")
+    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
+    if not api_key:
+        logger.warning("SENDGRID_API_KEY not set - skipping staff email")
         return
     portal_url = f"{FRONTEND_URL}/#/clinic/login"
     html = f"""
@@ -60,29 +61,24 @@ def _send_staff_credentials(email: str, full_name: str, username: str, password:
       <a href="{portal_url}" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1565c0;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold">
         Iniciar Sesión
       </a>
-      <p style="margin-top:24px;font-size:12px;color:#999">{business_name} - Powered by Zentro</p>
+      <p style="margin-top:24px;font-size:12px;color:#999">{business_name} – Powered by Zentro</p>
     </div>
     """
     try:
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        
-        msg = MIMEMultipart()
-        msg['From'] = f"{business_name} <{sender_email}>"
-        msg['To'] = email
-        msg['Subject'] = f"Bienvenido a {business_name} - Tus credenciales"
+        from sendgrid.helpers.mail import Email, ReplyTo
+        import sendgrid
+        sg = sendgrid.SendGridAPIClient(api_key=api_key)
+        sender = Email(email=sender_email, name=business_name)
+        message = Mail(
+            from_email=sender,
+            to_emails=email,
+            subject=f"Bienvenido a {business_name} - Tus credenciales",
+            html_content=html,
+        )
         if business_email:
-            msg['Reply-To'] = business_email
-            
-        msg.attach(MIMEText(html, 'html', 'utf-8'))
+            message.reply_to = ReplyTo(business_email)
         
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender_email, gmail_pass.replace(" ", ""))
-        server.send_message(msg)
-        server.quit()
-        logger.info(f"Staff email sent to {email} via Gmail")
+        sg.send(message)
     except Exception as e:
         logger.error(f"Failed to send staff email: {e}")
 

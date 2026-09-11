@@ -38,45 +38,40 @@ PORTAL_URL = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patien
 
 
 def _send_patient_credentials(email: str, full_name: str, username: str, password: str, business_name: str = "Zentro", business_email: str = None) -> bool:
-    sender_email  = os.getenv("GMAIL_USER", "huttmanochoa@gmail.com")
-    gmail_pass    = os.getenv("GMAIL_APP_PASSWORD", "mzuu fsya ipef scem")
+    sendgrid_key  = os.getenv("SENDGRID_API_KEY", "")
+    sender_email  = os.getenv("SENDGRID_FROM_EMAIL", "huttmanochoa@gmail.com")
     portal_url    = os.getenv("PATIENT_PORTAL_URL", "https://zentro.onrender.com/patient/login")
-    if not email:
+    if not sendgrid_key or not email:
+        logger.warning("Email not sent: SENDGRID_API_KEY missing or no email. Key set: %s", bool(sendgrid_key))
         return False
     try:
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        
-        msg = MIMEMultipart()
-        msg['From'] = f"{business_name} <{sender_email}>"
-        msg['To'] = email
-        msg['Subject'] = f"Bienvenido a {business_name} - Tus credenciales de acceso"
+        from sendgrid.helpers.mail import Email, ReplyTo
+        sg = sg_module.SendGridAPIClient(sendgrid_key)
+        sender = Email(email=sender_email, name=business_name)
+        message = Mail(
+            from_email=sender,
+            to_emails=email,
+            subject=f"Bienvenido a {business_name} — Tus credenciales de acceso",
+            html_content=f"""
+            <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;background:#f8f9fa;border-radius:12px">
+              <h2 style="color:#4361ee;margin-bottom:4px">{business_name}</h2>
+              <p style="color:#555">Hola <strong>{full_name}</strong>, tu perfil ha sido creado.</p>
+              <div style="background:#fff;border-radius:8px;padding:20px;margin:20px 0;border:1px solid #e0e0e0">
+                <p style="margin:0 0 8px;color:#333;font-size:15px"><strong>Tus datos de acceso al portal:</strong></p>
+                <p style="margin:4px 0;color:#555">Usuario: <strong>{username}</strong></p>
+                <p style="margin:4px 0;color:#555">Contraseña temporal: <strong>{password}</strong></p>
+                <p style="margin:12px 0 0;color:#888;font-size:12px">Tu contraseña temporal es tu número de teléfono. Te recomendamos cambiarla después de tu primer acceso.</p>
+              </div>
+              <a href="{portal_url}" style="display:inline-block;background:#4361ee;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Acceder a mi portal</a>
+              <p style="color:#aaa;font-size:12px;margin-top:24px">{business_name} – Powered by Zentro</p>
+            </div>
+            """
+        )
         if business_email:
-            msg['Reply-To'] = business_email
-            
-        html_content=f"""
-        <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;background:#f8f9fa;border-radius:12px">
-          <h2 style="color:#4361ee;margin-bottom:4px">{business_name}</h2>
-          <p style="color:#555">Hola <strong>{full_name}</strong>, tu perfil ha sido creado.</p>
-          <div style="background:#fff;border-radius:8px;padding:20px;margin:20px 0;border:1px solid #e0e0e0">
-            <p style="margin:0 0 8px;color:#333;font-size:15px"><strong>Tus datos de acceso al portal:</strong></p>
-            <p style="margin:4px 0;color:#555">Usuario: <strong>{username}</strong></p>
-            <p style="margin:4px 0;color:#555">Contraseña temporal: <strong>{password}</strong></p>
-            <p style="margin:12px 0 0;color:#888;font-size:12px">Tu contraseña temporal es tu número de teléfono. Te recomendamos cambiarla después de tu primer acceso.</p>
-          </div>
-          <a href="{portal_url}" style="display:inline-block;background:#4361ee;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Acceder a mi portal</a>
-          <p style="color:#aaa;font-size:12px;margin-top:24px">{business_name} - Powered by Zentro</p>
-        </div>
-        """
-        msg.attach(MIMEText(html_content, 'html', 'utf-8'))
+            message.reply_to = ReplyTo(business_email)
         
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender_email, gmail_pass.replace(" ", ""))
-        server.send_message(msg)
-        server.quit()
-        logger.info(f"Email sent to {email} via Gmail")
+        response = sg.send(message)
+        logger.info(f"Email sent to {email}, status={response.status_code}")
         return True
     except Exception as e:
         logger.error(f"Failed to send email to {email}: {e}", exc_info=True)
