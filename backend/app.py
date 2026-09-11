@@ -4209,15 +4209,16 @@ def fire_whatsapp_trigger(trigger_type, business_id, client, extra=None):
 
 
 def _send_email(to_email, subject, body_text, portal_url=None, business_name="Zentro", business_email=None):
-    """Send an HTML email via SendGrid. Includes a button if portal_url is provided."""
-    api_key = os.environ.get('SENDGRID_API_KEY', '')
-    sender_email = os.environ.get('SENDGRID_FROM_EMAIL', 'huttmanochoa@gmail.com')
-    if not api_key or not _SENDGRID_AVAILABLE:
-        app.logger.warning("[EMAIL] SendGrid not configured - skipping")
+    """Send an HTML email via Gmail SMTP. Includes a button if portal_url is provided."""
+    sender_email  = os.environ.get("GMAIL_USER", "huttmanochoa@gmail.com")
+    gmail_pass    = os.environ.get("GMAIL_APP_PASSWORD", "mzuu fsya ipef scem")
+    if not to_email:
         return
     try:
-        from sendgrid.helpers.mail import Email, ReplyTo
-        sg = sendgrid.SendGridAPIClient(api_key=api_key)
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        
         lines_html = "".join(f"<p style='margin:6px 0;color:#374151;'>{l}</p>" for l in body_text.split("\n") if l.strip())
         button_html = ""
         if portal_url:
@@ -4234,14 +4235,24 @@ def _send_email(to_email, subject, body_text, portal_url=None, business_name="Ze
           {lines_html}
           {button_html}
           <hr style='border:none;border-top:1px solid #e5e7eb;margin:24px 0;'>
-          <p style='font-size:12px;color:#9ca3af;text-align:center;'>{business_name} – Powered by Zentro</p>
+          <p style='font-size:12px;color:#9ca3af;text-align:center;'>{business_name} - Powered by Zentro</p>
         </div>"""
-        sender = Email(email=sender_email, name=business_name)
-        message = Mail(from_email=sender, to_emails=to_email, subject=subject, html_content=html)
-        if business_email:
-            message.reply_to = ReplyTo(business_email)
         
-        sg.send(message)
+        msg = MIMEMultipart()
+        msg['From'] = f"{business_name} <{sender_email}>"
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        if business_email:
+            msg['Reply-To'] = business_email
+            
+        msg.attach(MIMEText(html, 'html', 'utf-8'))
+        
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, gmail_pass.replace(" ", ""))
+        server.send_message(msg)
+        server.quit()
+        app.logger.info(f"Email sent to {to_email} via Gmail")
     except Exception as e:
         app.logger.error(f"[EMAIL SEND ERROR] {to_email}: {e}")
 
