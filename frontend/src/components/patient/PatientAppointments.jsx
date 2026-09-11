@@ -173,37 +173,36 @@ export default function PatientAppointments() {
         <DialogContent dividers>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, py: 1 }}>
             
-            {services.length > 0 && (
-              <FormControl fullWidth>
-                <InputLabel>Servicio</InputLabel>
-                <Select
-                  label="Servicio"
-                  value={formData.clinic_service_id}
-                  onChange={e => setFormData({ ...formData, clinic_service_id: e.target.value })}
-                >
-                  <MenuItem value=""><em>-- Seleccionar --</em></MenuItem>
-                  {services.map(s => (
-                    <MenuItem key={s.id} value={s.id}>{s.name} - ${s.price}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
+            <FormControl fullWidth>
+              <InputLabel>Servicio</InputLabel>
+              <Select
+                label="Servicio"
+                value={formData.clinic_service_id}
+                onChange={e => setFormData({ ...formData, clinic_service_id: e.target.value })}
+              >
+                <MenuItem value=""><em>-- Seleccionar --</em></MenuItem>
+                {services.map(s => (
+                  <MenuItem key={s.id} value={s.id}>{s.name} - ${s.price}</MenuItem>
+                ))}
+                {services.length === 0 && (
+                  <MenuItem value="" disabled>No hay servicios registrados</MenuItem>
+                )}
+              </Select>
+            </FormControl>
 
-            {doctors.length > 0 && (
-              <FormControl fullWidth>
-                <InputLabel>Doctor (Opcional)</InputLabel>
-                <Select
-                  label="Doctor (Opcional)"
-                  value={formData.doctor_id}
-                  onChange={e => setFormData({ ...formData, doctor_id: e.target.value })}
-                >
-                  <MenuItem value=""><em>-- Sin preferencia --</em></MenuItem>
-                  {doctors.map(d => (
-                    <MenuItem key={d.id} value={d.id}>Dr(a). {d.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
+            <FormControl fullWidth>
+              <InputLabel>Doctor (Opcional)</InputLabel>
+              <Select
+                label="Doctor (Opcional)"
+                value={formData.doctor_id}
+                onChange={e => setFormData({ ...formData, doctor_id: e.target.value })}
+              >
+                <MenuItem value=""><em>-- Sin preferencia --</em></MenuItem>
+                {doctors.map(d => (
+                  <MenuItem key={d.id} value={d.id}>Dr(a). {d.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             <TextField
               label="Fecha"

@@ -432,7 +432,7 @@ def portal_booking_metadata(claims: dict = Depends(get_current_claims), db: Sess
         doc_objs = db.query(Employee).filter_by(branch_id=branch_id, is_active=True).all()
         # Filter docs that have doctor_schedules? No, just all employees for now, or those with role="doctor"
         # The admin portal just lists all employees as doctors in the calendar.
-        doctors = [{"id": d.id, "name": f"{d.first_name} {d.last_name}"} for d in doc_objs]
+        doctors = [{"id": d.id, "name": f"{d.full_name} {d.last_name or ''}".strip()} for d in doc_objs]
 
     return {"services": services, "doctors": doctors}
 
