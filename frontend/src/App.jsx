@@ -92,6 +92,7 @@ import PatientAppointments from "./components/patient/PatientAppointments.jsx";
 import PatientPayments from "./components/patient/PatientPayments.jsx";
 import PatientRecords from "./components/patient/PatientRecords.jsx";
 import PatientFormView from "./components/patient/PatientFormView.jsx";
+import PatientProfile from "./components/patient/PatientProfile.jsx";
 
 const inputGlobalStyles = (
   <GlobalStyles
@@ -290,6 +291,7 @@ function App() {
             <Route path="payments" element={<PatientPayments />} />
             <Route path="records" element={<PatientRecords />} />
             <Route path="records/:entryId" element={<PatientFormView />} />
+            <Route path="profile" element={<PatientProfile />} />
           </Route>
         </Routes>
         <InstallPWA />

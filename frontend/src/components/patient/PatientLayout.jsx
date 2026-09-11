@@ -10,10 +10,13 @@ import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 
+import PersonIcon from "@mui/icons-material/Person";
+
 const NAV = [
   { icon: <CalendarMonthIcon />, label: "Citas", path: "/patient/appointments" },
   { icon: <ReceiptLongIcon />, label: "Adeudos", path: "/patient/payments" },
   { icon: <FolderSharedIcon />, label: "Expediente", path: "/patient/records" },
+  { icon: <PersonIcon />, label: "Perfil", path: "/patient/profile" },
 ];
 
 export default function PatientLayout() {

@@ -344,6 +344,28 @@ def patient_login(
     return {"access_token": token, "token_type": "bearer", "patient": token_data}
 
 
+@router.put("/patient/password")
+def change_patient_password(
+    payload: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    if claims.get("role") != "patient" and not claims.get("is_patient"):
+        raise HTTPException(status_code=403, detail="Acceso denegado.")
+    new_password = payload.get("new_password")
+    if not new_password or len(new_password) < 4:
+        raise HTTPException(status_code=400, detail="Contraseña muy corta.")
+    
+    patient_id = claims.get("patient_id")
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient or not patient.client:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+    
+    patient.client.password = generate_password_hash(new_password)
+    db.commit()
+    return {"message": "Contraseña actualizada con éxito."}
+
+
 def get_patient_claims(db: Session = Depends(get_db), claims: dict = Depends(get_current_claims)):
     if claims.get("role") != "patient":
         raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
