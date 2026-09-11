@@ -386,12 +386,66 @@ def portal_me(claims: dict = Depends(get_current_claims), db: Session = Depends(
 
 @router.get("/portal/appointments")
 def portal_appointments(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
-    if claims.get("role") != "patient":
+    if claims.get("role") != "patient" and not claims.get("is_patient"):
         raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
     apts = db.query(Appointment).filter(
         Appointment.patient_id == claims.get("patient_id")
     ).order_by(Appointment.scheduled_at.desc()).all()
     return {"appointments": [a.to_dict() for a in apts]}
+
+
+class PortalAppointmentCreate(BaseModel):
+    scheduled_at: datetime
+    reason: Optional[str] = None
+    clinic_service_id: Optional[int] = None
+
+@router.post("/portal/appointments", status_code=201)
+def portal_create_appointment(
+    payload: PortalAppointmentCreate,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db)
+):
+    if claims.get("role") != "patient" and not claims.get("is_patient"):
+        raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+    
+    patient_id = claims.get("patient_id")
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    
+    # Try to find branch from client
+    branch_id = patient.client.branch_id if patient and patient.client else None
+    business_id = None
+    
+    if branch_id:
+        from core.models.branch import Branch
+        br = db.query(Branch).filter(Branch.id == branch_id).first()
+        if br:
+            business_id = br.business_id
+            
+    # Fallback to first branch if missing
+    if not branch_id or not business_id:
+        from core.models.branch import Branch
+        fallback = db.query(Branch).first()
+        if fallback:
+            branch_id = fallback.id
+            business_id = fallback.business_id
+        else:
+            raise HTTPException(status_code=500, detail="No se encontró sucursal.")
+            
+    apt = Appointment(
+        business_id=business_id,
+        branch_id=branch_id,
+        patient_id=patient_id,
+        scheduled_at=payload.scheduled_at,
+        duration_minutes=30,
+        status="Agendada",
+        reason=payload.reason,
+        clinic_service_id=payload.clinic_service_id,
+        created_by="patient_portal"
+    )
+    db.add(apt)
+    db.commit()
+    db.refresh(apt)
+    return {"message": "Cita agendada", "appointment": apt.to_dict()}
 
 
 @router.get("/portal/records")
