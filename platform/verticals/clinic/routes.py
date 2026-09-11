@@ -251,9 +251,9 @@ def resend_patient_credentials(
     )
     
     if not email_sent:
-        raise HTTPException(status_code=500, detail="Error al enviar el correo electrónico.")
+        return {"message": "Contraseña temporal reseteada a su número de teléfono. (Aviso: No se pudo enviar el correo porque falta configurar SENDGRID_API_KEY en el servidor)."}
         
-    return {"message": "Credenciales reenviadas con éxito."}
+    return {"message": "Credenciales reenviadas con éxito por correo."}
 
 
 @router.put("/patients/{patient_id}")
