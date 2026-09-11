@@ -42,7 +42,7 @@ export default function PatientLayout() {
 
   if (isMobile) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", bgcolor: "#f5f6f8" }}>
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100dvh", bgcolor: "#f5f6f8", overflow: "hidden" }}>
         {/* Top App Bar */}
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, minHeight: 56, bgcolor: "#ffffff", borderBottom: "1px solid #e5e7eb" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -83,7 +83,7 @@ export default function PatientLayout() {
   }
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", bgcolor: "#f5f6f8", overflow: "hidden" }}>
+    <Box sx={{ display: "flex", height: "100dvh", bgcolor: "#f5f6f8", overflow: "hidden" }}>
       {/* Sidebar */}
       <Box sx={{
         width: w, minWidth: w, maxWidth: w,
