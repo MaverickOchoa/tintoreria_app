@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Box, Typography, Avatar, IconButton, Tooltip, Divider,
@@ -21,10 +21,16 @@ const NAV = [
 
 export default function PatientLayout() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const [collapsed, setCollapsed] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  useEffect(() => {
+    const link = document.getElementById("manifest-link");
+    if (link) link.href = "/manifest-patient.json";
+  }, []);
   
   const claims = JSON.parse(localStorage.getItem("patient_claims") || "{}");
   const token = localStorage.getItem("patient_token");

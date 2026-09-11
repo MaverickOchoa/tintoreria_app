@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Button, TextField, Typography, Paper, Alert, CircularProgress, InputAdornment, IconButton } from "@mui/material";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
@@ -13,6 +13,11 @@ export default function PatientLogin() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const link = document.getElementById("manifest-link");
+    if (link) link.href = "/manifest-patient.json";
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();

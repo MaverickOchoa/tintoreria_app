@@ -1,6 +1,6 @@
 // src/components/Login.jsx
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BRAND } from "../brand";
 
@@ -29,6 +29,11 @@ const Login = () => {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const link = document.getElementById("manifest-link");
+    if (link) link.href = "/manifest.json";
+  }, []);
 
   const clearAuthStorage = () => {
     localStorage.removeItem("access_token");
