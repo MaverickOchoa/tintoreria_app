@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 from datetime import datetime, date, timedelta
+from pydantic import BaseModel
 import secrets, string, os, logging, json, tempfile, io, requests
 
 import sendgrid as sg_module
