@@ -395,10 +395,52 @@ def portal_appointments(claims: dict = Depends(get_current_claims), db: Session 
     return {"appointments": [a.to_dict() for a in apts]}
 
 
+@router.get("/portal/booking-metadata")
+def portal_booking_metadata(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    if claims.get("role") != "patient" and not claims.get("is_patient"):
+        raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+    
+    patient_id = claims.get("patient_id")
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    
+    branch_id = patient.client.branch_id if patient and patient.client else None
+    business_id = None
+    
+    if branch_id:
+        from core.models.branch import Branch
+        br = db.query(Branch).filter(Branch.id == branch_id).first()
+        if br:
+            business_id = br.business_id
+            
+    if not branch_id or not business_id:
+        from core.models.branch import Branch
+        fallback = db.query(Branch).first()
+        if fallback:
+            branch_id = fallback.id
+            business_id = fallback.business_id
+
+    # Fetch services
+    services = []
+    if business_id:
+        svc_objs = db.query(ClinicService).filter_by(business_id=business_id, is_active=True).all()
+        services = [s.to_dict() for s in svc_objs]
+
+    # Fetch doctors
+    doctors = []
+    if branch_id:
+        from core.models.user import Employee
+        doc_objs = db.query(Employee).filter_by(branch_id=branch_id, is_active=True).all()
+        # Filter docs that have doctor_schedules? No, just all employees for now, or those with role="doctor"
+        # The admin portal just lists all employees as doctors in the calendar.
+        doctors = [{"id": d.id, "name": f"{d.first_name} {d.last_name}"} for d in doc_objs]
+
+    return {"services": services, "doctors": doctors}
+
 class PortalAppointmentCreate(BaseModel):
     scheduled_at: datetime
     reason: Optional[str] = None
     clinic_service_id: Optional[int] = None
+    doctor_id: Optional[int] = None
 
 @router.post("/portal/appointments", status_code=201)
 def portal_create_appointment(
@@ -441,6 +483,7 @@ def portal_create_appointment(
         status="Agendada",
         reason=payload.reason,
         clinic_service_id=payload.clinic_service_id,
+        doctor_id=payload.doctor_id,
         created_by="patient_portal"
     )
     db.add(apt)

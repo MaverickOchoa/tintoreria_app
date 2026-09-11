@@ -42,9 +42,9 @@ export default function PatientLayout() {
 
   if (isMobile) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", height: "100dvh", bgcolor: "#f5f6f8", overflow: "hidden" }}>
+      <Box sx={{ display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, right: 0, bottom: 0, bgcolor: "#f5f6f8", overflow: "hidden" }}>
         {/* Top App Bar */}
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, minHeight: 56, bgcolor: "#ffffff", borderBottom: "1px solid #e5e7eb" }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, minHeight: 56, bgcolor: "#ffffff", borderBottom: "1px solid #e5e7eb", zIndex: 1100 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <LocalHospitalIcon sx={{ color: "#4361ee", fontSize: 24 }} />
             <Typography fontWeight={800} fontSize={16} color="#1a1a2e">

@@ -3,7 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import { 
   Box, Typography, Chip, Paper, Skeleton, Divider, 
   Fab, Dialog, DialogTitle, DialogContent, DialogActions, 
-  Button, TextField 
+  Button, TextField, FormControl, InputLabel, Select, MenuItem
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -24,10 +24,14 @@ export default function PatientAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   
+  // Metadata state
+  const [services, setServices] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+
   // Dialog state
   const [openDialog, setOpenDialog] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ date: "", time: "", reason: "" });
+  const [formData, setFormData] = useState({ date: "", time: "", reason: "", doctor_id: "", clinic_service_id: "" });
 
   const loadAppointments = () => {
     setLoading(true);
@@ -40,8 +44,21 @@ export default function PatientAppointments() {
       .finally(() => setLoading(false));
   };
 
+  const loadMetadata = () => {
+    fetch(`${CLINIC_API}/clinic/portal/booking-metadata`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => {
+        setServices(d.services || []);
+        setDoctors(d.doctors || []);
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     loadAppointments();
+    loadMetadata();
   }, [token]);
 
   const upcoming = appointments.filter(a => ["scheduled", "confirmed"].includes(a.status));
@@ -59,13 +76,18 @@ export default function PatientAppointments() {
       const res = await fetch(`${CLINIC_API}/clinic/portal/appointments`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scheduled_at, reason: formData.reason }),
+        body: JSON.stringify({ 
+          scheduled_at, 
+          reason: formData.reason,
+          doctor_id: formData.doctor_id || null,
+          clinic_service_id: formData.clinic_service_id || null
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Error al agendar");
       alert("¡Cita agendada exitosamente!");
       setOpenDialog(false);
-      setFormData({ date: "", time: "", reason: "" });
+      setFormData({ date: "", time: "", reason: "", doctor_id: "", clinic_service_id: "" });
       loadAppointments();
     } catch (e) {
       alert(e.message);
@@ -150,6 +172,39 @@ export default function PatientAppointments() {
         <DialogTitle sx={{ fontWeight: 800 }}>Agendar Nueva Cita</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, py: 1 }}>
+            
+            {services.length > 0 && (
+              <FormControl fullWidth>
+                <InputLabel>Servicio</InputLabel>
+                <Select
+                  label="Servicio"
+                  value={formData.clinic_service_id}
+                  onChange={e => setFormData({ ...formData, clinic_service_id: e.target.value })}
+                >
+                  <MenuItem value=""><em>-- Seleccionar --</em></MenuItem>
+                  {services.map(s => (
+                    <MenuItem key={s.id} value={s.id}>{s.name} - ${s.price}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
+            {doctors.length > 0 && (
+              <FormControl fullWidth>
+                <InputLabel>Doctor (Opcional)</InputLabel>
+                <Select
+                  label="Doctor (Opcional)"
+                  value={formData.doctor_id}
+                  onChange={e => setFormData({ ...formData, doctor_id: e.target.value })}
+                >
+                  <MenuItem value=""><em>-- Sin preferencia --</em></MenuItem>
+                  {doctors.map(d => (
+                    <MenuItem key={d.id} value={d.id}>Dr(a). {d.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
             <TextField
               label="Fecha"
               type="date"
