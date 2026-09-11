@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Box, Typography, Avatar, IconButton, Tooltip, Divider,
+  BottomNavigation, BottomNavigationAction, useMediaQuery, useTheme
 } from "@mui/material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -10,15 +11,18 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 
 const NAV = [
-  { icon: <CalendarMonthIcon />, label: "Mis Citas", path: "/patient/appointments" },
-  { icon: <ReceiptLongIcon />, label: "Mis Adeudos", path: "/patient/payments" },
-  { icon: <FolderSharedIcon />, label: "Mi Expediente", path: "/patient/records" },
+  { icon: <CalendarMonthIcon />, label: "Citas", path: "/patient/appointments" },
+  { icon: <ReceiptLongIcon />, label: "Adeudos", path: "/patient/payments" },
+  { icon: <FolderSharedIcon />, label: "Expediente", path: "/patient/records" },
 ];
 
 export default function PatientLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  
   const claims = JSON.parse(localStorage.getItem("patient_claims") || "{}");
   const token = localStorage.getItem("patient_token");
   const w = collapsed ? 64 : 220;
@@ -30,6 +34,50 @@ export default function PatientLayout() {
   };
 
   if (!token) { navigate("/patient/login"); return null; }
+
+  const activeTab = NAV.find(n => pathname.startsWith(n.path))?.path || NAV[0].path;
+
+  if (isMobile) {
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", bgcolor: "#f5f6f8" }}>
+        {/* Top App Bar */}
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, minHeight: 56, bgcolor: "#ffffff", borderBottom: "1px solid #e5e7eb" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <LocalHospitalIcon sx={{ color: "#4361ee", fontSize: 24 }} />
+            <Typography fontWeight={800} fontSize={16} color="#1a1a2e">
+              Zentro Clinic
+            </Typography>
+          </Box>
+          <IconButton onClick={handleLogout} sx={{ color: "#9ca3af" }}>
+            <LogoutIcon />
+          </IconButton>
+        </Box>
+        
+        {/* Main content */}
+        <Box sx={{ flex: 1, overflow: "auto" }}>
+          <Outlet context={{ token, claims }} />
+        </Box>
+
+        {/* Bottom Navigation */}
+        <Box sx={{ borderTop: "1px solid #e5e7eb", bgcolor: "#ffffff", pb: "env(safe-area-inset-bottom)" }}>
+          <BottomNavigation
+            showLabels
+            value={activeTab}
+            onChange={(event, newValue) => navigate(newValue)}
+            sx={{
+              height: 64,
+              "& .MuiBottomNavigationAction-root": { minWidth: 0, color: "#9ca3af" },
+              "& .Mui-selected": { color: "#4361ee" }
+            }}
+          >
+            {NAV.map(({ icon, label, path }) => (
+              <BottomNavigationAction key={path} label={label} icon={icon} value={path} />
+            ))}
+          </BottomNavigation>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: "flex", height: "100vh", bgcolor: "#f5f6f8", overflow: "hidden" }}>
@@ -49,7 +97,7 @@ export default function PatientLayout() {
           )}
           <Box sx={{ ml: "auto" }}>
             <IconButton size="small" onClick={() => setCollapsed(v => !v)} sx={{ color: "#9ca3af" }}>
-              <span style={{ fontSize: 18 }}>{collapsed ? "›" : "‹"}</span>
+              <span style={{ fontSize: 18 }}>{collapsed ? "◀" : "▶"}</span>
             </IconButton>
           </Box>
         </Box>
