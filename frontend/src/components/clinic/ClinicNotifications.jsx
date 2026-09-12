@@ -4,10 +4,11 @@ import {
 } from "@mui/material";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import SendIcon from "@mui/icons-material/Send";
+import { useOutletContext } from "react-router-dom";
 import { CLINIC_API } from "./clinicTheme";
 
 export default function ClinicNotifications() {
-  const token = localStorage.getItem("access_token");
+  const { token } = useOutletContext();
   const [formData, setFormData] = useState({ title: "", body: "", url: "/#/patient" });
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
