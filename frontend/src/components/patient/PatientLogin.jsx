@@ -17,6 +17,7 @@ export default function PatientLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [business, setBusiness] = useState(null);
+  const [themeLoading, setThemeLoading] = useState(!!searchParams.get("c"));
   const { setThemeConfig } = useContext(CustomThemeContext);
 
   useEffect(() => {
@@ -36,9 +37,21 @@ export default function PatientLogin() {
             });
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setThemeLoading(false));
+    } else {
+      setThemeLoading(false);
     }
-  }, [searchParams]);
+  }, [searchParams, setThemeConfig]);
+
+  if (themeLoading) {
+    return (
+      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", bgcolor: "#f5f5f5" }}>
+        <CircularProgress size={48} sx={{ color: "#9ca3af", mb: 2 }} />
+        <Typography color="text.secondary">Preparando el portal...</Typography>
+      </Box>
+    );
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();

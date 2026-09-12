@@ -32,13 +32,14 @@ export default function PatientLayout() {
   const w = collapsed ? 64 : 220;
 
   const [business, setBusiness] = useState(null);
+  const targetBusinessId = claims.business_id || localStorage.getItem("patient_business_id");
+  const [themeLoading, setThemeLoading] = useState(!!targetBusinessId);
   const { setThemeConfig } = React.useContext(CustomThemeContext);
 
   useEffect(() => {
     const link = document.getElementById("manifest-link");
     if (link) link.href = "/manifest-patient.json";
 
-    const targetBusinessId = claims.business_id || localStorage.getItem("patient_business_id");
     if (targetBusinessId) {
       const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
       fetch(`${apiUrl}/api/v2/businesses/${targetBusinessId}/public`)
@@ -52,9 +53,21 @@ export default function PatientLayout() {
             });
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setThemeLoading(false));
+    } else {
+      setThemeLoading(false);
     }
-  }, [setThemeConfig]); // Remove claims.business_id since we check it inside
+  }, [setThemeConfig, targetBusinessId]); // Check inside
+
+  if (themeLoading) {
+    return (
+      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", bgcolor: "#f5f5f5" }}>
+        <CircularProgress size={48} sx={{ color: "#9ca3af", mb: 2 }} />
+        <Typography color="text.secondary">Preparando el portal...</Typography>
+      </Box>
+    );
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("patient_token");

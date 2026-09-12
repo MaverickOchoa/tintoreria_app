@@ -55,6 +55,7 @@ export default function ClinicLayout() {
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [business, setBusiness] = useState(null);
+  const [themeLoading, setThemeLoading] = useState(!!claims.business_id);
   const { setThemeConfig } = React.useContext(CustomThemeContext);
   const w = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_W;
 
@@ -66,24 +67,30 @@ export default function ClinicLayout() {
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState(null);
+  const [pwErr, setPwErr] = useState(null);
 
   useEffect(() => {
-    if (!claims.business_id) return;
+    if (!claims.business_id) {
+      setThemeLoading(false);
+      return;
+    }
     const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
     
     // Fetch Branches
     fetch(`${apiUrl}/api/v2/businesses/${claims.business_id}/branches`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : [])
       .then(d => {
-        const list = d.branches || [];
-        setBranches(list);
-        const savedId = localStorage.getItem("clinic_branch_id");
-        const found = list.find(b => String(b.id) === savedId) || list[0];
-        if (found) {
-          setSelectedBranch(found);
-          localStorage.setItem("clinic_branch_id", String(found.id));
+        if (d.length > 0) {
+          setBranches(d);
+          if (!localStorage.getItem("clinic_branch_id")) {
+            localStorage.setItem("clinic_branch_id", d[0].id);
+            setSelectedBranch(d[0]);
+          } else {
+            const b = d.find(x => String(x.id) === localStorage.getItem("clinic_branch_id"));
+            setSelectedBranch(b || d[0]);
+          }
         }
       })
       .catch(() => {});
@@ -100,8 +107,18 @@ export default function ClinicLayout() {
           });
         }
       })
-      .catch(() => {});
-  }, [claims.business_id]);
+      .catch(() => {})
+      .finally(() => setThemeLoading(false));
+  }, [claims.business_id, token, setThemeConfig]);
+
+  if (themeLoading) {
+    return (
+      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", bgcolor: "#f5f5f5" }}>
+        <CircularProgress size={48} sx={{ color: "#9ca3af", mb: 2 }} />
+        <Typography color="text.secondary">Cargando tu clínica...</Typography>
+      </Box>
+    );
+  }
 
   const handleBranchChange = (e) => {
     const branch = branches.find(b => String(b.id) === String(e.target.value));
