@@ -118,29 +118,26 @@ async def upload_business_logo(
     if not cloud_name or not api_key or not api_secret:
         raise HTTPException(status_code=500, detail="Cloudinary no configurado.")
 
-    import time
-    timestamp = str(int(time.time()))
+    import cloudinary
+    import cloudinary.uploader
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret
+    )
+
     public_id = f"business_{business_id}_logo"
 
-    import hashlib
-    string_to_sign = f"public_id={public_id}&timestamp={timestamp}{api_secret}"
-    signature = hashlib.sha1(string_to_sign.encode("utf-8")).hexdigest()
-
-    url = f"https://api.cloudinary.com/v1_1/{cloud_name}/image/upload"
-    files = {"file": file_bytes}
-    data = {
-        "api_key": api_key,
-        "timestamp": timestamp,
-        "public_id": public_id,
-        "signature": signature
-    }
-
-    resp = requests.post(url, files=files, data=data)
-    if not resp.ok:
-        raise HTTPException(status_code=500, detail="Error subiendo a Cloudinary")
-    
-    res_json = resp.json()
-    logo_url = res_json.get("secure_url")
+    try:
+        res = cloudinary.uploader.upload(
+            file_bytes,
+            public_id=public_id,
+            resource_type="image",
+            overwrite=True
+        )
+        logo_url = res.get("secure_url")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error subiendo a Cloudinary: {str(e)}")
     
     business.portal_logo_url = logo_url
     db.commit()
