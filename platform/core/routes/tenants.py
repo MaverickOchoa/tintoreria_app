@@ -88,6 +88,45 @@ def get_public_business(business_id: int, db: Session = Depends(get_db)):
         "portal_slogan": business.portal_slogan
     }
 
+from fastapi.responses import JSONResponse
+
+@router.get("/businesses/{business_id}/manifest.json")
+def get_business_manifest(business_id: int, db: Session = Depends(get_db)):
+    """Generates a dynamic PWA manifest for the clinic."""
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if not business:
+        raise HTTPException(status_code=404, detail="Negocio no encontrado.")
+    
+    app_name = f"Portal {business.name}"
+    short_name = business.name[:12]
+    # Default Zentro PWA icon if they haven't uploaded one
+    logo_url = business.portal_logo_url or "https://tintoreria-app.vercel.app/pwa-192x192.png"
+    theme_color = business.portal_primary_color or "#4361ee"
+    bg_color = business.portal_bg_color or "#ffffff"
+    
+    manifest = {
+        "name": app_name,
+        "short_name": short_name,
+        "start_url": f"/?c={business_id}#/patient/login?c={business_id}",
+        "display": "standalone",
+        "background_color": bg_color,
+        "theme_color": theme_color,
+        "icons": [
+            {
+                "src": logo_url,
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable"
+            },
+            {
+                "src": logo_url,
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
+            }
+        ]
+    }
+    return JSONResponse(content=manifest, media_type="application/manifest+json")
 
 from fastapi import UploadFile, File
 import os, requests

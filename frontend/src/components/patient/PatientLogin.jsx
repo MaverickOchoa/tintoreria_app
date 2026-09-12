@@ -21,10 +21,16 @@ export default function PatientLogin() {
   const { setThemeConfig } = useContext(CustomThemeContext);
 
   useEffect(() => {
-    const link = document.getElementById("manifest-link");
-    if (link) link.href = "/manifest-patient.json";
-
     const c = searchParams.get("c");
+    const link = document.getElementById("manifest-link");
+    if (link) {
+      if (c) {
+        link.href = `${API_URL}/api/v2/businesses/${c}/manifest.json`;
+      } else {
+        link.href = "/manifest-patient.json";
+      }
+    }
+
     if (c) {
       fetch(`${API_URL}/api/v2/businesses/${c}/public`)
         .then(r => r.ok ? r.json() : null)

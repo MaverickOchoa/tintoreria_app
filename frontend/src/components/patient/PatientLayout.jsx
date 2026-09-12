@@ -37,11 +37,11 @@ export default function PatientLayout() {
   const { setThemeConfig } = React.useContext(CustomThemeContext);
 
   useEffect(() => {
-    const link = document.getElementById("manifest-link");
-    if (link) link.href = "/manifest-patient.json";
-
     if (targetBusinessId) {
       const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+      const link = document.getElementById("manifest-link");
+      if (link) link.href = `${apiUrl}/api/v2/businesses/${targetBusinessId}/manifest.json`;
+
       fetch(`${apiUrl}/api/v2/businesses/${targetBusinessId}/public`)
         .then(r => r.ok ? r.json() : null)
         .then(d => {
