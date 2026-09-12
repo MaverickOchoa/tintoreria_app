@@ -100,15 +100,15 @@ async def upload_business_logo(
     claims: dict = Depends(require_business_admin),
     db: Session = Depends(get_db),
 ):
-    if int(claims.get("business_id", 0)) != int(business_id):
-        raise HTTPException(status_code=403, detail="Acceso denegado. business_id mismatch.")
+    b_id_claim = claims.get("business_id")
+    if not b_id_claim or int(b_id_claim) != int(business_id):
+        raise HTTPException(status_code=403, detail=f"Acceso denegado. business_id mismatch. claim={b_id_claim} path={business_id}")
     
     business = db.query(Business).filter(Business.id == business_id).first()
     if not business:
         raise HTTPException(status_code=404, detail="Negocio no encontrado.")
 
-    file_bytes = await file.read()
-    if not file_bytes:
+    if not file or not file.filename:
         raise HTTPException(status_code=400, detail="Archivo vacío.")
 
     cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
@@ -130,7 +130,7 @@ async def upload_business_logo(
 
     try:
         res = cloudinary.uploader.upload(
-            file_bytes,
+            file.file,
             public_id=public_id,
             resource_type="image",
             overwrite=True

@@ -52,7 +52,10 @@ export default function ClinicSettings() {
           headers: { Authorization: `Bearer ${token}` },
           body: logoData
         });
-        if (!logoRes.ok) throw new Error("Error al subir el logo");
+        if (!logoRes.ok) {
+          const errData = await logoRes.json().catch(() => ({}));
+          throw new Error(`Error al subir logo: ${errData.detail || logoRes.statusText}`);
+        }
         const logoJson = await logoRes.json();
         finalLogoUrl = logoJson.logo_url;
       }
@@ -73,7 +76,10 @@ export default function ClinicSettings() {
         },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error("Error al guardar configuración");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(`Error al guardar: ${errData.detail || res.statusText}`);
+      }
       
       setMessage("Configuración guardada exitosamente. Recarga la página para aplicar los colores.");
       setFile(null);
