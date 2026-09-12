@@ -151,8 +151,8 @@ export default function ClinicLayout() {
           px: collapsed ? 1.5 : 2, py: 1, mx: 1, mb: 0.3, borderRadius: 1.5,
           cursor: "pointer",
           bgcolor: active ? "#eff2ff" : "transparent",
-          color: active ? "#4361ee" : "#4b5563",
-          "&:hover": { bgcolor: active ? "#eff2ff" : "#f3f4f6", color: active ? "#4361ee" : "#111827" },
+          color: active ? "primary.main" : "#4b5563",
+          "&:hover": { bgcolor: active ? "#eff2ff" : "#f3f4f6", color: active ? "primary.main" : "#111827" },
           transition: "all 0.12s",
           justifyContent: collapsed ? "center" : "flex-start",
         }}>
@@ -189,7 +189,7 @@ export default function ClinicLayout() {
         <DialogActions>
           <Button onClick={handleLogout} color="inherit">Salir</Button>
           <Button variant="contained" onClick={handleChangePassword} disabled={pwSaving}
-            sx={{ bgcolor: "#4361ee" }}>
+            sx={{ bgcolor: "primary.main" }}>
             {pwSaving ? <CircularProgress size={18} color="inherit" /> : "Actualizar contraseña"}
           </Button>
         </DialogActions>
@@ -206,10 +206,10 @@ export default function ClinicLayout() {
           {business?.portal_logo_url ? (
             <img src={business.portal_logo_url} alt="Logo" style={{ height: 32, width: collapsed ? 32 : "auto", objectFit: "contain", flexShrink: 0 }} />
           ) : (
-            <LocalHospitalIcon sx={{ color: "#4361ee", fontSize: 26, flexShrink: 0 }} />
+            <LocalHospitalIcon sx={{ color: "primary.main", fontSize: 26, flexShrink: 0 }} />
           )}
           {!collapsed && (
-            <Typography fontWeight={800} fontSize={15} color="#1a1a2e" letterSpacing={0.3} noWrap>
+            <Typography fontWeight={800} fontSize={15} color="primary.main" letterSpacing={0.3} noWrap>
               {business?.name || BRAND.verticals.clinic.name}
             </Typography>
           )}
@@ -237,7 +237,7 @@ export default function ClinicLayout() {
         <Divider sx={{ borderColor: "#e5e7eb" }} />
 
         <Box sx={{ p: collapsed ? 1 : 1.5, display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Avatar sx={{ width: 32, height: 32, bgcolor: "#4361ee", fontSize: 13, cursor: "pointer", flexShrink: 0 }}
+          <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 13, cursor: "pointer", flexShrink: 0 }}
             onClick={e => setAnchorEl(e.currentTarget)}>
             {(claims.full_name || claims.username || "U")[0].toUpperCase()}
           </Avatar>
@@ -267,7 +267,7 @@ export default function ClinicLayout() {
       {/* ── MAIN CONTENT ── */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Box sx={{ height: 52, bgcolor: "#fff", borderBottom: "1px solid #e0e0e0", display: "flex", alignItems: "center", px: 2.5, gap: 2, flexShrink: 0 }}>
-          <StoreIcon sx={{ color: "#4361ee", fontSize: 20 }} />
+          <StoreIcon sx={{ color: "primary.main", fontSize: 20 }} />
           {branches.length > 1 ? (
             <Select value={selectedBranch ? String(selectedBranch.id) : ""} onChange={handleBranchChange}
               size="small" variant="outlined"
