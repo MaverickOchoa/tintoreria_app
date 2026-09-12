@@ -234,6 +234,7 @@ class Appointment(Base):
     status = Column(String(30), nullable=False, default=AppointmentStatus.scheduled)
     notes = Column(Text, nullable=True)
     reason = Column(String(255), nullable=True)
+    is_paid = Column(Boolean, nullable=False, default=False)
     created_by = Column(String(120), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
@@ -258,6 +259,7 @@ class Appointment(Base):
             "scheduled_at": self.scheduled_at.isoformat() if self.scheduled_at else None,
             "duration_minutes": self.duration_minutes,
             "status": self.status, "notes": self.notes, "reason": self.reason,
+            "is_paid": self.is_paid,
             "created_by": self.created_by,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,

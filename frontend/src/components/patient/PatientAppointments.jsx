@@ -11,12 +11,12 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 const CLINIC_API = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
 
 const STATUS_LABELS = {
-  scheduled: { label: "Agendada", color: "#3b82f6", bg: "#eff6ff" },
-  confirmed: { label: "Confirmada", color: "#10b981", bg: "#ecfdf5" },
-  in_progress: { label: "En Consulta", color: "#f59e0b", bg: "#fffbeb" },
-  completed: { label: "Completada", color: "#6366f1", bg: "#f0f4ff" },
-  cancelled: { label: "Cancelada", color: "#ef4444", bg: "#fef2f2" },
-  no_show: { label: "No Show", color: "#9ca3af", bg: "#f9fafb" },
+  "Agendada": { label: "Agendada", color: "#3b82f6", bg: "#eff6ff" },
+  "Confirmada": { label: "Confirmada", color: "#10b981", bg: "#ecfdf5" },
+  "En Consulta": { label: "En Consulta", color: "#f59e0b", bg: "#fffbeb" },
+  "Completada": { label: "Completada", color: "#6366f1", bg: "#f0f4ff" },
+  "Cancelada": { label: "Cancelada", color: "#ef4444", bg: "#fef2f2" },
+  "No Show": { label: "No Show", color: "#9ca3af", bg: "#f9fafb" },
 };
 
 export default function PatientAppointments() {
@@ -61,8 +61,8 @@ export default function PatientAppointments() {
     loadMetadata();
   }, [token]);
 
-  const upcoming = appointments.filter(a => ["scheduled", "confirmed"].includes(a.status));
-  const past = appointments.filter(a => !["scheduled", "confirmed"].includes(a.status));
+  const upcoming = appointments.filter(a => ["Agendada", "Confirmada"].includes(a.status));
+  const past = appointments.filter(a => !["Agendada", "Confirmada"].includes(a.status));
 
   const handleBookAppointment = async () => {
     if (!formData.date || !formData.time) {
@@ -97,7 +97,7 @@ export default function PatientAppointments() {
   };
 
   const AppCard = ({ a }) => {
-    const cfg = STATUS_LABELS[a.status] || STATUS_LABELS.scheduled;
+    const cfg = STATUS_LABELS[a.status] || STATUS_LABELS["Agendada"];
     return (
       <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, border: "1px solid #e5e7eb", mb: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

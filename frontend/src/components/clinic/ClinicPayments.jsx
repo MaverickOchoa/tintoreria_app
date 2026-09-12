@@ -57,26 +57,19 @@ export default function ClinicPayments() {
     if (!payForm.amount) { setMsg({ type: "error", text: "Ingresa el monto cobrado." }); return; }
     setSaving(true);
     try {
-      const res = await fetch(`${API}/payments`, {
+      const res = await fetch(`${CLINIC_API}/clinic/appointments/${selectedApt.id}/pay`, {
         method: "POST",
         headers,
         body: JSON.stringify({
-          appointment_id: selectedApt.id,
-          branch_id: selectedApt.branch_id,
-          business_id: selectedApt.business_id,
           amount: parseFloat(payForm.amount),
           payment_method: payForm.method,
-          notes: `Consulta: ${selectedApt.service_name || "General"} — ${selectedApt.patient_name}`,
+          notes: `Consulta: ${selectedApt.service_name || "General"} - ${selectedApt.patient_name}`,
         }),
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
         throw new Error(e.message || "Error al registrar pago.");
       }
-      await fetch(`${CLINIC_API}/clinic/appointments/${selectedApt.id}`, {
-        method: "PUT", headers,
-        body: JSON.stringify({ status: "Completada" }),
-      });
       setPayDialog(false);
       load();
     } catch (e) {
@@ -86,7 +79,7 @@ export default function ClinicPayments() {
     }
   };
 
-  const total = appointments.filter(a => a.status === "Completada").length;
+  const total = appointments.filter(a => a.is_paid).length;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -135,7 +128,7 @@ export default function ClinicPayments() {
                     <Chip label={apt.status} size="small" color={STATUS_COLORS[apt.status] || "default"} variant="outlined" />
                   </TableCell>
                   <TableCell>
-                    {apt.status === "Completada" ? (
+                    {apt.is_paid ? (
                       <Chip icon={<CheckCircleIcon />} label="Cobrado" size="small" color="success" />
                     ) : (
                       <Button size="small" variant="contained" onClick={() => openPay(apt)}

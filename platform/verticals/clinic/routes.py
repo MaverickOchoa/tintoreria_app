@@ -339,6 +339,7 @@ def patient_login(
         "patient_id": patient.id,
         "client_id": client.id,
         "branch_id": client.branch_id,
+        "business_id": payload.get("business_id"),
         "full_name": f"{client.full_name} {client.last_name or ''}".strip(),
         "email": client.email,
     }
@@ -412,19 +413,18 @@ def portal_booking_metadata(claims: dict = Depends(get_current_claims), db: Sess
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     
     branch_id = patient.client.branch_id if patient and patient.client else None
-    business_id = None
+    business_id = claims.get("business_id")
     
-    if branch_id:
+    if not business_id and branch_id:
         from core.models.branch import Branch
         br = db.query(Branch).filter(Branch.id == branch_id).first()
         if br:
             business_id = br.business_id
             
-    if not branch_id or not business_id:
+    if not business_id:
         from core.models.branch import Branch
         fallback = db.query(Branch).first()
         if fallback:
-            branch_id = fallback.id
             business_id = fallback.business_id
 
     # Fetch services
@@ -464,23 +464,28 @@ def portal_create_appointment(
     
     # Try to find branch from client
     branch_id = patient.client.branch_id if patient and patient.client else None
-    business_id = None
+    business_id = claims.get("business_id")
     
-    if branch_id:
+    if not business_id and branch_id:
         from core.models.branch import Branch
         br = db.query(Branch).filter(Branch.id == branch_id).first()
         if br:
             business_id = br.business_id
             
     # Fallback to first branch if missing
-    if not branch_id or not business_id:
+    if not business_id:
         from core.models.branch import Branch
         fallback = db.query(Branch).first()
         if fallback:
-            branch_id = fallback.id
             business_id = fallback.business_id
+            branch_id = fallback.id
         else:
             raise HTTPException(status_code=500, detail="No se encontró sucursal.")
+    elif not branch_id:
+        from core.models.branch import Branch
+        br = db.query(Branch).filter(Branch.business_id == business_id).first()
+        if br:
+            branch_id = br.id
             
     apt = Appointment(
         business_id=business_id,
@@ -785,6 +790,33 @@ def update_appointment(
         apt.completed_at = datetime.utcnow()
     db.commit()
     return apt.to_dict()
+
+
+@router.post("/appointments/{appointment_id}/pay")
+def pay_appointment(
+    appointment_id: int,
+    payload: dict,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db)
+):
+    apt = db.query(Appointment).filter(
+        Appointment.id == appointment_id,
+        Appointment.business_id == claims.get("business_id"),
+    ).first()
+    if not apt:
+        raise HTTPException(status_code=404, detail="Cita no encontrada.")
+    
+    if apt.is_paid:
+        raise HTTPException(status_code=400, detail="Esta cita ya ha sido pagada.")
+
+    # We could log to order_payments if needed, but for Clinic we just mark it as paid.
+    apt.is_paid = True
+    if apt.status != AppointmentStatus.completed:
+        apt.status = AppointmentStatus.completed
+        apt.completed_at = datetime.utcnow()
+
+    db.commit()
+    return {"message": "Pago registrado correctamente", "appointment": apt.to_dict()}
 
 
 @router.delete("/appointments/{appointment_id}", status_code=204)

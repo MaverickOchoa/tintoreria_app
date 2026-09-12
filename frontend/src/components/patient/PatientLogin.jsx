@@ -65,17 +65,21 @@ export default function PatientLogin() {
     setLoading(true);
     setError(null);
     try {
+      const c = searchParams.get("c");
       const r = await fetch(`${CLINIC_API}/clinic/patient/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ 
+          username: form.username, 
+          password: form.password,
+          business_id: c ? parseInt(c, 10) : null
+        }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.detail || "Error al iniciar sesión");
       localStorage.setItem("patient_token", d.access_token);
       localStorage.setItem("patient_claims", JSON.stringify(d.patient));
       
-      const c = searchParams.get("c");
       if (c) {
         localStorage.setItem("patient_business_id", c);
       }
