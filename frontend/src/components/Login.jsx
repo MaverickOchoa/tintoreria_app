@@ -239,6 +239,20 @@ const Login = () => {
             </Button>
           </Box>
         </form>
+
+        <Box mt={3} textAlign="center">
+          <Typography variant="body2" color="text.secondary" mb={1}>
+            ¿Eres paciente?
+          </Typography>
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => navigate("/patient/login")}
+            sx={{ py: 1, borderRadius: 2 }}
+          >
+            Ir al Portal del Paciente
+          </Button>
+        </Box>
       </Paper>
       <Typography variant="caption" color="text.disabled" sx={{ mt: 2, display: "block", textAlign: "center" }}>
         {BRAND.footer} · © {BRAND.year}

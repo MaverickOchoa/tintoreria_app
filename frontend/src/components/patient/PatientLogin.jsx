@@ -91,6 +91,20 @@ export default function PatientLogin() {
           </Button>
         </Box>
 
+        <Box mt={3} textAlign="center">
+          <Typography variant="body2" color="text.secondary" mb={1}>
+            ¿Eres administrador o staff?
+          </Typography>
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => navigate("/login")}
+            sx={{ py: 1, borderRadius: 2 }}
+          >
+            Ir a Entrada de Personal
+          </Button>
+        </Box>
+
         <Typography fontSize={11} color="text.disabled" textAlign="center" mt={3}>
           Zentro Clinic · Powered by Zentro
         </Typography>
