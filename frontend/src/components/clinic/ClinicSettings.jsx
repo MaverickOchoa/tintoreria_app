@@ -81,10 +81,15 @@ export default function ClinicSettings() {
         throw new Error(`Error al guardar: ${errData.detail || res.statusText}`);
       }
       
-      setMessage("Configuración guardada exitosamente. Recarga la página para aplicar los colores.");
+      if (file) {
+        setFormData(prev => ({ ...prev, portal_logo_url: finalLogoUrl }));
+      }
+      
+      setMessage("Configuración guardada exitosamente. Recargando...");
       setFile(null);
-    } catch (e) {
-      setError(e.message);
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
