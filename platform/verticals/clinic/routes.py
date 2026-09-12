@@ -572,7 +572,7 @@ def portal_payments(claims: dict = Depends(get_current_claims), db: Session = De
             "date": a.scheduled_at.isoformat() if a.scheduled_at else None,
             "service": service.name if service else "Consulta",
             "amount": service.price if service else 0,
-            "paid": False,
+            "paid": a.is_paid,
         })
     return {"payments": payments}
 
