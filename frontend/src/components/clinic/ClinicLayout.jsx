@@ -282,7 +282,7 @@ export default function ClinicLayout() {
         </Box>
 
         <Box sx={{ flex: 1, overflow: "auto" }}>
-          <Outlet context={{ token, claims, branches, selectedBranch, setSelectedBranch }} />
+          <Outlet context={{ token, claims, branches, selectedBranch, setSelectedBranch, business }} />
         </Box>
 
         <Box sx={{ borderTop: "1px solid #e0e0e0", px: 3, py: 1, display: "flex", justifyContent: "space-between", bgcolor: "#fff" }}>

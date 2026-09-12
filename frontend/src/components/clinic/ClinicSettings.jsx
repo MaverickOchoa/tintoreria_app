@@ -10,7 +10,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 export default function ClinicSettings() {
-  const { business } = useOutletContext();
+  const { business, claims } = useOutletContext();
   const [formData, setFormData] = useState({
     portal_primary_color: "#121B2B",
     portal_bg_color: "#ECECEC",
@@ -38,14 +38,16 @@ export default function ClinicSettings() {
     setMessage(null);
     setError(null);
     try {
-      const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem("clinic_token") || localStorage.getItem("access_token");
+      const targetBusinessId = business?.id || claims?.business_id;
+      if (!targetBusinessId) throw new Error("No se pudo determinar el ID de la clínica.");
       
       // Upload Logo first if present
       let finalLogoUrl = formData.portal_logo_url;
       if (file) {
         const logoData = new FormData();
         logoData.append("file", file);
-        const logoRes = await fetch(`${API_BASE_URL}/api/v1/businesses/${business.id}/logo`, {
+        const logoRes = await fetch(`${API_BASE_URL}/api/v1/businesses/${targetBusinessId}/logo`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: logoData
@@ -63,7 +65,7 @@ export default function ClinicSettings() {
         portal_logo_url: finalLogoUrl
       };
 
-      const res = await fetch(`${API_BASE_URL}/api/v1/businesses/${business.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/businesses/${targetBusinessId}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
