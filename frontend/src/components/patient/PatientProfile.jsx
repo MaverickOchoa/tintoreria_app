@@ -5,6 +5,8 @@ import {
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import LockIcon from "@mui/icons-material/Lock";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import GetAppIcon from "@mui/icons-material/GetApp";
 import { CLINIC_API } from "../clinic/clinicTheme";
 
 export default function PatientProfile() {
@@ -108,6 +110,67 @@ export default function PatientProfile() {
           </form>
         </CardContent>
       </Card>
+
+      <Typography variant="h6" fontWeight={700} color="#1a1a2e" mb={2} mt={4} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <NotificationsIcon color="primary" /> App y Notificaciones
+      </Typography>
+
+      <Card sx={{ borderRadius: 3, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography color="text.secondary" mb={3} fontSize={14}>
+            Instala la aplicación en tu celular para tener acceso rápido a tus citas y activa las notificaciones para recibir recordatorios.
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={<GetAppIcon />}
+                onClick={() => {
+                  if (window.pwaPrompt) {
+                    window.pwaPrompt.prompt();
+                  } else {
+                    alert("Para instalar en iOS: Toca el ícono de 'Compartir' y luego 'Agregar a Inicio'.\n\nEn Android, si no aparece el aviso automático, ve al menú de tu navegador y toca 'Instalar aplicación'.");
+                  }
+                }}
+                sx={{ py: 1.5, borderRadius: 2, fontWeight: 700 }}
+              >
+                Instalar App
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={<NotificationsIcon />}
+                onClick={async () => {
+                  if (!("Notification" in window)) {
+                    alert("Este navegador no soporta notificaciones.");
+                    return;
+                  }
+                  if (Notification.permission === "granted") {
+                    alert("Las notificaciones ya están activas.");
+                  } else if (Notification.permission !== "denied") {
+                    const perm = await Notification.requestPermission();
+                    if (perm === "granted") {
+                      alert("¡Notificaciones activadas!");
+                    } else {
+                      alert("Permiso denegado.");
+                    }
+                  } else {
+                    alert("Permiso denegado previamente. Debes activarlas desde la configuración de tu navegador.");
+                  }
+                }}
+                sx={{ py: 1.5, borderRadius: 2, fontWeight: 700 }}
+              >
+                Activar Notificaciones
+              </Button>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
     </Box>
   );
 }

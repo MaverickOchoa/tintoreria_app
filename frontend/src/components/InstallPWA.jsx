@@ -32,6 +32,7 @@ export default function InstallPWA() {
       const handleBeforeInstallPrompt = (e) => {
         e.preventDefault();
         setDeferredPrompt(e);
+        window.pwaPrompt = e;
         setShowAndroid(true);
       };
       window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
