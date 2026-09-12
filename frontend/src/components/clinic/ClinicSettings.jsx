@@ -188,13 +188,13 @@ export default function ClinicSettings() {
         <Box sx={{ display: 'flex', gap: 2 }}>
           <TextField 
             fullWidth
-            value={`${window.location.origin}/patient/login?c=${business?.id || claims?.business_id}`}
+            value={`${window.location.origin}/#/patient/login?c=${business?.id || claims?.business_id}`}
             InputProps={{ readOnly: true }}
           />
           <Button 
             variant="outlined" 
             onClick={() => {
-              navigator.clipboard.writeText(`${window.location.origin}/patient/login?c=${business?.id || claims?.business_id}`);
+              navigator.clipboard.writeText(`${window.location.origin}/#/patient/login?c=${business?.id || claims?.business_id}`);
               alert("¡Enlace copiado!");
             }}
           >
