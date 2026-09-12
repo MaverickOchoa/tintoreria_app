@@ -338,9 +338,17 @@ def patient_login(
         "role": "patient",
         "patient_id": patient.id,
         "client_id": client.id,
+        "branch_id": client.branch_id,
         "full_name": f"{client.full_name} {client.last_name or ''}".strip(),
         "email": client.email,
     }
+    
+    # Try to get business_id from branch
+    if client.branch_id:
+        from core.models.tenant import Branch
+        branch = db.query(Branch).filter(Branch.id == client.branch_id).first()
+        if branch:
+            token_data["business_id"] = branch.business_id
     token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
     return {"access_token": token, "token_type": "bearer", "patient": token_data}
 

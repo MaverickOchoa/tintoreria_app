@@ -86,6 +86,7 @@ class BusinessUpdate(BaseModel):
     portal_primary_color: Optional[str] = None
     portal_bg_color: Optional[str] = None
     portal_slogan: Optional[str] = None
+    portal_logo_url: Optional[str] = None
 
 
 class BusinessOut(BaseModel):

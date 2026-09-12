@@ -1,23 +1,44 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useContext } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Box, Button, TextField, Typography, Paper, Alert, CircularProgress, InputAdornment, IconButton } from "@mui/material";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import { CustomThemeContext } from "../Theme";
 
-const CLINIC_API = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
+const CLINIC_API = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 export default function PatientLogin() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState({ username: "", password: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [business, setBusiness] = useState(null);
+  const { setThemeConfig } = useContext(CustomThemeContext);
 
   useEffect(() => {
     const link = document.getElementById("manifest-link");
     if (link) link.href = "/manifest-patient.json";
-  }, []);
+
+    const c = searchParams.get("c");
+    if (c) {
+      fetch(`${API_URL}/api/v1/businesses/${c}/public`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (d) {
+            setBusiness(d);
+            setThemeConfig({
+              primary: d.portal_primary_color || "#121B2B",
+              bg: d.portal_bg_color || "#ECECEC",
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -44,10 +65,16 @@ export default function PatientLogin() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f0f4ff", display: "flex", alignItems: "center", justifyContent: "center", p: 2 }}>
       <Paper elevation={0} sx={{ width: "100%", maxWidth: 400, p: 4, borderRadius: 3, border: "1px solid #e0e7ff" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-          <LocalHospitalIcon sx={{ color: "#4361ee", fontSize: 30 }} />
-          <Box>
-            <Typography fontWeight={800} fontSize={20} color="#1a1a2e">Zentro Clinic</Typography>
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, mb: 3 }}>
+          {business?.portal_logo_url ? (
+            <img src={business.portal_logo_url} alt="Logo" style={{ height: 60, objectFit: "contain", marginBottom: 8 }} />
+          ) : (
+            <LocalHospitalIcon sx={{ color: "primary.main", fontSize: 40 }} />
+          )}
+          <Box textAlign="center">
+            <Typography fontWeight={800} fontSize={22} color="primary.main">
+              {business?.name || "Zentro Clinic"}
+            </Typography>
             <Typography fontSize={12} color="text.secondary">Portal del Paciente</Typography>
           </Box>
         </Box>
@@ -86,7 +113,7 @@ export default function PatientLogin() {
             }}
           />
           <Button type="submit" variant="contained" fullWidth disabled={loading}
-            sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, fontWeight: 700, py: 1.2 }}>
+            sx={{ borderRadius: 2, fontWeight: 700, py: 1.2 }}>
             {loading ? <CircularProgress size={20} color="inherit" /> : "Entrar"}
           </Button>
         </Box>

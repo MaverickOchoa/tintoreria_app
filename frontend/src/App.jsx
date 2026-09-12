@@ -1,11 +1,9 @@
-// src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import CssBaseline from "@mui/material/CssBaseline";
-import { ThemeProvider } from "@mui/material/styles";
+import { CustomThemeProvider } from "./components/Theme";
 import GlobalStyles from "@mui/material/GlobalStyles";
 import Box from "@mui/material/Box";
-import theme from "./components/Theme";
 import InstallPWA from "./components/InstallPWA";
 
 // Public
@@ -78,6 +76,7 @@ import ClinicServices from "./components/clinic/ClinicServices.jsx";
 import ClinicPayments from "./components/clinic/ClinicPayments.jsx";
 import ClinicUsers from "./components/clinic/ClinicUsers.jsx";
 import ClinicAdminDashboard from "./components/clinic/ClinicAdminDashboard.jsx";
+import ClinicSettings from "./components/clinic/ClinicSettings.jsx";
 import ClinicalRecords from "./components/clinic/ClinicalRecords.jsx";
 import FormTemplateManager from "./components/clinic/FormTemplateManager.jsx";
 import FormTemplateEditor from "./components/clinic/FormTemplateEditor.jsx";
@@ -111,10 +110,10 @@ const inputGlobalStyles = (
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <CustomThemeProvider>
       {inputGlobalStyles}
       <CssBaseline />
-      <Box sx={{ height: "100vh", width: "100%", overflowY: "auto" }}>
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", overflowY: "auto" }}>
         <Routes>
           {/* PUBLIC */}
           <Route path="/" element={<Login />} />
@@ -276,6 +275,7 @@ function App() {
               <Route path="users" element={<ClinicUsers />} />
               <Route path="clinical-records" element={<ClinicalRecords />} />
               <Route path="admin" element={<ClinicAdminDashboard />} />
+              <Route path="settings" element={<ClinicSettings />} />
               <Route path="form-templates" element={<FormTemplateManager />} />
               <Route path="form-templates/:templateId/edit" element={<FormTemplateEditor />} />
               <Route path="form-templates/:templateId/fill" element={<FormViewer />} />
@@ -296,7 +296,7 @@ function App() {
         </Routes>
         <InstallPWA />
       </Box>
-    </ThemeProvider>
+    </CustomThemeProvider>
   );
 }
 

@@ -20,6 +20,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ArticleIcon from "@mui/icons-material/Article";
 import LockIcon from "@mui/icons-material/Lock";
 import { BRAND } from "../../brand";
+import { CustomThemeContext } from "../Theme";
 
 const CLINIC_API = import.meta.env.VITE_CLINIC_API_URL || "";
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
@@ -38,7 +39,8 @@ const NAV = [
 
 const ADMIN_NAV = [
   { icon: <ArticleIcon />, label: "Formularios", path: "/clinic/form-templates" },
-  { icon: <SettingsIcon />, label: "Configuración", path: "/clinic/admin" },
+  { icon: <SettingsIcon />, label: "Sistema", path: "/clinic/admin" },
+  { icon: <SettingsIcon />, label: "Personalización", path: "/clinic/settings" },
 ];
 
 export default function ClinicLayout() {
@@ -52,6 +54,8 @@ export default function ClinicLayout() {
 
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
+  const [business, setBusiness] = useState(null);
+  const { setThemeConfig } = React.useContext(CustomThemeContext);
   const w = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_W;
 
   const [mustChange, setMustChange] = useState(() => {
@@ -65,8 +69,10 @@ export default function ClinicLayout() {
 
   useEffect(() => {
     if (!claims.business_id) return;
-    const apiUrl = import.meta.env.VITE_API_URL || "";
-    fetch(`${apiUrl}/businesses/${claims.business_id}/branches`, {
+    const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+    
+    // Fetch Branches
+    fetch(`${apiUrl}/api/v1/businesses/${claims.business_id}/branches`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -81,7 +87,21 @@ export default function ClinicLayout() {
         }
       })
       .catch(() => {});
-  }, []);
+
+    // Fetch Business Public Settings (Colors & Logo)
+    fetch(`${apiUrl}/api/v1/businesses/${claims.business_id}/public`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d) {
+          setBusiness(d);
+          setThemeConfig({
+            primary: d.portal_primary_color || "#121B2B",
+            bg: d.portal_bg_color || "#ECECEC",
+          });
+        }
+      })
+      .catch(() => {});
+  }, [claims.business_id]);
 
   const handleBranchChange = (e) => {
     const branch = branches.find(b => String(b.id) === String(e.target.value));
@@ -183,10 +203,14 @@ export default function ClinicLayout() {
         borderRight: "1px solid #e5e7eb", zIndex: 100,
       }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 2, minHeight: 64, borderBottom: "1px solid #e5e7eb" }}>
-          <LocalHospitalIcon sx={{ color: "#4361ee", fontSize: 26, flexShrink: 0 }} />
+          {business?.portal_logo_url ? (
+            <img src={business.portal_logo_url} alt="Logo" style={{ height: 32, width: collapsed ? 32 : "auto", objectFit: "contain", flexShrink: 0 }} />
+          ) : (
+            <LocalHospitalIcon sx={{ color: "#4361ee", fontSize: 26, flexShrink: 0 }} />
+          )}
           {!collapsed && (
             <Typography fontWeight={800} fontSize={15} color="#1a1a2e" letterSpacing={0.3} noWrap>
-              {BRAND.verticals.clinic.name}
+              {business?.name || BRAND.verticals.clinic.name}
             </Typography>
           )}
           <Box sx={{ ml: "auto" }}>

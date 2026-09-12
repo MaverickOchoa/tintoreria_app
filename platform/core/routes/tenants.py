@@ -65,10 +65,87 @@ def update_business(
     business = db.query(Business).filter(Business.id == business_id).first()
     if not business:
         raise HTTPException(status_code=404, detail="Negocio no encontrado.")
-    for field, value in payload.model_dump(exclude_none=True).items():
-        setattr(business, field, value)
+
+    for k, v in payload.dict(exclude_unset=True).items():
+        setattr(business, k, v)
     db.commit()
-    return business.to_dict()
+    db.refresh(business)
+    return {"message": "Negocio actualizado.", "business": business.to_dict()}
+
+
+@router.get("/businesses/{business_id}/public")
+def get_public_business(business_id: int, db: Session = Depends(get_db)):
+    """Devuelve la configuración pública (colores, logo) para el portal de pacientes."""
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if not business:
+        raise HTTPException(status_code=404, detail="Negocio no encontrado.")
+    return {
+        "id": business.id,
+        "name": business.name,
+        "portal_primary_color": business.portal_primary_color,
+        "portal_bg_color": business.portal_bg_color,
+        "portal_logo_url": business.portal_logo_url,
+        "portal_slogan": business.portal_slogan
+    }
+
+
+from fastapi import UploadFile, File
+import os, requests
+
+
+@router.post("/businesses/{business_id}/logo")
+async def upload_business_logo(
+    business_id: int,
+    file: UploadFile = File(...),
+    claims: dict = Depends(require_business_admin),
+    db: Session = Depends(get_db),
+):
+    if claims.get("business_id") != business_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado.")
+    
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if not business:
+        raise HTTPException(status_code=404, detail="Negocio no encontrado.")
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Archivo vacío.")
+
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "")
+    api_key    = os.getenv("CLOUDINARY_API_KEY", "")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET", "")
+
+    if not cloud_name or not api_key or not api_secret:
+        raise HTTPException(status_code=500, detail="Cloudinary no configurado.")
+
+    import time
+    timestamp = str(int(time.time()))
+    public_id = f"business_{business_id}_logo"
+
+    import hashlib
+    string_to_sign = f"public_id={public_id}&timestamp={timestamp}{api_secret}"
+    signature = hashlib.sha1(string_to_sign.encode("utf-8")).hexdigest()
+
+    url = f"https://api.cloudinary.com/v1_1/{cloud_name}/image/upload"
+    files = {"file": file_bytes}
+    data = {
+        "api_key": api_key,
+        "timestamp": timestamp,
+        "public_id": public_id,
+        "signature": signature
+    }
+
+    resp = requests.post(url, files=files, data=data)
+    if not resp.ok:
+        raise HTTPException(status_code=500, detail="Error subiendo a Cloudinary")
+    
+    res_json = resp.json()
+    logo_url = res_json.get("secure_url")
+    
+    business.portal_logo_url = logo_url
+    db.commit()
+    
+    return {"message": "Logo subido exitosamente", "logo_url": logo_url}
 
 
 @router.post("/branches", response_model=dict, status_code=201)

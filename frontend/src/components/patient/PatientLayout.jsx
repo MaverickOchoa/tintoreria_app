@@ -9,8 +9,8 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
-
 import PersonIcon from "@mui/icons-material/Person";
+import { CustomThemeContext } from "../Theme";
 
 const NAV = [
   { icon: <CalendarMonthIcon />, label: "Citas", path: "/patient/appointments" },
@@ -27,14 +27,33 @@ export default function PatientLayout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  useEffect(() => {
-    const link = document.getElementById("manifest-link");
-    if (link) link.href = "/manifest-patient.json";
-  }, []);
-  
   const claims = JSON.parse(localStorage.getItem("patient_claims") || "{}");
   const token = localStorage.getItem("patient_token");
   const w = collapsed ? 64 : 220;
+
+  const [business, setBusiness] = useState(null);
+  const { setThemeConfig } = React.useContext(CustomThemeContext);
+
+  useEffect(() => {
+    const link = document.getElementById("manifest-link");
+    if (link) link.href = "/manifest-patient.json";
+
+    if (claims.business_id) {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+      fetch(`${apiUrl}/api/v1/businesses/${claims.business_id}/public`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (d) {
+            setBusiness(d);
+            setThemeConfig({
+              primary: d.portal_primary_color || "#121B2B",
+              bg: d.portal_bg_color || "#ECECEC",
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [claims.business_id]);
 
   const handleLogout = () => {
     localStorage.removeItem("patient_token");
@@ -52,9 +71,13 @@ export default function PatientLayout() {
         {/* Top App Bar */}
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, minHeight: 56, bgcolor: "#ffffff", borderBottom: "1px solid #e5e7eb", zIndex: 1100 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <LocalHospitalIcon sx={{ color: "#4361ee", fontSize: 24 }} />
-            <Typography fontWeight={800} fontSize={16} color="#1a1a2e">
-              Zentro Clinic
+            {business?.portal_logo_url ? (
+              <img src={business.portal_logo_url} alt="Logo" style={{ height: 28, objectFit: "contain" }} />
+            ) : (
+              <LocalHospitalIcon sx={{ color: "primary.main", fontSize: 24 }} />
+            )}
+            <Typography fontWeight={800} fontSize={16} color="primary.main">
+              {business?.name || "Zentro Clinic"}
             </Typography>
           </Box>
           <IconButton onClick={handleLogout} sx={{ color: "#9ca3af" }}>
@@ -98,10 +121,14 @@ export default function PatientLayout() {
         borderRight: "1px solid #e5e7eb", zIndex: 100,
       }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 2, minHeight: 64, borderBottom: "1px solid #e5e7eb" }}>
-          <LocalHospitalIcon sx={{ color: "#4361ee", fontSize: 26, flexShrink: 0 }} />
+          {business?.portal_logo_url ? (
+            <img src={business.portal_logo_url} alt="Logo" style={{ height: 32, width: collapsed ? 32 : "auto", objectFit: "contain", flexShrink: 0 }} />
+          ) : (
+            <LocalHospitalIcon sx={{ color: "primary.main", fontSize: 26, flexShrink: 0 }} />
+          )}
           {!collapsed && (
-            <Typography fontWeight={800} fontSize={14} color="#1a1a2e" noWrap>
-              Zentro Clinic
+            <Typography fontWeight={800} fontSize={14} color="primary.main" noWrap>
+              {business?.name || "Zentro Clinic"}
             </Typography>
           )}
           <Box sx={{ ml: "auto" }}>
