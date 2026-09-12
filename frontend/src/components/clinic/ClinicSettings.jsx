@@ -178,6 +178,30 @@ export default function ClinicSettings() {
           </Button>
         </Box>
       </Paper>
+
+      <Paper sx={{ p: 4, borderRadius: 2, mt: 4 }}>
+        <Typography variant="h6" mb={2} fontWeight={700}>Enlace a tu Portal del Paciente</Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Comparte este enlace con tus pacientes por WhatsApp o redes sociales. Al entrar desde este enlace, 
+          la página de inicio de sesión mostrará automáticamente tu logotipo y tus colores institucionales.
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <TextField 
+            fullWidth
+            value={`${window.location.origin}/patient/login?c=${business?.id || claims?.business_id}`}
+            InputProps={{ readOnly: true }}
+          />
+          <Button 
+            variant="outlined" 
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/patient/login?c=${business?.id || claims?.business_id}`);
+              alert("¡Enlace copiado!");
+            }}
+          >
+            Copiar
+          </Button>
+        </Box>
+      </Paper>
     </Box>
   );
 }
