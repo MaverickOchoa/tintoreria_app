@@ -266,6 +266,19 @@ class Appointment(Base):
         }
 
 
+class PushSubscription(Base):
+    """Stores Web Push credentials for a device."""
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True, index=True)
+    endpoint = Column(Text, nullable=False, unique=True)
+    p256dh = Column(String(100), nullable=False)
+    auth = Column(String(50), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class FormTemplate(Base):
     """PDF form template uploaded by a clinic admin. Stores field map as JSON."""
     __tablename__ = "form_templates"

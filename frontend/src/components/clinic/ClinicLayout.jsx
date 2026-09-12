@@ -19,6 +19,7 @@ import StoreIcon from "@mui/icons-material/Store";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ArticleIcon from "@mui/icons-material/Article";
 import LockIcon from "@mui/icons-material/Lock";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import { BRAND } from "../../brand";
 import { CustomThemeContext } from "../Theme";
 
@@ -39,6 +40,7 @@ const NAV = [
 
 const ADMIN_NAV = [
   { icon: <ArticleIcon />, label: "Formularios", path: "/clinic/form-templates" },
+  { icon: <NotificationsActiveIcon />, label: "Notificaciones", path: "/clinic/notifications" },
   { icon: <SettingsIcon />, label: "Sistema", path: "/clinic/admin" },
   { icon: <SettingsIcon />, label: "Personalización", path: "/clinic/settings" },
 ];

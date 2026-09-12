@@ -43,6 +43,67 @@ export default function PatientProfile() {
     }
   };
 
+  const handleSubscribePush = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      alert("Este navegador no soporta notificaciones push.");
+      return;
+    }
+    
+    let perm = Notification.permission;
+    if (perm === "default") {
+      perm = await Notification.requestPermission();
+    }
+    
+    if (perm !== "granted") {
+      alert("Permiso de notificaciones denegado.");
+      return;
+    }
+    
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        // Public VAPID key
+        const vapidPublicKey = "BCkTOXKLvLVlFnTSyTIBfos95LD_bsz4oqUartColz-GwBfSPztzjdYqOhCNfxXF61M8WipCuP2l2dhkfxqOfFU";
+        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+        
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey
+        });
+      }
+      
+      // Send to backend
+      const res = await fetch(`${CLINIC_API}/clinic/patient/push-subscribe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(subscription.toJSON())
+      });
+      
+      if (!res.ok) throw new Error("Error al guardar suscripción en el servidor.");
+      alert("¡Notificaciones activadas correctamente!");
+    } catch (e) {
+      console.error(e);
+      alert("Error al activar notificaciones: " + e.message);
+    }
+  };
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
   return (
     <Box sx={{ p: { xs: 2, sm: 4 }, maxWidth: 600, mx: "auto" }}>
       <Typography variant="h5" fontWeight={800} color="#1a1a2e" mb={3}>
@@ -144,24 +205,7 @@ export default function PatientProfile() {
                 variant="outlined"
                 fullWidth
                 startIcon={<NotificationsIcon />}
-                onClick={async () => {
-                  if (!("Notification" in window)) {
-                    alert("Este navegador no soporta notificaciones.");
-                    return;
-                  }
-                  if (Notification.permission === "granted") {
-                    alert("Las notificaciones ya están activas.");
-                  } else if (Notification.permission !== "denied") {
-                    const perm = await Notification.requestPermission();
-                    if (perm === "granted") {
-                      alert("¡Notificaciones activadas!");
-                    } else {
-                      alert("Permiso denegado.");
-                    }
-                  } else {
-                    alert("Permiso denegado previamente. Debes activarlas desde la configuración de tu navegador.");
-                  }
-                }}
+                onClick={handleSubscribePush}
                 sx={{ py: 1.5, borderRadius: 2, fontWeight: 700 }}
               >
                 Activar Notificaciones

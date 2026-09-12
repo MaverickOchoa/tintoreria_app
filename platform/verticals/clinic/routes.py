@@ -515,6 +515,67 @@ def portal_records(claims: dict = Depends(get_current_claims), db: Session = Dep
     return {"records": [r.to_dict() for r in records]}
 
 
+@router.post("/patient/push-subscribe")
+def push_subscribe(payload: dict, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    if claims.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Solo pacientes pueden suscribirse por aquí.")
+    
+    endpoint = payload.get("endpoint")
+    keys = payload.get("keys", {})
+    if not endpoint or "p256dh" not in keys or "auth" not in keys:
+        raise HTTPException(status_code=400, detail="Faltan credenciales de Web Push")
+
+    # Guardar en base de datos
+    sub = db.query(PushSubscription).filter_by(endpoint=endpoint).first()
+    if not sub:
+        sub = PushSubscription(
+            patient_id=claims.get("patient_id"),
+            endpoint=endpoint,
+            p256dh=keys["p256dh"],
+            auth=keys["auth"]
+        )
+        db.add(sub)
+    else:
+        # Actualizar a este usuario si el endpoint ya existe
+        sub.patient_id = claims.get("patient_id")
+        sub.p256dh = keys["p256dh"]
+        sub.auth = keys["auth"]
+    db.commit()
+    return {"message": "Suscripción guardada"}
+
+
+@router.post("/admin/push-send")
+def push_send(payload: dict, claims: dict = Depends(require_business_admin), db: Session = Depends(get_db)):
+    from core.utils.push import send_push_notification
+    patient_id = payload.get("patient_id") # Si es nulo, mandar a todos de esta clínica
+    title = payload.get("title", "Notificación")
+    body = payload.get("body", "")
+    url = payload.get("url", "/#/patient")
+
+    q = db.query(PushSubscription).join(Patient).join(Client).filter(Client.branch_id == claims.get("branch_id"))
+    if patient_id:
+        q = q.filter(PushSubscription.patient_id == patient_id)
+        
+    subs = q.all()
+    if not subs:
+        raise HTTPException(status_code=404, detail="No se encontraron pacientes suscritos.")
+
+    success = 0
+    for sub in subs:
+        sub_info = {
+            "endpoint": sub.endpoint,
+            "keys": { "p256dh": sub.p256dh, "auth": sub.auth }
+        }
+        res = send_push_notification(sub_info, { "title": title, "body": body, "url": url })
+        if res == "expired":
+            db.delete(sub)
+        elif res:
+            success += 1
+
+    db.commit()
+    return {"message": f"Mensaje enviado a {success} dispositivos."}
+
+
 @router.get("/portal/form-entries")
 def portal_form_entries(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     """Returns finalized clinical form entries visible to the patient."""

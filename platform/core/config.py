@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 1440
     max_upload_size: int = 10 * 1024 * 1024
+    
+    vapid_private_key: str = "IiZh3uZE6H3znT4J1R7xaeyYkI5cesNf23TM1Nu79EE"
+    vapid_public_key: str = "BCkTOXKLvLVlFnTSyTIBfos95LD_bsz4oqUartColz-GwBfSPztzjdYqOhCNfxXF61M8WipCuP2l2dhkfxqOfFU"
+    vapid_claims_email: str = "mailto:admin@zentro.app"
 
     class Config:
         env_file = ".env"
