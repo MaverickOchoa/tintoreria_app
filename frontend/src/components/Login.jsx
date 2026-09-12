@@ -1,6 +1,6 @@
 // src/components/Login.jsx
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { BRAND } from "../brand";
 
@@ -18,6 +18,7 @@ import {
 
 // Icons
 import LoginIcon from "@mui/icons-material/Login";
+import { CustomThemeContext } from "./Theme";
 import PersonIcon from "@mui/icons-material/Person";
 import LockIcon from "@mui/icons-material/Lock";
 
@@ -30,7 +31,11 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
+  const { setThemeConfig } = React.useContext(CustomThemeContext);
+
   useEffect(() => {
+    // Reset global theme for admin login
+    setThemeConfig({ primary: "#121B2B", bg: "#ECECEC" });
     const link = document.getElementById("manifest-link");
     if (link) link.href = "/manifest.json";
   }, []);

@@ -99,7 +99,7 @@ export default function PatientLayout() {
             sx={{
               height: 64,
               "& .MuiBottomNavigationAction-root": { minWidth: 0, color: "#9ca3af" },
-              "& .Mui-selected": { color: "#4361ee" }
+              "& .Mui-selected": { color: "primary.main" }
             }}
           >
             {NAV.map(({ icon, label, path }) => (
@@ -148,8 +148,8 @@ export default function PatientLayout() {
                   px: collapsed ? 1.5 : 2, py: 1, mx: 1, mb: 0.3, borderRadius: 1.5,
                   cursor: "pointer",
                   bgcolor: active ? "#eff2ff" : "transparent",
-                  color: active ? "#4361ee" : "#4b5563",
-                  "&:hover": { bgcolor: active ? "#eff2ff" : "#f3f4f6", color: active ? "#4361ee" : "#111827" },
+                  color: active ? "primary.main" : "#4b5563",
+                  "&:hover": { bgcolor: active ? "#eff2ff" : "#f3f4f6", color: active ? "primary.main" : "#111827" },
                   transition: "all 0.12s",
                   justifyContent: collapsed ? "center" : "flex-start",
                 }}>
@@ -163,7 +163,7 @@ export default function PatientLayout() {
 
         <Divider sx={{ borderColor: "#e5e7eb" }} />
         <Box sx={{ p: collapsed ? 1 : 1.5, display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Avatar sx={{ width: 32, height: 32, bgcolor: "#4361ee", fontSize: 13, flexShrink: 0 }}>
+          <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 13, flexShrink: 0 }}>
             {(claims.full_name || "P")[0].toUpperCase()}
           </Avatar>
           {!collapsed && (
