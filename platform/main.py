@@ -112,6 +112,7 @@ _STARTUP_MIGRATIONS = [
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         completed_at TIMESTAMP
     )""",
+    "ALTER TABLE appointments ADD COLUMN IF NOT EXISTS is_paid BOOLEAN NOT NULL DEFAULT FALSE",
     """CREATE TABLE IF NOT EXISTS clinical_records (
         id SERIAL PRIMARY KEY,
         patient_id INTEGER NOT NULL REFERENCES patients(id),
