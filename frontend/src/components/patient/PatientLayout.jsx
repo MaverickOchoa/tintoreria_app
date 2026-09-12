@@ -40,7 +40,7 @@ export default function PatientLayout() {
 
     if (claims.business_id) {
       const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
-      fetch(`${apiUrl}/api/v1/businesses/${claims.business_id}/public`)
+      fetch(`${apiUrl}/api/v2/businesses/${claims.business_id}/public`)
         .then(r => r.ok ? r.json() : null)
         .then(d => {
           if (d) {

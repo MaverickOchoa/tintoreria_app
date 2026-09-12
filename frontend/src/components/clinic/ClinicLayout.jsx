@@ -72,7 +72,7 @@ export default function ClinicLayout() {
     const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
     
     // Fetch Branches
-    fetch(`${apiUrl}/api/v1/businesses/${claims.business_id}/branches`, {
+    fetch(`${apiUrl}/api/v2/businesses/${claims.business_id}/branches`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -89,7 +89,7 @@ export default function ClinicLayout() {
       .catch(() => {});
 
     // Fetch Business Public Settings (Colors & Logo)
-    fetch(`${apiUrl}/api/v1/businesses/${claims.business_id}/public`)
+    fetch(`${apiUrl}/api/v2/businesses/${claims.business_id}/public`)
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d) {

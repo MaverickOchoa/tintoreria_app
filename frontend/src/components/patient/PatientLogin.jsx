@@ -25,7 +25,7 @@ export default function PatientLogin() {
 
     const c = searchParams.get("c");
     if (c) {
-      fetch(`${API_URL}/api/v1/businesses/${c}/public`)
+      fetch(`${API_URL}/api/v2/businesses/${c}/public`)
         .then(r => r.ok ? r.json() : null)
         .then(d => {
           if (d) {
