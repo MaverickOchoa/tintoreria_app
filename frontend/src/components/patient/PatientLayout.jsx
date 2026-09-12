@@ -38,9 +38,10 @@ export default function PatientLayout() {
     const link = document.getElementById("manifest-link");
     if (link) link.href = "/manifest-patient.json";
 
-    if (claims.business_id) {
+    const targetBusinessId = claims.business_id || localStorage.getItem("patient_business_id");
+    if (targetBusinessId) {
       const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
-      fetch(`${apiUrl}/api/v2/businesses/${claims.business_id}/public`)
+      fetch(`${apiUrl}/api/v2/businesses/${targetBusinessId}/public`)
         .then(r => r.ok ? r.json() : null)
         .then(d => {
           if (d) {
@@ -53,7 +54,7 @@ export default function PatientLayout() {
         })
         .catch(() => {});
     }
-  }, [claims.business_id]);
+  }, [setThemeConfig]); // Remove claims.business_id since we check it inside
 
   const handleLogout = () => {
     localStorage.removeItem("patient_token");

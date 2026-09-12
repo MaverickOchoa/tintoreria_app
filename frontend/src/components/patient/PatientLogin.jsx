@@ -55,6 +55,12 @@ export default function PatientLogin() {
       if (!r.ok) throw new Error(d.detail || "Error al iniciar sesión");
       localStorage.setItem("patient_token", d.access_token);
       localStorage.setItem("patient_claims", JSON.stringify(d.patient));
+      
+      const c = searchParams.get("c");
+      if (c) {
+        localStorage.setItem("patient_business_id", c);
+      }
+      
       navigate("/patient/appointments");
     } catch (e) {
       setError(e.message);
