@@ -60,13 +60,9 @@ export default function ClinicPayments() {
 
   const loadData = () => {
     setLoading(true);
-    
-    // Para que el backend filtre en base al huso horario correcto del usuario
-    const startIso = new Date(`${startDate}T00:00:00`).toISOString();
-    const endIso = new Date(`${endDate}T23:59:59.999`).toISOString();
 
-    // Fetch Summary (finance endpoints expect full ISO UTC bounds now)
-    fetch(`${CLINIC_API}/clinic/finance/summary?start_date=${startIso}&end_date=${endIso}`, { headers })
+    // Fetch Summary (finance endpoints expect YYYY-MM-DD bounds now)
+    fetch(`${CLINIC_API}/clinic/finance/summary?start_date=${startDate}&end_date=${endDate}`, { headers })
       .then(r => r.json())
       .then(d => {
         setSummary({

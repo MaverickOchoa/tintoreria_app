@@ -1826,15 +1826,10 @@ def get_finance_summary(
         raise HTTPException(status_code=403, detail="No autorizado")
 
     try:
-        sd = datetime.fromisoformat(start_date.replace('Z', '+00:00')) if start_date else datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        ed = datetime.fromisoformat(end_date.replace('Z', '+00:00')) if end_date else datetime.utcnow().replace(hour=23, minute=59, second=59, microsecond=999999)
-        # Convert to naive UTC to avoid psycopg2 timezone conversion issues
-        if sd.tzinfo:
-            sd = sd.replace(tzinfo=None)
-        if ed.tzinfo:
-            ed = ed.replace(tzinfo=None)
+        sd = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, microsecond=0) if start_date else datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        ed = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999) if end_date else datetime.utcnow().replace(hour=23, minute=59, second=59, microsecond=999999)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Formato de fecha invlido")
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Usa YYYY-MM-DD.")
 
     from sqlalchemy import func
     q_in = db.query(Appointment).filter(
