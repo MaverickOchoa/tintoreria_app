@@ -254,6 +254,11 @@ async def apply_migrations():
                 except Exception as e:
                     conn.rollback()
                     logger.warning("Migration skipped (%s): %s", sql[:60], e)
+        
+        # Ensure any missing tables defined in models are created
+        from core.database import Base
+        Base.metadata.create_all(bind=engine)
+        
         logger.info("Startup migrations applied.")
     except Exception as e:
         logger.error("Startup migration failed: %s", e)
