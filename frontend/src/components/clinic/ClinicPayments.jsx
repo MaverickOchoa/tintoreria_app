@@ -59,8 +59,13 @@ export default function ClinicPayments() {
 
   const loadData = () => {
     setLoading(true);
-    // Fetch Summary
-    fetch(`${CLINIC_API}/clinic/finance/summary?start_date=${startDate}&end_date=${endDate}`, { headers })
+    
+    // Para que el backend filtre en base al huso horario correcto del usuario
+    const startIso = new Date(`${startDate}T00:00:00`).toISOString();
+    const endIso = new Date(`${endDate}T23:59:59.999`).toISOString();
+
+    // Fetch Summary (finance endpoints expect full ISO UTC bounds now)
+    fetch(`${CLINIC_API}/clinic/finance/summary?start_date=${startIso}&end_date=${endIso}`, { headers })
       .then(r => r.json())
       .then(d => {
         setSummary({
@@ -73,7 +78,7 @@ export default function ClinicPayments() {
       })
       .catch(console.error);
 
-    // Fetch Appointments for "Citas Pendientes"
+    // Fetch Appointments for "Citas Pendientes" (this endpoint expects YYYY-MM-DD)
     fetch(`${CLINIC_API}/clinic/appointments?date_from=${startDate}&date_to=${endDate}`, { headers })
       .then(r => r.json())
       .then(d => {
@@ -126,6 +131,12 @@ export default function ClinicPayments() {
     }
     setSaving(true);
     try {
+      // Create date at noon local time to avoid timezone shifts, then convert to ISO UTC
+      let d = new Date(`${expenseForm.expense_date}T12:00:00`);
+      if (expenseForm.expense_date === new Date().toISOString().split("T")[0]) {
+          d = new Date(); // If it's today, use exactly right now
+      }
+      
       const res = await fetch(`${CLINIC_API}/clinic/finance/expenses`, {
         method: "POST",
         headers,
@@ -133,7 +144,7 @@ export default function ClinicPayments() {
           amount: parseFloat(expenseForm.amount),
           category: expenseForm.category,
           description: expenseForm.description,
-          expense_date: expenseForm.expense_date
+          expense_date: d.toISOString()
         }),
       });
       if (!res.ok) throw new Error("Error al registrar gasto.");
