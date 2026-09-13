@@ -32,8 +32,9 @@ export default function ClinicPayments() {
   
   const [loading, setLoading] = useState(true);
   
-  // Date filters (Default to today)
-  const today = new Date().toISOString().split("T")[0];
+  // Date filters (Default to today in LOCAL time)
+  const todayObj = new Date();
+  const today = todayObj.getFullYear() + "-" + String(todayObj.getMonth() + 1).padStart(2, '0') + "-" + String(todayObj.getDate()).padStart(2, '0');
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
 
