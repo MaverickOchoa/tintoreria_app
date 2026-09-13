@@ -1078,7 +1078,7 @@ class BusinessByIdResource(Resource):
     @jwt_required()
     def put(self, business_id):
         claims = get_jwt()
-        if not claims.get('is_super_admin') and claims.get('business_id') != business_id:
+        if not claims.get('is_super_admin') and str(claims.get('business_id')) != str(business_id):
             return {"message": "Acceso denegado"}, 403
         if claims.get('role') not in ('business_admin', 'super_admin'):
             return {"message": "Solo el administrador del negocio puede editar esta información"}, 403
@@ -1097,7 +1097,7 @@ class BranchResource(Resource):
     @jwt_required()
     def post(self, business_id):
         claims = get_jwt()
-        if not claims.get("is_super_admin") and claims.get('business_id') != business_id:
+        if not claims.get("is_super_admin") and str(claims.get('business_id')) != str(business_id):
             return {"message": "Permiso denegado"}, 403
         args = branch_parser.parse_args()
         try:
@@ -1111,7 +1111,7 @@ class BranchResource(Resource):
     @jwt_required()
     def get(self, business_id):
         claims = get_jwt()
-        if not claims.get("is_super_admin") and claims.get('business_id') != business_id:
+        if not claims.get("is_super_admin") and str(claims.get('business_id')) != str(business_id):
             return {"message": "Acceso denegado"}, 403
         return {"branches": [b.to_dict() for b in Branch.query.filter_by(business_id=business_id).order_by(Branch.name).all()]}, 200
 
