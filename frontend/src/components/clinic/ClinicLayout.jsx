@@ -82,16 +82,17 @@ export default function ClinicLayout() {
     fetch(`${apiUrl}/api/v2/businesses/${claims.business_id}/branches`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(r => r.ok ? r.json() : [])
+      .then(r => r.ok ? r.json() : { branches: [] })
       .then(d => {
-        if (d.length > 0) {
-          setBranches(d);
+        const branchList = Array.isArray(d) ? d : (d.branches || []);
+        if (branchList.length > 0) {
+          setBranches(branchList);
           if (!localStorage.getItem("clinic_branch_id")) {
-            localStorage.setItem("clinic_branch_id", d[0].id);
-            setSelectedBranch(d[0]);
+            localStorage.setItem("clinic_branch_id", branchList[0].id);
+            setSelectedBranch(branchList[0]);
           } else {
-            const b = d.find(x => String(x.id) === localStorage.getItem("clinic_branch_id"));
-            setSelectedBranch(b || d[0]);
+            const b = branchList.find(x => String(x.id) === localStorage.getItem("clinic_branch_id"));
+            setSelectedBranch(b || branchList[0]);
           }
         }
       })
