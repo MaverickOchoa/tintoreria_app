@@ -122,6 +122,18 @@ _STARTUP_MIGRATIONS = [
         auth VARCHAR(50) NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )""",
+    # Clinic Expenses
+    """CREATE TABLE IF NOT EXISTS clinic_expenses (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        amount FLOAT NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        description TEXT,
+        expense_date TIMESTAMP NOT NULL DEFAULT NOW(),
+        registered_by_id INTEGER REFERENCES employees(id),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
     """CREATE TABLE IF NOT EXISTS clinical_records (
         id SERIAL PRIMARY KEY,
         patient_id INTEGER NOT NULL REFERENCES patients(id),
@@ -254,11 +266,6 @@ async def apply_migrations():
                 except Exception as e:
                     conn.rollback()
                     logger.warning("Migration skipped (%s): %s", sql[:60], e)
-        
-        # Ensure any missing tables defined in models are created
-        from core.database import Base
-        Base.metadata.create_all(bind=engine)
-        
         logger.info("Startup migrations applied.")
     except Exception as e:
         logger.error("Startup migration failed: %s", e)
