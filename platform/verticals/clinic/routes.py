@@ -1828,6 +1828,11 @@ def get_finance_summary(
     try:
         sd = datetime.fromisoformat(start_date.replace('Z', '+00:00')) if start_date else datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         ed = datetime.fromisoformat(end_date.replace('Z', '+00:00')) if end_date else datetime.utcnow().replace(hour=23, minute=59, second=59, microsecond=999999)
+        # Convert to naive UTC to avoid psycopg2 timezone conversion issues
+        if sd.tzinfo:
+            sd = sd.replace(tzinfo=None)
+        if ed.tzinfo:
+            ed = ed.replace(tzinfo=None)
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de fecha invlido")
 
@@ -1846,10 +1851,11 @@ def get_finance_summary(
     for apt in q_in.all():
         amt = apt.service.price if apt.service and apt.service.price else 0.0
         total_income += amt
+        dt = apt.completed_at or apt.scheduled_at
         incomes.append({
             "id": apt.id,
             "type": "income",
-            "date": (apt.completed_at or apt.scheduled_at).isoformat(),
+            "date": dt.isoformat() + "Z",
             "amount": amt,
             "description": f"Cita: {apt.patient.client.full_name}",
             "category": apt.service.name if apt.service else "Consulta"
@@ -1871,7 +1877,7 @@ def get_finance_summary(
         expenses.append({
             "id": ex.id,
             "type": "expense",
-            "date": ex.expense_date.isoformat(),
+            "date": ex.expense_date.isoformat() + "Z",
             "amount": ex.amount,
             "description": ex.description,
             "category": ex.category,
@@ -1879,8 +1885,8 @@ def get_finance_summary(
         })
 
     return {
-        "start_date": sd.isoformat(),
-        "end_date": ed.isoformat(),
+        "start_date": sd.isoformat() + "Z",
+        "end_date": ed.isoformat() + "Z",
         "total_income": total_income,
         "total_expense": total_expense,
         "net_balance": total_income - total_expense,
