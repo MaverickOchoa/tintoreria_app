@@ -1844,16 +1844,22 @@ def get_finance_summary(
     incomes = []
     total_income = 0.0
     for apt in q_in.all():
-        amt = apt.service.price if apt.service and apt.service.price else 0.0
+        amt = apt.clinic_service.price if apt.clinic_service and apt.clinic_service.price else 0.0
         total_income += amt
         dt = apt.completed_at or apt.scheduled_at
+        
+        # Safe patient name retrieval
+        patient_name = "Paciente Desconocido"
+        if apt.patient and apt.patient.client:
+            patient_name = (apt.patient.client.full_name + " " + (apt.patient.client.last_name or "")).strip()
+
         incomes.append({
             "id": apt.id,
             "type": "income",
             "date": dt.isoformat() + "Z",
             "amount": amt,
-            "description": f"Cita: {apt.patient.client.full_name}",
-            "category": apt.service.name if apt.service else "Consulta"
+            "description": f"Cita: {patient_name}",
+            "category": apt.clinic_service.name if apt.clinic_service else "Consulta"
         })
 
     # Expenses
