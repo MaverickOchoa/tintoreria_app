@@ -1,0 +1,15 @@
+{
+  "short_name": "Mi Portal",
+  "name": "Zentro Portal del Paciente",
+  "icons": [
+    {
+      "src": "vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/#/patient/login",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff"
+}
