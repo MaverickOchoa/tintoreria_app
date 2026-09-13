@@ -19,7 +19,7 @@ from core.models.client import Client
 from verticals.clinic.models import (
     Patient, Appointment, ClinicalRecord, ClinicService, AppointmentStatus,
     BranchSchedule, BranchMessage, ClinicPromotion,
-    DoctorSchedule, DoctorScheduleBlock, ClinicalFormEntry, FormTemplate, PushSubscription
+    DoctorSchedule, DoctorScheduleBlock, ClinicalFormEntry, FormTemplate, PushSubscription, ClinicExpense
 )
 from verticals.clinic.schemas import (
     PatientCreate, PatientCreateFull, PatientUpdate,
@@ -1808,3 +1808,139 @@ def update_doctor_schedule(doctor_id: int, payload: DoctorScheduleUpdate, db: Se
         ))
     db.commit()
     return {"ok": True}
+
+# ==========================================
+# Finance / Caja (Ingresos y Egresos)
+# ==========================================
+
+@router.get("/finance/summary")
+def get_finance_summary(
+    start_date: str = None,
+    end_date: str = None,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db)
+):
+    business_id = claims.get("business_id")
+    branch_id = claims.get("branch_id")
+    if not business_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    try:
+        sd = datetime.fromisoformat(start_date.replace('Z', '+00:00')) if start_date else datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        ed = datetime.fromisoformat(end_date.replace('Z', '+00:00')) if end_date else datetime.utcnow().replace(hour=23, minute=59, second=59, microsecond=999999)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha invlido")
+
+    from sqlalchemy import func
+    q_in = db.query(Appointment).filter(
+        Appointment.business_id == business_id,
+        Appointment.is_paid == True,
+        func.coalesce(Appointment.completed_at, Appointment.scheduled_at) >= sd,
+        func.coalesce(Appointment.completed_at, Appointment.scheduled_at) <= ed
+    )
+    if branch_id:
+        q_in = q_in.filter(Appointment.branch_id == branch_id)
+    
+    incomes = []
+    total_income = 0.0
+    for apt in q_in.all():
+        amt = apt.service.price if apt.service and apt.service.price else 0.0
+        total_income += amt
+        incomes.append({
+            "id": apt.id,
+            "type": "income",
+            "date": (apt.completed_at or apt.scheduled_at).isoformat(),
+            "amount": amt,
+            "description": f"Cita: {apt.patient.client.full_name}",
+            "category": apt.service.name if apt.service else "Consulta"
+        })
+
+    # Expenses
+    q_ex = db.query(ClinicExpense).filter(
+        ClinicExpense.business_id == business_id,
+        ClinicExpense.expense_date >= sd,
+        ClinicExpense.expense_date <= ed
+    )
+    if branch_id:
+        q_ex = q_ex.filter(ClinicExpense.branch_id == branch_id)
+        
+    expenses = []
+    total_expense = 0.0
+    for ex in q_ex.all():
+        total_expense += ex.amount
+        expenses.append({
+            "id": ex.id,
+            "type": "expense",
+            "date": ex.expense_date.isoformat(),
+            "amount": ex.amount,
+            "description": ex.description,
+            "category": ex.category,
+            "registered_by_id": ex.registered_by_id
+        })
+
+    return {
+        "start_date": sd.isoformat(),
+        "end_date": ed.isoformat(),
+        "total_income": total_income,
+        "total_expense": total_expense,
+        "net_balance": total_income - total_expense,
+        "incomes": incomes,
+        "expenses": expenses
+    }
+
+class ExpenseCreate(BaseModel):
+    amount: float
+    category: str
+    description: str = None
+    expense_date: str = None
+
+@router.post("/finance/expenses")
+def create_expense(
+    payload: ExpenseCreate,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db)
+):
+    business_id = claims.get("business_id")
+    branch_id = claims.get("branch_id")
+    if not business_id or not branch_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    try:
+        ex_date = datetime.fromisoformat(payload.expense_date.replace('Z', '+00:00')) if payload.expense_date else datetime.utcnow()
+    except ValueError:
+        ex_date = datetime.utcnow()
+
+    ex = ClinicExpense(
+        business_id=business_id,
+        branch_id=branch_id,
+        amount=payload.amount,
+        category=payload.category,
+        description=payload.description,
+        expense_date=ex_date,
+        registered_by_id=claims.get("employee_id")
+    )
+    db.add(ex)
+    db.commit()
+    db.refresh(ex)
+    return ex.to_dict()
+
+@router.delete("/finance/expenses/{expense_id}")
+def delete_expense(
+    expense_id: int,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db)
+):
+    # Only admin/owner can delete
+    role = claims.get("role")
+    if role not in ["admin", "owner", "Gerente"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar gastos.")
+        
+    business_id = claims.get("business_id")
+    ex = db.query(ClinicExpense).filter(ClinicExpense.id == expense_id, ClinicExpense.business_id == business_id).first()
+    if not ex:
+        raise HTTPException(status_code=404, detail="Gasto no encontrado")
+        
+    db.delete(ex)
+    db.commit()
+    return {"message": "Gasto eliminado"}
+
