@@ -1873,6 +1873,7 @@ class ExpenseCreate(BaseModel):
     category: str
     description: str = None
     expense_date: str = None
+    branch_id: int = None
 
 @router.post("/finance/expenses")
 def create_expense(
@@ -1881,9 +1882,10 @@ def create_expense(
     db: Session = Depends(get_db)
 ):
     business_id = claims.get("business_id")
-    branch_id = claims.get("branch_id")
+    # For admins, branch_id in claims might be null, so we fallback to the payload
+    branch_id = claims.get("branch_id") or payload.branch_id
     if not business_id or not branch_id:
-        raise HTTPException(status_code=403, detail="No autorizado")
+        raise HTTPException(status_code=403, detail="No autorizado o sucursal no especificada")
 
     try:
         ex_date = datetime.fromisoformat(payload.expense_date.replace('Z', '+00:00')) if payload.expense_date else datetime.utcnow()

@@ -134,6 +134,13 @@ export default function ClinicPayments() {
           d = new Date(); // If it's today, use exactly right now
       }
       
+      const branchId = localStorage.getItem("clinic_branch_id");
+      if (!branchId) {
+        setMsg({ type: "error", text: "Sucursal no seleccionada. Recarga la página." });
+        setSaving(false);
+        return;
+      }
+
       const res = await fetch(`${CLINIC_API}/clinic/finance/expenses`, {
         method: "POST",
         headers,
@@ -141,7 +148,8 @@ export default function ClinicPayments() {
           amount: parseFloat(expenseForm.amount),
           category: expenseForm.category,
           description: expenseForm.description,
-          expense_date: d.toISOString()
+          expense_date: d.toISOString(),
+          branch_id: Number(branchId)
         }),
       });
       if (!res.ok) throw new Error("Error al registrar gasto.");
