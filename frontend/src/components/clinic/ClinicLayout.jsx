@@ -50,9 +50,34 @@ export default function ClinicLayout() {
   const { pathname } = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const token  = localStorage.getItem("clinic_token") || localStorage.getItem("access_token");
-  const claims = JSON.parse(localStorage.getItem("clinic_claims") || localStorage.getItem("user_claims") || "{}");
-  const isAdmin = claims.role === "business_admin" || claims.role === "Gerente";
+  const token = localStorage.getItem("clinic_token") || localStorage.getItem("access_token");
+  
+  // Decode JWT to get reliable claims (backend uses this, so it's source of truth)
+  let claims = {};
+  if (token) {
+    try {
+      const payload = token.split(".")[1];
+      let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+      while (base64.length % 4) {
+        base64 += "=";
+      }
+      claims = JSON.parse(atob(base64));
+    } catch (e) {
+      console.error("Failed to decode token", e);
+      // Fallback to localStorage if decode fails
+      claims = JSON.parse(localStorage.getItem("clinic_claims") || localStorage.getItem("user_claims") || "{}");
+    }
+  }
+
+  // Fallback if token doesn't have business_id
+  if (!claims.business_id && localStorage.getItem("business_id")) {
+    const rootBiz = localStorage.getItem("business_id");
+    if (rootBiz !== "null" && rootBiz !== "undefined") {
+      claims.business_id = Number(rootBiz);
+    }
+  }
+
+  const isAdmin = claims.role === "business_admin" || claims.role === "Gerente" || claims.is_super_admin;
 
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);

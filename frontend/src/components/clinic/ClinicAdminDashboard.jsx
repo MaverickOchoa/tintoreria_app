@@ -126,10 +126,10 @@ export default function ClinicAdminDashboard() {
   useEffect(() => {
     if (!branchId) return;
     // Load branch config
-    fetch(`${FLASK_API}/branches/${branchId}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${FLASK_API}/api/v2/branches/${branchId}/config`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
-        if (d.id) setConfig({
+        if (d.branch_id) setConfig({
           uses_iva: !!d.uses_iva,
           iva_pct: d.iva_pct || 16,
           payment_cash: d.payment_cash !== false,
@@ -168,7 +168,7 @@ export default function ClinicAdminDashboard() {
   const saveConfig = async () => {
     setSaving(true);
     try {
-      await fetch(`${FLASK_API}/branches/${branchId}`, {
+      await fetch(`${FLASK_API}/api/v2/branches/${branchId}/config`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify(config),
