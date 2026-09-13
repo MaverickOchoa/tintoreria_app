@@ -19,7 +19,7 @@ from core.models.client import Client
 from verticals.clinic.models import (
     Patient, Appointment, ClinicalRecord, ClinicService, AppointmentStatus,
     BranchSchedule, BranchMessage, ClinicPromotion,
-    DoctorSchedule, DoctorScheduleBlock, ClinicalFormEntry, FormTemplate,
+    DoctorSchedule, DoctorScheduleBlock, ClinicalFormEntry, FormTemplate, PushSubscription
 )
 from verticals.clinic.schemas import (
     PatientCreate, PatientCreateFull, PatientUpdate,
