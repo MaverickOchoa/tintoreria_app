@@ -1781,33 +1781,6 @@ def assign_template_to_entry(
 
 # ── Doctor Schedules ──────────────────────────────────────────────────────────
 
-@router.get("/doctors/{doctor_id}/schedule")
-def get_doctor_schedule(doctor_id: int, db: Session = Depends(get_db)):
-    from core.models.user import DoctorSchedule
-    schedules = db.query(DoctorSchedule).filter_by(doctor_id=doctor_id).all()
-    # Default schedule if empty
-    if not schedules:
-        return {
-            "schedules": [
-                {"day_of_week": i, "start_time": "09:00", "end_time": "18:00", "is_working": True if i < 6 else False} for i in range(7)
-            ]
-        }
-    return {"schedules": [s.to_dict() for s in schedules]}
-
-@router.put("/doctors/{doctor_id}/schedule")
-def update_doctor_schedule(doctor_id: int, payload: DoctorScheduleUpdate, db: Session = Depends(get_db)):
-    from core.models.user import DoctorSchedule
-    db.query(DoctorSchedule).filter_by(doctor_id=doctor_id).delete()
-    for sch in payload.schedules:
-        db.add(DoctorSchedule(
-            doctor_id=doctor_id,
-            day_of_week=sch.day_of_week,
-            start_time=sch.start_time,
-            end_time=sch.end_time,
-            is_working=sch.is_working
-        ))
-    db.commit()
-    return {"ok": True}
 
 # ==========================================
 # Finance / Caja (Ingresos y Egresos)
