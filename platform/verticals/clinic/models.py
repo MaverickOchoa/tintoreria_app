@@ -386,3 +386,29 @@ class ClinicalRecord(Base):
             "record_date": self.record_date.isoformat() if self.record_date else None,
             "created_by": self.created_by,
         }
+
+class ClinicExpense(Base):
+    __tablename__ = 'clinic_expenses'
+
+    id = Column(Integer, primary_key=True)
+    business_id = Column(Integer, ForeignKey('businesses.id'), nullable=False, index=True)
+    branch_id = Column(Integer, ForeignKey('branches.id'), nullable=False, index=True)
+    amount = Column(Float, nullable=False)
+    category = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    expense_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    registered_by_id = Column(Integer, ForeignKey('employees.id'), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'business_id': self.business_id,
+            'branch_id': self.branch_id,
+            'amount': self.amount,
+            'category': self.category,
+            'description': self.description,
+            'expense_date': self.expense_date.isoformat() if self.expense_date else None,
+            'registered_by_id': self.registered_by_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
