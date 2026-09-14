@@ -36,6 +36,7 @@ app.add_middleware(
 )
 
 _STARTUP_MIGRATIONS = [
+    "ALTER TABLE clinic_doctor_schedules DROP CONSTRAINT IF EXISTS uq_doctor_day;",
     # Core auth tables for clinic employees
     """CREATE TABLE IF NOT EXISTS roles (
         id SERIAL PRIMARY KEY,

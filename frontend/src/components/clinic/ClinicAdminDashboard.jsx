@@ -39,7 +39,16 @@ function DoctorSchedulePanel({ doctor, branchId, token }) {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
-      .then(d => Array.isArray(d) && setSched(d))
+      .then(d => {
+        if (Array.isArray(d)) {
+          if (d.length === 0) {
+            // Default 7 days
+            setSched(DAYS.map((dName, i) => ({ day: i, label: dName, active: i < 5, start: "09:00", end: "17:00", slot_duration_minutes: 30 })));
+          } else {
+            setSched(d);
+          }
+        }
+      })
       .catch(() => {});
   }, [doctor.id, branchId]);
 
@@ -55,39 +64,85 @@ function DoctorSchedulePanel({ doctor, branchId, token }) {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const toggleDay = (dayIndex, checked) => {
+    if (checked) {
+      setSched(sc => [...sc, { day: dayIndex, label: DAYS[dayIndex], active: true, start: "09:00", end: "17:00", slot_duration_minutes: 30 }]);
+    } else {
+      setSched(sc => sc.filter(s => s.day !== dayIndex));
+    }
+  };
+
+  const addInterval = (dayIndex) => {
+    setSched(sc => [...sc, { day: dayIndex, label: DAYS[dayIndex], active: true, start: "17:00", end: "20:00", slot_duration_minutes: 30 }]);
+  };
+
+  const removeInterval = (indexToRemove) => {
+    setSched(sc => sc.filter((_, i) => i !== indexToRemove));
+  };
+
+  const updateInterval = (indexToUpdate, field, value) => {
+    setSched(sc => sc.map((s, i) => i === indexToUpdate ? { ...s, [field]: value } : s));
+  };
+
   if (!sched) return <CircularProgress size={20} sx={{ m: 2 }} />;
 
   return (
     <Box>
-      {sched.map((s, i) => (
-        <Box key={s.day} sx={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr 1fr 120px", alignItems: "center", gap: 1.5, mb: 1 }}>
-          <FormControlLabel
-            control={<Switch checked={s.active} size="small"
-              onChange={e => setSched(sc => sc.map((x, j) => j === i ? { ...x, active: e.target.checked } : x))} />}
-            label={<Typography fontSize={13}>{s.label}</Typography>}
-          />
-          <TextField select size="small" label="Inicio" value={s.start} disabled={!s.active}
-            onChange={e => setSched(sc => sc.map((x, j) => j === i ? { ...x, start: e.target.value } : x))}>
-            {HOURS.map(h => <MenuItem key={h} value={h}>{h}</MenuItem>)}
-          </TextField>
-          <TextField select size="small" label="Fin" value={s.end} disabled={!s.active}
-            onChange={e => setSched(sc => sc.map((x, j) => j === i ? { ...x, end: e.target.value } : x))}>
-            {HOURS.map(h => <MenuItem key={h} value={h}>{h}</MenuItem>)}
-          </TextField>
-          <TextField select size="small" label="Duración cita" value={s.slot_duration_minutes} disabled={!s.active}
-            onChange={e => setSched(sc => sc.map((x, j) => j === i ? { ...x, slot_duration_minutes: Number(e.target.value) } : x))}>
-            {SLOT_OPTIONS.map(m => <MenuItem key={m} value={m}>{m} min</MenuItem>)}
-          </TextField>
-          <Chip label={s.active ? "Disponible" : "No disponible"} size="small"
-            sx={{ bgcolor: s.active ? "#ecfdf5" : "#f9fafb", color: s.active ? "#059669" : "#9ca3af", fontWeight: 700 }} />
-        </Box>
-      ))}
-      <Box mt={1.5} display="flex" alignItems="center" gap={1.5}>
-        <Button variant="contained" size="small" startIcon={<SaveIcon />} onClick={save} disabled={saving}
-          sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2 }}>
-          {saving ? "Guardando…" : "Guardar horario"}
+      {DAYS.map((dName, dayIndex) => {
+        // Find all intervals for this day
+        const dayIntervals = sched.map((s, i) => ({ ...s, globalIndex: i })).filter(s => s.day === dayIndex && s.active !== false);
+        const isActive = dayIntervals.length > 0;
+
+        return (
+          <Box key={dayIndex} sx={{ mb: 2, pb: 2, borderBottom: "1px solid #f3f4f6" }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: isActive ? 1 : 0 }}>
+              <FormControlLabel
+                control={<Switch checked={isActive} size="small" onChange={e => toggleDay(dayIndex, e.target.checked)} />}
+                label={<Typography fontSize={14} fontWeight={600}>{dName}</Typography>}
+              />
+              {!isActive && (
+                <Chip label="Día libre" size="small" sx={{ bgcolor: "#f9fafb", color: "#9ca3af", fontWeight: 700 }} />
+              )}
+            </Box>
+
+            {isActive && (
+              <Box sx={{ pl: 4 }}>
+                {dayIntervals.map((interval, localIndex) => (
+                  <Box key={interval.globalIndex} sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+                    <TextField select size="small" label="Inicio" value={interval.start}
+                      onChange={e => updateInterval(interval.globalIndex, "start", e.target.value)} sx={{ width: 100 }}>
+                      {HOURS.map(h => <MenuItem key={h} value={h}>{h}</MenuItem>)}
+                    </TextField>
+                    <Typography color="text.secondary">-</Typography>
+                    <TextField select size="small" label="Fin" value={interval.end}
+                      onChange={e => updateInterval(interval.globalIndex, "end", e.target.value)} sx={{ width: 100 }}>
+                      {HOURS.map(h => <MenuItem key={h} value={h}>{h}</MenuItem>)}
+                    </TextField>
+                    <TextField select size="small" label="Duración cita" value={interval.slot_duration_minutes}
+                      onChange={e => updateInterval(interval.globalIndex, "slot_duration_minutes", Number(e.target.value))} sx={{ width: 120, ml: 2 }}>
+                      {SLOT_OPTIONS.map(m => <MenuItem key={m} value={m}>{m} min</MenuItem>)}
+                    </TextField>
+                    
+                    <IconButton size="small" color="error" onClick={() => removeInterval(interval.globalIndex)} sx={{ ml: 1 }}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ))}
+                <Button size="small" startIcon={<AddIcon />} onClick={() => addInterval(dayIndex)} sx={{ color: "#4361ee", mt: 0.5 }}>
+                  Añadir turno
+                </Button>
+              </Box>
+            )}
+          </Box>
+        );
+      })}
+
+      <Box sx={{ mt: 3, display: "flex", alignItems: "center", gap: 2 }}>
+        <Button variant="contained" onClick={save} disabled={saving} startIcon={<SaveIcon />}
+          sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, textTransform: "none", px: 3 }}>
+          {saving ? "Guardando..." : "Guardar horarios de doctor"}
         </Button>
-        {saved && <Typography fontSize={12} color="#059669" fontWeight={700}>✓ Guardado</Typography>}
+        {saved && <Alert severity="success" sx={{ py: 0, px: 2 }}>Guardado correctamente</Alert>}
       </Box>
     </Box>
   );

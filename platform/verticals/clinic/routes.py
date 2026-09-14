@@ -487,6 +487,37 @@ def portal_create_appointment(
         if br:
             branch_id = br.id
             
+    if payload.doctor_id:
+        end_time = payload.scheduled_at + timedelta(minutes=30)
+        from verticals.clinic.models import DoctorSchedule
+        schedules = db.query(DoctorSchedule).filter_by(
+            doctor_id=payload.doctor_id,
+            day_of_week=payload.scheduled_at.weekday()
+        ).all()
+        
+        req_start = payload.scheduled_at.strftime("%H:%M")
+        req_end = end_time.strftime("%H:%M")
+        
+        if schedules:
+            active_schedules = [s for s in schedules if getattr(s, "is_available", getattr(s, "is_working", True))]
+            if not active_schedules:
+                raise HTTPException(status_code=409, detail="El doctor no trabaja este día.")
+                
+            fits = False
+            for sch in active_schedules:
+                if req_start >= sch.start_time and req_end <= sch.end_time:
+                    fits = True
+                    break
+                    
+            if not fits:
+                valid_ranges = " y ".join([f"{s.start_time} a {s.end_time}" for s in active_schedules])
+                raise HTTPException(status_code=409, detail=f"Horario fuera de los turnos disponibles ({valid_ranges}).")
+        else:
+            if payload.scheduled_at.weekday() == 6:
+                raise HTTPException(status_code=409, detail="El doctor no trabaja este día (Domingo).")
+            if req_start < "09:00" or req_end > "18:00":
+                raise HTTPException(status_code=409, detail="Horario fuera del turno por defecto (09:00 a 18:00).")
+
     apt = Appointment(
         business_id=business_id,
         branch_id=branch_id,
@@ -732,26 +763,36 @@ def create_appointment(
         day_end = day_start + timedelta(days=1)
         
         # Validar horario laboral
-        from core.models.user import DoctorSchedule
-        sch = db.query(DoctorSchedule).filter_by(
+        from verticals.clinic.models import DoctorSchedule
+        schedules = db.query(DoctorSchedule).filter_by(
             doctor_id=payload.doctor_id,
             day_of_week=payload.scheduled_at.weekday()
-        ).first()
+        ).all()
         
         req_start = payload.scheduled_at.strftime("%H:%M")
         req_end = end_time.strftime("%H:%M")
         
-        if sch:
-            if not sch.is_working:
+        if schedules:
+            active_schedules = [s for s in schedules if getattr(s, "is_available", getattr(s, "is_working", True))]
+            if not active_schedules:
                 raise HTTPException(status_code=409, detail="El doctor no trabaja este día.")
-            if req_start < sch.start_time or req_end > sch.end_time:
-                raise HTTPException(status_code=409, detail=f"Horario fuera del turno ({sch.start_time} a {sch.end_time}).")
+                
+            # Check if requested time fits inside AT LEAST ONE active interval
+            fits = False
+            for sch in active_schedules:
+                if req_start >= sch.start_time and req_end <= sch.end_time:
+                    fits = True
+                    break
+                    
+            if not fits:
+                valid_ranges = " y ".join([f"{s.start_time} a {s.end_time}" for s in active_schedules])
+                raise HTTPException(status_code=409, detail=f"Horario fuera de los turnos disponibles ({valid_ranges}).")
         else:
             # Default schedule if not configured
             if payload.scheduled_at.weekday() == 6:
                 raise HTTPException(status_code=409, detail="El doctor no trabaja este día (Domingo).")
             if req_start < "09:00" or req_end > "18:00":
-                raise HTTPException(status_code=409, detail="Horario fuera del turno (09:00 a 18:00).")
+                raise HTTPException(status_code=409, detail="Horario fuera del turno por defecto (09:00 a 18:00).")
 
         daily_apts = db.query(Appointment).filter(
             Appointment.doctor_id == payload.doctor_id,
@@ -808,25 +849,34 @@ def update_appointment(
         day_end = day_start + timedelta(days=1)
         
         # Validar horario laboral
-        from core.models.user import DoctorSchedule
-        sch = db.query(DoctorSchedule).filter_by(
+        from verticals.clinic.models import DoctorSchedule
+        schedules = db.query(DoctorSchedule).filter_by(
             doctor_id=new_doctor_id,
             day_of_week=new_scheduled.weekday()
-        ).first()
+        ).all()
         
         req_start = new_scheduled.strftime("%H:%M")
         req_end = end_time.strftime("%H:%M")
         
-        if sch:
-            if not sch.is_working:
+        if schedules:
+            active_schedules = [s for s in schedules if getattr(s, "is_available", getattr(s, "is_working", True))]
+            if not active_schedules:
                 raise HTTPException(status_code=409, detail="El doctor no trabaja este día.")
-            if req_start < sch.start_time or req_end > sch.end_time:
-                raise HTTPException(status_code=409, detail=f"Horario fuera del turno ({sch.start_time} a {sch.end_time}).")
+                
+            fits = False
+            for sch in active_schedules:
+                if req_start >= sch.start_time and req_end <= sch.end_time:
+                    fits = True
+                    break
+                    
+            if not fits:
+                valid_ranges = " y ".join([f"{s.start_time} a {s.end_time}" for s in active_schedules])
+                raise HTTPException(status_code=409, detail=f"Horario fuera de los turnos disponibles ({valid_ranges}).")
         else:
             if new_scheduled.weekday() == 6:
                 raise HTTPException(status_code=409, detail="El doctor no trabaja este día (Domingo).")
             if req_start < "09:00" or req_end > "18:00":
-                raise HTTPException(status_code=409, detail="Horario fuera del turno (09:00 a 18:00).")
+                raise HTTPException(status_code=409, detail="Horario fuera del turno por defecto (09:00 a 18:00).")
 
         daily_apts = db.query(Appointment).filter(
             Appointment.doctor_id == new_doctor_id,
@@ -1192,25 +1242,23 @@ def save_doctor_schedule(
     business_id = claims.get("business_id")
     if not branch_id:
         raise HTTPException(status_code=400, detail="branch_id requerido.")
+    # Delete all existing schedules for this doctor in this branch
+    db.query(DoctorSchedule).filter_by(
+        doctor_id=doctor_id, branch_id=branch_id
+    ).delete()
+
+    # Insert new intervals
     for entry in schedule:
-        day = entry.get("day")
-        row = db.query(DoctorSchedule).filter_by(
-            doctor_id=doctor_id, branch_id=branch_id, day_of_week=day
-        ).first()
-        if row:
-            row.is_available = entry.get("active", True)
-            row.start_time = entry.get("start", "09:00")
-            row.end_time = entry.get("end", "17:00")
-            row.slot_duration_minutes = entry.get("slot_duration_minutes", 30)
-        else:
-            db.add(DoctorSchedule(
-                doctor_id=doctor_id, branch_id=branch_id, business_id=business_id,
-                day_of_week=day,
-                is_available=entry.get("active", True),
-                start_time=entry.get("start", "09:00"),
-                end_time=entry.get("end", "17:00"),
-                slot_duration_minutes=entry.get("slot_duration_minutes", 30),
-            ))
+        if not entry.get("active", False):
+            continue  # Don't save inactive rows, they are just UI placeholders
+        db.add(DoctorSchedule(
+            doctor_id=doctor_id, branch_id=branch_id, business_id=business_id,
+            day_of_week=entry.get("day"),
+            is_available=True,
+            start_time=entry.get("start", "09:00"),
+            end_time=entry.get("end", "17:00"),
+            slot_duration_minutes=entry.get("slot_duration_minutes", 30)
+        ))
     db.commit()
     return {"ok": True}
 

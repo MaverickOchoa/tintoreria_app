@@ -146,7 +146,6 @@ class ClinicPromotion(Base):
 class DoctorSchedule(Base):
     """Weekly availability per doctor per branch."""
     __tablename__ = "clinic_doctor_schedules"
-    __table_args__ = (UniqueConstraint("doctor_id", "branch_id", "day_of_week", name="uq_doctor_day"),)
 
     id = Column(Integer, primary_key=True)
     doctor_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)

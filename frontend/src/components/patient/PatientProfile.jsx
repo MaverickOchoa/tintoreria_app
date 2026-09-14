@@ -83,7 +83,10 @@ export default function PatientProfile() {
         body: JSON.stringify(subscription.toJSON())
       });
       
-      if (!res.ok) throw new Error("Error al guardar suscripción en el servidor.");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Error al guardar suscripción en el servidor.");
+      }
       alert("¡Notificaciones activadas correctamente!");
     } catch (e) {
       console.error(e);
