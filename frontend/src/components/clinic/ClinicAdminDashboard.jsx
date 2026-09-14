@@ -394,7 +394,7 @@ export default function ClinicAdminDashboard() {
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails sx={{ px: 2, pb: 2 }}>
-                  <DoctorSchedulePanel doctor={doc} branchId={selectedBranch} token={token} />
+                  <DoctorSchedulePanel doctor={doc} branchId={branchId} token={token} />
                 </AccordionDetails>
               </Accordion>
             ))
