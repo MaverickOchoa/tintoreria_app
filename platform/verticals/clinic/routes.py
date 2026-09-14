@@ -1289,31 +1289,54 @@ def get_available_slots(
     
     active_schedules = [s for s in schedules if getattr(s, "is_available", getattr(s, "is_working", True))]
     
-    if not active_schedules:
-        return {"slots": []}
-
     from datetime import time as dt_time
     
-    # Remove blocked times first to avoid generating them
     blocks = db.query(DoctorScheduleBlock).filter_by(
         doctor_id=doctor_id, branch_id=branch_id, blocked_date=target_date
     ).all()
     
     blocked_intervals = []
+    extra_shifts = []
+    all_day_block = False
+    
     for block in blocks:
-        if block.all_day:
-            return {"slots": []}
-        if block.start_time and block.end_time:
-            bstart_h, bstart_m = map(int, block.start_time.split(":"))
-            bend_h, bend_m = map(int, block.end_time.split(":"))
-            blocked_intervals.append((
-                datetime.combine(target_date, dt_time(bstart_h, bstart_m)),
-                datetime.combine(target_date, dt_time(bend_h, bend_m))
-            ))
+        if block.is_available:
+            if block.start_time and block.end_time:
+                extra_shifts.append(block)
+        else:
+            if block.all_day:
+                all_day_block = True
+            elif block.start_time and block.end_time:
+                bstart_h, bstart_m = map(int, block.start_time.split(":"))
+                bend_h, bend_m = map(int, block.end_time.split(":"))
+                blocked_intervals.append((
+                    datetime.combine(target_date, dt_time(bstart_h, bstart_m)),
+                    datetime.combine(target_date, dt_time(bend_h, bend_m))
+                ))
+    
+    if all_day_block:
+        active_schedules = [] # Override regular schedules
+
+    # Merge regular schedules and extra shifts
+    # For extra shifts, we need a default slot duration (assume 30 or get from one of the active schedules)
+    default_duration = active_schedules[0].slot_duration_minutes if active_schedules else 30
+    
+    class ShiftWrapper:
+        def __init__(self, start_time, end_time, duration):
+            self.start_time = start_time
+            self.end_time = end_time
+            self.slot_duration_minutes = duration
+
+    merged_shifts = active_schedules.copy()
+    for extra in extra_shifts:
+        merged_shifts.append(ShiftWrapper(extra.start_time, extra.end_time, default_duration))
+        
+    if not merged_shifts:
+        return {"slots": []}
 
     # Build all possible slots across all intervals
     all_slots = []
-    for sched in active_schedules:
+    for sched in merged_shifts:
         start_h, start_m = map(int, sched.start_time.split(":"))
         end_h, end_m = map(int, sched.end_time.split(":"))
         duration = sched.slot_duration_minutes
@@ -1356,6 +1379,93 @@ def get_available_slots(
     return {"slots": sorted(list(set(all_slots)))}
 
 
+@router.get("/doctors/{doctor_id}/calendar-events")
+def get_calendar_events(
+    doctor_id: int,
+    branch_id: int,
+    start: date = Query(...),
+    end: date = Query(...),
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    """Return all events (schedules, blocks, appointments) for a doctor in a date range for react-big-calendar."""
+    
+    # 1. Base Schedules (weekly recurring)
+    schedules = db.query(DoctorSchedule).filter_by(doctor_id=doctor_id, branch_id=branch_id).all()
+    # 2. Blocks / Exceptions
+    blocks = db.query(DoctorScheduleBlock).filter(
+        DoctorScheduleBlock.doctor_id == doctor_id,
+        DoctorScheduleBlock.branch_id == branch_id,
+        DoctorScheduleBlock.blocked_date >= start,
+        DoctorScheduleBlock.blocked_date <= end
+    ).all()
+    # 3. Appointments
+    from datetime import datetime, time as dt_time
+    appointments = db.query(Appointment).filter(
+        Appointment.doctor_id == doctor_id,
+        Appointment.branch_id == branch_id,
+        Appointment.scheduled_at >= datetime.combine(start, dt_time.min),
+        Appointment.scheduled_at <= datetime.combine(end, dt_time.max)
+    ).all()
+
+    events = []
+    
+    # Process blocks
+    for b in blocks:
+        events.append({
+            "id": f"block_{b.id}",
+            "type": "extra_shift" if b.is_available else "block",
+            "title": ("Turno Extra" if b.is_available else "Ausencia/Bloqueo") + (f" - {b.reason}" if b.reason else ""),
+            "start": datetime.combine(b.blocked_date, dt_time(*(map(int, b.start_time.split(":"))))) if not b.all_day and b.start_time else datetime.combine(b.blocked_date, dt_time.min),
+            "end": datetime.combine(b.blocked_date, dt_time(*(map(int, b.end_time.split(":"))))) if not b.all_day and b.end_time else datetime.combine(b.blocked_date, dt_time.max),
+            "allDay": b.all_day,
+            "resource": b.to_dict()
+        })
+        
+    # Process appointments
+    for a in appointments:
+        if a.status in ["Cancelada", "No Show"]:
+            continue
+        events.append({
+            "id": f"apt_{a.id}",
+            "type": "appointment",
+            "title": f"Cita: {a.patient.first_name} {a.patient.last_name}" if a.patient else "Cita",
+            "start": a.scheduled_at,
+            "end": a.scheduled_at + timedelta(minutes=a.duration_minutes),
+            "allDay": False,
+            "resource": a.to_dict()
+        })
+        
+    # Expand recurring schedules into specific dates
+    from datetime import timedelta
+    current_date = start
+    
+    # Fast lookup for all-day blocks on specific dates
+    all_day_blocks = {b.blocked_date for b in blocks if b.all_day and not b.is_available}
+    
+    while current_date <= end:
+        if current_date not in all_day_blocks:
+            day_of_week = current_date.weekday()
+            day_schedules = [s for s in schedules if s.day_of_week == day_of_week and getattr(s, "is_working", True) and getattr(s, "is_available", True)]
+            for s in day_schedules:
+                # We could check if it overlaps with a partial block here, but for the calendar visualization, 
+                # returning overlapping events is fine (blocks will render on top or alongside).
+                st_h, st_m = map(int, s.start_time.split(":"))
+                en_h, en_m = map(int, s.end_time.split(":"))
+                events.append({
+                    "id": f"sched_{s.id}_{current_date.isoformat()}",
+                    "type": "schedule",
+                    "title": "Turno Regular",
+                    "start": datetime.combine(current_date, dt_time(st_h, st_m)),
+                    "end": datetime.combine(current_date, dt_time(en_h, en_m)),
+                    "allDay": False,
+                    "resource": s.to_dict()
+                })
+        current_date += timedelta(days=1)
+        
+    return {"events": events}
+
+
 @router.post("/doctors/{doctor_id}/blocks", status_code=201)
 def block_doctor_time(
     doctor_id: int,
@@ -1375,6 +1485,7 @@ def block_doctor_time(
         branch_id=branch_id,
         blocked_date=blocked_date,
         all_day=payload.get("all_day", False),
+        is_available=payload.get("is_available", False),
         start_time=payload.get("start_time"),
         end_time=payload.get("end_time"),
         reason=payload.get("reason"),

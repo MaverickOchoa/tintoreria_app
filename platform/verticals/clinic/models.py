@@ -182,6 +182,7 @@ class DoctorScheduleBlock(Base):
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
     blocked_date = Column(Date, nullable=False, index=True)
     all_day = Column(Boolean, nullable=False, default=False)
+    is_available = Column(Boolean, nullable=False, default=False) # False=Block, True=Extra Shift
     start_time = Column(String(5), nullable=True)
     end_time = Column(String(5), nullable=True)
     reason = Column(String(200), nullable=True)
@@ -191,6 +192,7 @@ class DoctorScheduleBlock(Base):
             "id": self.id, "doctor_id": self.doctor_id, "branch_id": self.branch_id,
             "blocked_date": self.blocked_date.isoformat() if self.blocked_date else None,
             "all_day": self.all_day,
+            "is_available": self.is_available,
             "start_time": self.start_time, "end_time": self.end_time,
             "reason": self.reason,
         }

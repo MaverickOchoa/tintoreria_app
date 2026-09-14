@@ -29,124 +29,8 @@ const MSG_TRIGGERS = [
   { key: "appointment_reminder", label: "Recordatorio 24h antes", desc: "Se envía 24 horas antes de la cita" },
 ];
 
-function DoctorSchedulePanel({ doctor, branchId, token }) {
-  const [sched, setSched] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+import DoctorCalendarView from "./DoctorCalendarView";
 
-  useEffect(() => {
-    fetch(`${CLINIC_API}/clinic/doctors/${doctor.id}/schedule?branch_id=${branchId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(d => {
-        if (Array.isArray(d)) {
-          if (d.length === 0) {
-            // Default 7 days
-            setSched(DAYS.map((dName, i) => ({ day: i, label: dName, active: i < 5, start: "09:00", end: "17:00", slot_duration_minutes: 30 })));
-          } else {
-            setSched(d);
-          }
-        }
-      })
-      .catch(() => {});
-  }, [doctor.id, branchId]);
-
-  const save = async () => {
-    setSaving(true);
-    await fetch(`${CLINIC_API}/clinic/doctors/${doctor.id}/schedule`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ branch_id: branchId, schedule: sched }),
-    }).catch(() => {});
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  const toggleDay = (dayIndex, checked) => {
-    if (checked) {
-      setSched(sc => [...sc, { day: dayIndex, label: DAYS[dayIndex], active: true, start: "09:00", end: "17:00", slot_duration_minutes: 30 }]);
-    } else {
-      setSched(sc => sc.filter(s => s.day !== dayIndex));
-    }
-  };
-
-  const addInterval = (dayIndex) => {
-    setSched(sc => [...sc, { day: dayIndex, label: DAYS[dayIndex], active: true, start: "17:00", end: "20:00", slot_duration_minutes: 30 }]);
-  };
-
-  const removeInterval = (indexToRemove) => {
-    setSched(sc => sc.filter((_, i) => i !== indexToRemove));
-  };
-
-  const updateInterval = (indexToUpdate, field, value) => {
-    setSched(sc => sc.map((s, i) => i === indexToUpdate ? { ...s, [field]: value } : s));
-  };
-
-  if (!sched) return <CircularProgress size={20} sx={{ m: 2 }} />;
-
-  return (
-    <Box>
-      {DAYS.map((dName, dayIndex) => {
-        // Find all intervals for this day
-        const dayIntervals = sched.map((s, i) => ({ ...s, globalIndex: i })).filter(s => s.day === dayIndex && s.active !== false);
-        const isActive = dayIntervals.length > 0;
-
-        return (
-          <Box key={dayIndex} sx={{ mb: 2, pb: 2, borderBottom: "1px solid #f3f4f6" }}>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: isActive ? 1 : 0 }}>
-              <FormControlLabel
-                control={<Switch checked={isActive} size="small" onChange={e => toggleDay(dayIndex, e.target.checked)} />}
-                label={<Typography fontSize={14} fontWeight={600}>{dName}</Typography>}
-              />
-              {!isActive && (
-                <Chip label="Día libre" size="small" sx={{ bgcolor: "#f9fafb", color: "#9ca3af", fontWeight: 700 }} />
-              )}
-            </Box>
-
-            {isActive && (
-              <Box sx={{ pl: 4 }}>
-                {dayIntervals.map((interval, localIndex) => (
-                  <Box key={interval.globalIndex} sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-                    <TextField select size="small" label="Inicio" value={interval.start}
-                      onChange={e => updateInterval(interval.globalIndex, "start", e.target.value)} sx={{ width: 100 }}>
-                      {HOURS.map(h => <MenuItem key={h} value={h}>{h}</MenuItem>)}
-                    </TextField>
-                    <Typography color="text.secondary">-</Typography>
-                    <TextField select size="small" label="Fin" value={interval.end}
-                      onChange={e => updateInterval(interval.globalIndex, "end", e.target.value)} sx={{ width: 100 }}>
-                      {HOURS.map(h => <MenuItem key={h} value={h}>{h}</MenuItem>)}
-                    </TextField>
-                    <TextField select size="small" label="Duración cita" value={interval.slot_duration_minutes}
-                      onChange={e => updateInterval(interval.globalIndex, "slot_duration_minutes", Number(e.target.value))} sx={{ width: 120, ml: 2 }}>
-                      {SLOT_OPTIONS.map(m => <MenuItem key={m} value={m}>{m} min</MenuItem>)}
-                    </TextField>
-                    
-                    <IconButton size="small" color="error" onClick={() => removeInterval(interval.globalIndex)} sx={{ ml: 1 }}>
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                ))}
-                <Button size="small" startIcon={<AddIcon />} onClick={() => addInterval(dayIndex)} sx={{ color: "#4361ee", mt: 0.5 }}>
-                  Añadir turno
-                </Button>
-              </Box>
-            )}
-          </Box>
-        );
-      })}
-
-      <Box sx={{ mt: 3, display: "flex", alignItems: "center", gap: 2 }}>
-        <Button variant="contained" onClick={save} disabled={saving} startIcon={<SaveIcon />}
-          sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2, textTransform: "none", px: 3 }}>
-          {saving ? "Guardando..." : "Guardar horarios de doctor"}
-        </Button>
-        {saved && <Alert severity="success" sx={{ py: 0, px: 2 }}>Guardado correctamente</Alert>}
-      </Box>
-    </Box>
-  );
-}
 
 export default function ClinicAdminDashboard() {
   const { token, claims, branches, selectedBranch, setSelectedBranch } = useOutletContext();
@@ -449,7 +333,7 @@ export default function ClinicAdminDashboard() {
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails sx={{ px: 2, pb: 2 }}>
-                  <DoctorSchedulePanel doctor={doc} branchId={branchId} token={token} />
+                  <DoctorCalendarView doctor={doc} branchId={branchId} token={token} />
                 </AccordionDetails>
               </Accordion>
             ))
