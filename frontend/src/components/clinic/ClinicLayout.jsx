@@ -78,6 +78,7 @@ export default function ClinicLayout() {
   }
 
   const isAdmin = claims.role === "business_admin" || claims.role === "Gerente" || claims.is_super_admin;
+  const isDoctor = claims.role === "Doctor";
 
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
@@ -85,6 +86,12 @@ export default function ClinicLayout() {
   const [themeLoading, setThemeLoading] = useState(!!claims.business_id);
   const { setThemeConfig } = React.useContext(CustomThemeContext);
   const w = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_W;
+
+  // Dynamically insert Mi Horario for Doctors
+  const currentNav = [...NAV];
+  if (isDoctor && !currentNav.find(n => n.path === "/clinic/my-schedule")) {
+    currentNav.splice(3, 0, { icon: <CalendarMonthIcon />, label: "Mi Horario", path: "/clinic/my-schedule" });
+  }
 
   const [mustChange, setMustChange] = useState(() => {
     try {

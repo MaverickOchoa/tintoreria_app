@@ -72,6 +72,7 @@ import ClinicPatients from "./components/clinic/ClinicPatients.jsx";
 import ClinicPatientProfile from "./components/clinic/ClinicPatientProfile.jsx";
 import ClinicFormHoja from "./components/clinic/ClinicFormHoja.jsx";
 import ClinicCalendar from "./components/clinic/ClinicCalendar.jsx";
+import DoctorSchedule from "./components/clinic/DoctorSchedule.jsx";
 import ClinicServices from "./components/clinic/ClinicServices.jsx";
 import ClinicPayments from "./components/clinic/ClinicPayments.jsx";
 import ClinicUsers from "./components/clinic/ClinicUsers.jsx";
@@ -271,6 +272,7 @@ function App() {
               <Route path="patients/:patientId" element={<ClinicPatientProfile />} />
               <Route path="patients/:patientId/hoja-clinica" element={<ClinicFormHoja />} />
               <Route path="calendar" element={<ClinicCalendar />} />
+              <Route path="my-schedule" element={<DoctorSchedule />} />
               <Route path="services" element={<ClinicServices />} />
               <Route path="payments" element={<ClinicPayments />} />
               <Route path="users" element={<ClinicUsers />} />

@@ -737,7 +737,12 @@ def list_appointments(
         q = q.filter(Appointment.branch_id == branch_id)
     elif claims.get("branch_id"):
         q = q.filter(Appointment.branch_id == claims["branch_id"])
-    if doctor_id:
+
+    # If the user is a Doctor, they can ONLY see their own appointments
+    role = claims.get("role", "")
+    if role.lower() == "doctor":
+        q = q.filter(Appointment.doctor_id == claims.get("employee_id"))
+    elif doctor_id:
         q = q.filter(Appointment.doctor_id == doctor_id)
     if date_from:
         q = q.filter(Appointment.scheduled_at >= datetime.combine(date_from, datetime.min.time()))
@@ -2004,6 +2009,10 @@ def get_finance_summary(
     )
     if branch_id:
         q_in = q_in.filter(Appointment.branch_id == branch_id)
+        
+    role = claims.get("role", "")
+    if role.lower() == "doctor":
+        q_in = q_in.filter(Appointment.doctor_id == claims.get("employee_id"))
     
     incomes = []
     total_income = 0.0
@@ -2037,17 +2046,19 @@ def get_finance_summary(
         
     expenses = []
     total_expense = 0.0
-    for ex in q_ex.all():
-        total_expense += ex.amount
-        expenses.append({
-            "id": ex.id,
-            "type": "expense",
-            "date": ex.expense_date.isoformat() + "Z",
-            "amount": ex.amount,
-            "description": ex.description,
-            "category": ex.category,
-            "registered_by_id": ex.registered_by_id
-        })
+    
+    if role.lower() != "doctor":
+        for ex in q_ex.all():
+            total_expense += ex.amount
+            expenses.append({
+                "id": ex.id,
+                "type": "expense",
+                "date": ex.expense_date.isoformat() + "Z",
+                "amount": ex.amount,
+                "description": ex.description,
+                "category": ex.category,
+                "registered_by_id": ex.registered_by_id
+            })
 
     return {
         "start_date": sd.isoformat() + "Z",
