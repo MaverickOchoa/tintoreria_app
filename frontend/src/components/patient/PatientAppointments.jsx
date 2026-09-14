@@ -3,7 +3,8 @@ import { useOutletContext } from "react-router-dom";
 import { 
   Box, Typography, Chip, Paper, Skeleton, Divider, 
   Fab, Dialog, DialogTitle, DialogContent, DialogActions, 
-  Button, TextField, FormControl, InputLabel, Select, MenuItem
+  Button, TextField, FormControl, InputLabel, Select, MenuItem,
+  CircularProgress
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -31,7 +32,13 @@ export default function PatientAppointments() {
   // Dialog state
   const [openDialog, setOpenDialog] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ date: "", time: "", reason: "", doctor_id: "", clinic_service_id: "" });
+  
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [time, setTime] = useState("");
+  const [slots, setSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  
+  const [formData, setFormData] = useState({ reason: "", doctor_id: "", clinic_service_id: "" });
 
   const loadAppointments = () => {
     setLoading(true);
@@ -61,15 +68,33 @@ export default function PatientAppointments() {
     loadMetadata();
   }, [token]);
 
+  useEffect(() => {
+    if (!formData.doctor_id || !date) {
+      setSlots([]);
+      return;
+    }
+    setLoadingSlots(true);
+    fetch(`${CLINIC_API}/clinic/doctors/${formData.doctor_id}/available-slots?date=${date}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(d => {
+        setSlots(d.slots || []);
+        if (d.slots && !d.slots.includes(time)) setTime("");
+      })
+      .catch(() => setSlots([]))
+      .finally(() => setLoadingSlots(false));
+  }, [formData.doctor_id, date]);
+
   const upcoming = appointments.filter(a => ["Agendada", "Confirmada"].includes(a.status));
   const past = appointments.filter(a => !["Agendada", "Confirmada"].includes(a.status));
 
   const handleBookAppointment = async () => {
-    if (!formData.date || !formData.time) {
+    if (!date || !time) {
       alert("Debes seleccionar fecha y hora.");
       return;
     }
-    const scheduled_at = new Date(`${formData.date}T${formData.time}`).toISOString();
+    const scheduled_at = `${date}T${time}:00`;
     
     setSaving(true);
     try {
@@ -87,7 +112,8 @@ export default function PatientAppointments() {
       if (!res.ok) throw new Error(data.detail || "Error al agendar");
       alert("¡Cita agendada exitosamente!");
       setOpenDialog(false);
-      setFormData({ date: "", time: "", reason: "", doctor_id: "", clinic_service_id: "" });
+      setFormData({ reason: "", doctor_id: "", clinic_service_id: "" });
+      setTime("");
       loadAppointments();
     } catch (e) {
       alert(e.message);
@@ -104,7 +130,7 @@ export default function PatientAppointments() {
           <Box>
             <Typography fontWeight={700} fontSize={14}>{a.service_name || "Consulta"}</Typography>
             <Typography fontSize={12} color="text.secondary" mt={0.3}>
-              {a.scheduled_at ? new Date(a.scheduled_at).toLocaleString("es-MX", { dateStyle: "full", timeStyle: "short" }) : "—"}
+              {a.scheduled_at ? new Date(a.scheduled_at).toLocaleString("es-MX", { dateStyle: "full", timeStyle: "short" }) : "-"}
             </Typography>
             {a.doctor_name && <Typography fontSize={12} color="text.secondary">Dr. {a.doctor_name}</Typography>}
             {a.reason && <Typography fontSize={12} color="text.secondary" mt={0.5}>Motivo: {a.reason}</Typography>}
@@ -125,7 +151,7 @@ export default function PatientAppointments() {
       </Box>
 
       {loading ? (
-        <Box><Skeleton height={100} /><Skeleton height={100} /></Box>
+        <Box><Skeleton height={100} sx={{ mb: 1 }} /><Skeleton height={100} /></Box>
       ) : (
         <>
           {upcoming.length > 0 && (
@@ -173,14 +199,28 @@ export default function PatientAppointments() {
         <DialogContent dividers>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, py: 1 }}>
             
-            <FormControl fullWidth>
-              <InputLabel>Servicio</InputLabel>
+            <FormControl fullWidth size="small">
+              <InputLabel>Doctor</InputLabel>
               <Select
-                label="Servicio"
+                label="Doctor"
+                value={formData.doctor_id}
+                onChange={e => setFormData({ ...formData, doctor_id: e.target.value })}
+              >
+                <MenuItem value=""><em>-- Selecciona un doctor --</em></MenuItem>
+                {doctors.map(d => (
+                  <MenuItem key={d.id} value={d.id}>Dr(a). {d.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth size="small">
+              <InputLabel>Servicio (Opcional)</InputLabel>
+              <Select
+                label="Servicio (Opcional)"
                 value={formData.clinic_service_id}
                 onChange={e => setFormData({ ...formData, clinic_service_id: e.target.value })}
               >
-                <MenuItem value=""><em>-- Seleccionar --</em></MenuItem>
+                <MenuItem value=""><em>-- Sin preferencia --</em></MenuItem>
                 {services.map(s => (
                   <MenuItem key={s.id} value={s.id}>{s.name} - ${s.price}</MenuItem>
                 ))}
@@ -190,41 +230,58 @@ export default function PatientAppointments() {
               </Select>
             </FormControl>
 
-            <FormControl fullWidth>
-              <InputLabel>Doctor (Opcional)</InputLabel>
-              <Select
-                label="Doctor (Opcional)"
-                value={formData.doctor_id}
-                onChange={e => setFormData({ ...formData, doctor_id: e.target.value })}
-              >
-                <MenuItem value=""><em>-- Sin preferencia --</em></MenuItem>
-                {doctors.map(d => (
-                  <MenuItem key={d.id} value={d.id}>Dr(a). {d.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Box sx={{ bgcolor: "#f9fafb", p: 2, borderRadius: 2 }}>
+              <TextField
+                label="Fecha"
+                type="date"
+                fullWidth size="small"
+                InputLabelProps={{ shrink: true }}
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                sx={{ mb: 2, bgcolor: "white" }}
+              />
+              
+              <Box>
+                <Typography fontSize={13} fontWeight={600} mb={1}>
+                  Horarios Disponibles {loadingSlots && <CircularProgress size={12} sx={{ ml: 1 }} />}
+                </Typography>
+                
+                {!formData.doctor_id ? (
+                  <Typography fontSize={13} color="text.secondary">
+                    Por favor, selecciona un doctor para ver sus horarios disponibles.
+                  </Typography>
+                ) : slots.length > 0 ? (
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                    {slots.map(s => (
+                      <Chip 
+                        key={s} 
+                        label={s} 
+                        onClick={() => setTime(s)}
+                        color={time === s ? "primary" : "default"}
+                        variant={time === s ? "filled" : "outlined"}
+                        sx={{ 
+                          fontWeight: 600, 
+                          bgcolor: time === s ? "#4361ee" : "white",
+                          borderColor: time === s ? "#4361ee" : "#d1d5db",
+                          "&:hover": { bgcolor: time === s ? "#3251d3" : "#f3f4f6" },
+                          cursor: "pointer"
+                        }} 
+                      />
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography fontSize={13} color="text.secondary">
+                    {loadingSlots ? "Buscando espacios libres..." : "No hay horarios disponibles para esta fecha."}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
 
-            <TextField
-              label="Fecha"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={formData.date}
-              onChange={e => setFormData({ ...formData, date: e.target.value })}
-            />
-            <TextField
-              label="Hora"
-              type="time"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={formData.time}
-              onChange={e => setFormData({ ...formData, time: e.target.value })}
-            />
             <TextField
               label="Motivo de la cita (Opcional)"
               multiline
               rows={2}
-              fullWidth
+              fullWidth size="small"
               placeholder="Ej. Chequeo de rutina"
               value={formData.reason}
               onChange={e => setFormData({ ...formData, reason: e.target.value })}
@@ -236,7 +293,7 @@ export default function PatientAppointments() {
           <Button 
             variant="contained" 
             onClick={handleBookAppointment} 
-            disabled={saving}
+            disabled={saving || !time}
             sx={{ bgcolor: "#4361ee", "&:hover": { bgcolor: "#3251d3" }, borderRadius: 2 }}
           >
             Confirmar Cita

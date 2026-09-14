@@ -1267,31 +1267,73 @@ def save_doctor_schedule(
 def get_available_slots(
     doctor_id: int,
     target_date: date = Query(..., alias="date"),
-    branch_id: int = Query(...),
+    branch_id: Optional[int] = Query(None),
     claims: dict = Depends(get_current_claims),
     db: Session = Depends(get_db),
 ):
     """Return list of available time slots for a doctor on a given date."""
     day_of_week = target_date.weekday()   # 0=Mon, 6=Sun
+    
+    # Resolve branch_id if not provided (e.g. from patient portal)
+    if not branch_id:
+        from core.models.user import Employee
+        doc = db.query(Employee).filter(Employee.id == doctor_id).first()
+        if doc and doc.branch_id:
+            branch_id = doc.branch_id
+        else:
+            return {"slots": []}
 
-    sched = db.query(DoctorSchedule).filter_by(
+    schedules = db.query(DoctorSchedule).filter_by(
         doctor_id=doctor_id, branch_id=branch_id, day_of_week=day_of_week
-    ).first()
-    if not sched or not sched.is_available:
+    ).all()
+    
+    active_schedules = [s for s in schedules if getattr(s, "is_available", getattr(s, "is_working", True))]
+    
+    if not active_schedules:
         return {"slots": []}
 
-    # Build all possible slots
-    start_h, start_m = map(int, sched.start_time.split(":"))
-    end_h, end_m = map(int, sched.end_time.split(":"))
-    duration = sched.slot_duration_minutes
-
     from datetime import time as dt_time
-    current = datetime.combine(target_date, dt_time(start_h, start_m))
-    end_dt = datetime.combine(target_date, dt_time(end_h, end_m))
+    
+    # Remove blocked times first to avoid generating them
+    blocks = db.query(DoctorScheduleBlock).filter_by(
+        doctor_id=doctor_id, branch_id=branch_id, blocked_date=target_date
+    ).all()
+    
+    blocked_intervals = []
+    for block in blocks:
+        if block.all_day:
+            return {"slots": []}
+        if block.start_time and block.end_time:
+            bstart_h, bstart_m = map(int, block.start_time.split(":"))
+            bend_h, bend_m = map(int, block.end_time.split(":"))
+            blocked_intervals.append((
+                datetime.combine(target_date, dt_time(bstart_h, bstart_m)),
+                datetime.combine(target_date, dt_time(bend_h, bend_m))
+            ))
+
+    # Build all possible slots across all intervals
     all_slots = []
-    while current + timedelta(minutes=duration) <= end_dt:
-        all_slots.append(current.strftime("%H:%M"))
-        current += timedelta(minutes=duration)
+    for sched in active_schedules:
+        start_h, start_m = map(int, sched.start_time.split(":"))
+        end_h, end_m = map(int, sched.end_time.split(":"))
+        duration = sched.slot_duration_minutes
+
+        current = datetime.combine(target_date, dt_time(start_h, start_m))
+        end_dt = datetime.combine(target_date, dt_time(end_h, end_m))
+        
+        while current + timedelta(minutes=duration) <= end_dt:
+            slot_end = current + timedelta(minutes=duration)
+            
+            # Check if this slot overlaps with any block
+            is_blocked = False
+            for b_start, b_end in blocked_intervals:
+                if current < b_end and slot_end > b_start:
+                    is_blocked = True
+                    break
+                    
+            if not is_blocked:
+                all_slots.append(current.strftime("%H:%M"))
+            current += timedelta(minutes=duration)
 
     # Remove slots already booked
     booked = db.query(Appointment).filter(
@@ -1299,29 +1341,19 @@ def get_available_slots(
         Appointment.branch_id == branch_id,
         Appointment.scheduled_at >= datetime.combine(target_date, dt_time.min),
         Appointment.scheduled_at <= datetime.combine(target_date, dt_time.max),
-        Appointment.status.notin_([AppointmentStatus.cancelled, AppointmentStatus.no_show]),
+        Appointment.status.notin_(["Cancelada", "No Show"]),
     ).all()
-    booked_times = {a.scheduled_at.strftime("%H:%M") for a in booked}
+    
+    for apt in booked:
+        apt_end = apt.scheduled_at + timedelta(minutes=apt.duration_minutes or 30)
+        # Remove any slot that overlaps with the appointment
+        all_slots = [s for s in all_slots if not (
+            datetime.combine(target_date, dt_time(*map(int, s.split(":")))) < apt_end and
+            datetime.combine(target_date, dt_time(*map(int, s.split(":")))) + timedelta(minutes=30) > apt.scheduled_at
+        )]
 
-    # Remove blocked times
-    blocks = db.query(DoctorScheduleBlock).filter_by(
-        doctor_id=doctor_id, branch_id=branch_id, blocked_date=target_date
-    ).all()
-    for block in blocks:
-        if block.all_day:
-            return {"slots": []}
-        if block.start_time and block.end_time:
-            bstart_h, bstart_m = map(int, block.start_time.split(":"))
-            bend_h, bend_m = map(int, block.end_time.split(":"))
-            block_start = datetime.combine(target_date, dt_time(bstart_h, bstart_m))
-            block_end = datetime.combine(target_date, dt_time(bend_h, bend_m))
-            cur = block_start
-            while cur < block_end:
-                booked_times.add(cur.strftime("%H:%M"))
-                cur += timedelta(minutes=duration)
-
-    available = [s for s in all_slots if s not in booked_times]
-    return {"slots": available, "duration_minutes": duration}
+    # Sort slots chronologically and return
+    return {"slots": sorted(list(set(all_slots)))}
 
 
 @router.post("/doctors/{doctor_id}/blocks", status_code=201)
