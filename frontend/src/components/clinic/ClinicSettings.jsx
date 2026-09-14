@@ -47,7 +47,7 @@ export default function ClinicSettings() {
       if (file) {
         const logoData = new FormData();
         logoData.append("file", file);
-        const logoRes = await fetch(`${API_BASE_URL}/api/v2/businesses/${targetBusinessId}/logo`, {
+        const logoRes = await fetch(`${API_BASE_URL}/businesses/${targetBusinessId}/logo`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: logoData
@@ -68,7 +68,7 @@ export default function ClinicSettings() {
         portal_logo_url: finalLogoUrl
       };
 
-      const res = await fetch(`${API_BASE_URL}/api/v2/businesses/${targetBusinessId}`, {
+      const res = await fetch(`${API_BASE_URL}/businesses/${targetBusinessId}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
