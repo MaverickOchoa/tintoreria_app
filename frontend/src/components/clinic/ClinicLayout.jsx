@@ -101,7 +101,7 @@ export default function ClinicLayout() {
       setThemeLoading(false);
       return;
     }
-    const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+    const apiUrl = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
     
     // Fetch Branches
     fetch(`${apiUrl}/api/v2/businesses/${claims.business_id}/branches`, {

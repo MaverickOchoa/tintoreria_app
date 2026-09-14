@@ -16,7 +16,7 @@ import EmailIcon from "@mui/icons-material/Email";
 import PersonIcon from "@mui/icons-material/Person";
 
 const CLINIC_API = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
-const FLASK_API = import.meta.env.VITE_API_URL || "";
+const FLASK_API = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);

@@ -17,7 +17,7 @@ import { CLINIC_API } from "./clinicTheme";
 import ClinicNewAppointment from "./ClinicNewAppointment";
 import DoctorScheduleModal from "./DoctorScheduleModal";
 
-const API = import.meta.env.VITE_API_URL || "";
+const API = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7am - 7pm
 
 const STATUS_COLORS = {

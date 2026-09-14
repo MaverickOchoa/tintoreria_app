@@ -7,7 +7,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { CLINIC_API } from "./clinicTheme";
 
-const FLASK_API = import.meta.env.VITE_API_URL || "";
+const FLASK_API = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
 
 export default function ClinicNewAppointment({ open, onClose, onCreated, token, claims }) {
   const [patients, setPatients] = useState([]);

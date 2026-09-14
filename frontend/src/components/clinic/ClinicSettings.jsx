@@ -7,7 +7,7 @@ import { useOutletContext } from "react-router-dom";
 import SettingsIcon from "@mui/icons-material/Settings";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE_URL = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 export default function ClinicSettings() {
   const { business, claims } = useOutletContext();

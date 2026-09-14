@@ -11,7 +11,7 @@ export default function ClinicalRecords() {
   
   const token = localStorage.getItem('access_token');
   // Use VITE_API_URL, fallback to empty to use relative if on same domain
-  const API_BASE = import.meta.env.VITE_API_URL || '';
+  const API_BASE = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || '';
 
   const fetchRecords = async () => {
     setLoading(true);
