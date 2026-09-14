@@ -104,7 +104,7 @@ export default function ClinicLayout() {
     const apiUrl = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
     
     // Fetch Branches
-    fetch(`${apiUrl}/api/v2/businesses/${claims.business_id}/branches`, {
+    fetch(`${apiUrl}/api/v2/businesses/${claims.business_id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : { branches: [] })
