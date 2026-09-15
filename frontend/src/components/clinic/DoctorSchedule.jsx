@@ -7,13 +7,17 @@ export default function DoctorSchedule() {
   let claims = {};
   if (token) {
     try {
-      const payload = token.split(".")[1];
-      let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+      const base64Url = token.split(".")[1];
+      let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       while (base64.length % 4) {
         base64 += "=";
       }
-      claims = JSON.parse(atob(base64));
+      const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      claims = JSON.parse(jsonPayload);
     } catch (e) {
+      console.error("JWT Decode failed in DoctorSchedule:", e);
       claims = JSON.parse(localStorage.getItem("clinic_claims") || localStorage.getItem("user_claims") || "{}");
     }
   }
@@ -22,7 +26,14 @@ export default function DoctorSchedule() {
   const branchId = claims.branch_id || localStorage.getItem("branch_id");
 
   if (!doctor.id) {
-    return <Typography sx={{ p: 3 }}>Error: No se encontró el ID del doctor en la sesión actual.</Typography>;
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography color="error" variant="h6">Error: No se encontró el ID del doctor en la sesión actual.</Typography>
+        <Typography variant="body2" sx={{ mt: 2, whiteSpace: "pre-wrap", fontFamily: "monospace" }}>
+          DEBUG CLAIMS: {JSON.stringify(claims, null, 2)}
+        </Typography>
+      </Box>
+    );
   }
 
   return (

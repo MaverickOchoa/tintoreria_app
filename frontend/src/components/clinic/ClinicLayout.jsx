@@ -56,16 +56,23 @@ export default function ClinicLayout() {
   let claims = {};
   if (token) {
     try {
-      const payload = token.split(".")[1];
-      let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-      while (base64.length % 4) {
-        base64 += "=";
-      }
-      claims = JSON.parse(atob(base64));
+      // Lazy import inside function or use standard import at top
+      claims = JSON.parse(atob(token.split(".")[1]));
     } catch (e) {
-      console.error("Failed to decode token", e);
-      // Fallback to localStorage if decode fails
-      claims = JSON.parse(localStorage.getItem("clinic_claims") || localStorage.getItem("user_claims") || "{}");
+      try {
+        const base64Url = token.split(".")[1];
+        let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) {
+          base64 += "=";
+        }
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        claims = JSON.parse(jsonPayload);
+      } catch (e2) {
+        console.error("Failed to decode token", e2);
+        claims = JSON.parse(localStorage.getItem("clinic_claims") || localStorage.getItem("user_claims") || "{}");
+      }
     }
   }
 
