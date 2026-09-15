@@ -77,8 +77,9 @@ export default function ClinicLayout() {
     }
   }
 
-  const isAdmin = claims.role === "business_admin" || claims.role === "Gerente" || claims.is_super_admin;
-  const isDoctor = claims.role === "Doctor";
+  const userRoles = claims.roles || (claims.role ? [claims.role] : []);
+  const isAdmin = userRoles.includes("business_admin") || userRoles.includes("Gerente") || claims.is_super_admin;
+  const isDoctor = userRoles.includes("Doctor");
 
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
@@ -89,6 +90,13 @@ export default function ClinicLayout() {
 
   // Dynamically insert Mi Horario for Doctors
   const currentNav = [...NAV];
+  // If doctor, filter out Equipo and Servicios
+  if (isDoctor) {
+    const forbidden = ["/clinic/users", "/clinic/services"];
+    for (let i = currentNav.length - 1; i >= 0; i--) {
+      if (forbidden.includes(currentNav[i].path)) currentNav.splice(i, 1);
+    }
+  }
   if (isDoctor && !currentNav.find(n => n.path === "/clinic/my-schedule")) {
     currentNav.splice(3, 0, { icon: <CalendarMonthIcon />, label: "Mi Horario", path: "/clinic/my-schedule" });
   }
@@ -273,7 +281,7 @@ export default function ClinicLayout() {
         </Box>
 
         <Box sx={{ flex: 1, py: 1.5 }}>
-          {NAV.map((n, i) => <NavItem key={n.path || i} {...n} />)}
+          {currentNav.map((n, i) => <NavItem key={n.path || i} {...n} />)}
           {isAdmin && (
             <>
               <Divider sx={{ borderColor: "#e5e7eb", my: 1, mx: 1 }} />

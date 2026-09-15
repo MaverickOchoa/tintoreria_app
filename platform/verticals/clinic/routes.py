@@ -739,8 +739,9 @@ def list_appointments(
         q = q.filter(Appointment.branch_id == claims["branch_id"])
 
     # If the user is a Doctor, they can ONLY see their own appointments
+    roles = claims.get("roles", [])
     role = claims.get("role", "")
-    if role.lower() == "doctor":
+    if "Doctor" in roles or role.lower() == "doctor":
         q = q.filter(Appointment.doctor_id == claims.get("employee_id"))
     elif doctor_id:
         q = q.filter(Appointment.doctor_id == doctor_id)
@@ -2010,8 +2011,10 @@ def get_finance_summary(
     if branch_id:
         q_in = q_in.filter(Appointment.branch_id == branch_id)
         
+    roles = claims.get("roles", [])
     role = claims.get("role", "")
-    if role.lower() == "doctor":
+    is_doctor = "Doctor" in roles or role.lower() == "doctor"
+    if is_doctor:
         q_in = q_in.filter(Appointment.doctor_id == claims.get("employee_id"))
     
     incomes = []
@@ -2047,7 +2050,7 @@ def get_finance_summary(
     expenses = []
     total_expense = 0.0
     
-    if role.lower() != "doctor":
+    if not is_doctor:
         for ex in q_ex.all():
             total_expense += ex.amount
             expenses.append({
@@ -2115,8 +2118,11 @@ def delete_expense(
     db: Session = Depends(get_db)
 ):
     # Only admin/owner can delete
-    role = claims.get("role")
-    if role not in ["admin", "owner", "Gerente"]:
+    roles = claims.get("roles", [])
+    role = claims.get("role", "")
+    is_admin = "business_admin" in roles or "Gerente" in roles or role in ["admin", "owner", "Gerente"]
+    
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar gastos.")
         
     business_id = claims.get("business_id")
