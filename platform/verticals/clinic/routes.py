@@ -742,7 +742,8 @@ def list_appointments(
     roles = claims.get("roles", [])
     role = claims.get("role", "")
     if "Doctor" in roles or role.lower() == "doctor":
-        q = q.filter(Appointment.doctor_id == claims.get("employee_id"))
+        doc_id = claims.get("employee_id") or claims.get("sub") or claims.get("user_id")
+        q = q.filter(Appointment.doctor_id == doc_id)
     elif doctor_id:
         q = q.filter(Appointment.doctor_id == doctor_id)
     if date_from:
@@ -2015,7 +2016,8 @@ def get_finance_summary(
     role = claims.get("role", "")
     is_doctor = "Doctor" in roles or role.lower() == "doctor"
     if is_doctor:
-        q_in = q_in.filter(Appointment.doctor_id == claims.get("employee_id"))
+        doc_id = claims.get("employee_id") or claims.get("sub") or claims.get("user_id")
+        q_in = q_in.filter(Appointment.doctor_id == doc_id)
     
     incomes = []
     total_income = 0.0

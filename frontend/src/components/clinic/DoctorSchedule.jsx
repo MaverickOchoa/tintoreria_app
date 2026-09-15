@@ -22,7 +22,7 @@ export default function DoctorSchedule() {
     }
   }
 
-  const doctor = { id: claims.employee_id };
+  const doctor = { id: claims.employee_id || claims.sub || claims.user_id };
   const branchId = claims.branch_id || localStorage.getItem("branch_id");
 
   if (!doctor.id) {
