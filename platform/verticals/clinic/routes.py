@@ -421,11 +421,12 @@ def portal_booking_metadata(claims: dict = Depends(get_current_claims), db: Sess
         if br:
             business_id = br.business_id
             
-    if not business_id:
+    if not business_id or not branch_id:
         from core.models.branch import Branch
         fallback = db.query(Branch).first()
         if fallback:
-            business_id = fallback.business_id
+            business_id = business_id or fallback.business_id
+            branch_id = branch_id or fallback.id
 
     # Fetch services
     services = []
