@@ -8,7 +8,7 @@ import { CLINIC_API } from "./clinicTheme";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-export default function DoctorScheduleModal({ open, onClose, doctorId, token }) {
+export default function DoctorScheduleModal({ open, onClose, doctorId, branchId, token }) {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -17,7 +17,7 @@ export default function DoctorScheduleModal({ open, onClose, doctorId, token }) 
   useEffect(() => {
     if (!open || !doctorId) return;
     setLoading(true);
-    let bId = localStorage.getItem("branch_id");
+    let bId = branchId || localStorage.getItem("branch_id");
     if (!bId && token) {
        try {
            const payload = JSON.parse(atob(token.split('.')[1]));
@@ -45,7 +45,7 @@ export default function DoctorScheduleModal({ open, onClose, doctorId, token }) 
     setSaving(true);
     setMsg(null);
     try {
-      let bId = localStorage.getItem("branch_id");
+      let bId = branchId || localStorage.getItem("branch_id");
       if (!bId && token) {
          try {
              const payload = JSON.parse(atob(token.split('.')[1]));

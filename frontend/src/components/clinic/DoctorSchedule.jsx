@@ -63,6 +63,7 @@ export default function DoctorSchedule() {
           open={showScheduleModal}
           onClose={() => setShowScheduleModal(false)}
           doctorId={doctor.id}
+          branchId={branchId}
           token={token}
         />
       )}
