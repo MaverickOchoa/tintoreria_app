@@ -1454,10 +1454,11 @@ def get_calendar_events(
     for a in appointments:
         if a.status in ["Cancelada", "No Show"]:
             continue
+        patient_name = f"{a.patient.client.full_name} {a.patient.client.last_name or ''}".strip() if a.patient and a.patient.client else "Paciente Desconocido"
         events.append({
             "id": f"apt_{a.id}",
             "type": "appointment",
-            "title": f"Cita: {a.patient.first_name} {a.patient.last_name}" if a.patient else "Cita",
+            "title": f"Cita: {patient_name}",
             "start": a.scheduled_at,
             "end": a.scheduled_at + timedelta(minutes=a.duration_minutes),
             "allDay": False,
