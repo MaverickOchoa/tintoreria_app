@@ -17,12 +17,19 @@ export default function DoctorScheduleModal({ open, onClose, doctorId, token }) 
   useEffect(() => {
     if (!open || !doctorId) return;
     setLoading(true);
-    fetch(`${CLINIC_API}/clinic/doctors/${doctorId}/schedule`, {
+    let bId = localStorage.getItem("branch_id");
+    if (!bId && token) {
+       try {
+           const payload = JSON.parse(atob(token.split('.')[1]));
+           bId = payload.branch_id;
+       } catch(e){}
+    }
+    fetch(`${CLINIC_API}/clinic/doctors/${doctorId}/schedule?branch_id=${bId}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
       .then(d => {
-        setSchedules(d.schedules || []);
+        setSchedules(Array.isArray(d) ? d : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -38,10 +45,18 @@ export default function DoctorScheduleModal({ open, onClose, doctorId, token }) 
     setSaving(true);
     setMsg(null);
     try {
+      let bId = localStorage.getItem("branch_id");
+      if (!bId && token) {
+         try {
+             const payload = JSON.parse(atob(token.split('.')[1]));
+             bId = payload.branch_id;
+         } catch(e){}
+      }
+      
       const r = await fetch(`${CLINIC_API}/clinic/doctors/${doctorId}/schedule`, {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ schedules }),
+        body: JSON.stringify({ schedule: schedules, branch_id: parseInt(bId, 10) }),
       });
       if (r.ok) {
         setMsg({ type: "success", text: "Horarios guardados correctamente." });
