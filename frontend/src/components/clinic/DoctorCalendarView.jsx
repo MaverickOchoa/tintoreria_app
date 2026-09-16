@@ -33,8 +33,16 @@ export default function DoctorCalendarView({ doctor, branchId, token }) {
     fetch(`${CLINIC_API}/clinic/doctors/${doctor.id}/calendar-events?branch_id=${branchId}&start=${startStr}&end=${endStr}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) {
+          const err = await r.text();
+          alert("Error cargando eventos: " + err);
+          return;
+        }
+        return r.json();
+      })
       .then(d => {
+        if (!d) return;
         if (d.events) {
           const parsed = d.events.map(e => ({
             ...e,

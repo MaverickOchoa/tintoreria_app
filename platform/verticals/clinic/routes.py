@@ -743,7 +743,15 @@ def list_appointments(
     roles = claims.get("roles", [])
     role = claims.get("role", "")
     if "Doctor" in roles or role.lower() == "doctor":
-        doc_id = claims.get("employee_id") or claims.get("sub") or claims.get("user_id")
+        doc_id = claims.get("employee_id")
+        username = claims.get("username")
+        if not doc_id and username:
+            from core.models.user import Employee
+            from sqlalchemy import func
+            emp = db.query(Employee).filter(func.lower(Employee.username) == func.lower(username)).first()
+            if emp:
+                doc_id = emp.id
+        doc_id = doc_id or claims.get("sub") or claims.get("user_id")
         q = q.filter(Appointment.doctor_id == doc_id)
     elif doctor_id:
         q = q.filter(Appointment.doctor_id == doctor_id)
@@ -1398,6 +1406,18 @@ def get_calendar_events(
 ):
     """Return all events (schedules, blocks, appointments) for a doctor in a date range for react-big-calendar."""
     
+    # Resolve true Employee ID if role is Doctor
+    roles = claims.get("roles", [])
+    role = claims.get("role", "")
+    if "Doctor" in roles or role.lower() == "doctor":
+        username = claims.get("username")
+        if username:
+            from core.models.user import Employee
+            from sqlalchemy import func
+            emp = db.query(Employee).filter(func.lower(Employee.username) == func.lower(username)).first()
+            if emp:
+                doctor_id = emp.id
+    
     # 1. Base Schedules (weekly recurring)
     schedules = db.query(DoctorSchedule).filter_by(doctor_id=doctor_id, branch_id=branch_id).all()
     # 2. Blocks / Exceptions
@@ -1481,6 +1501,18 @@ def block_doctor_time(
     claims: dict = Depends(get_current_claims),
     db: Session = Depends(get_db),
 ):
+    # Resolve true Employee ID if role is Doctor
+    roles = claims.get("roles", [])
+    role = claims.get("role", "")
+    if "Doctor" in roles or role.lower() == "doctor":
+        username = claims.get("username")
+        if username:
+            from core.models.user import Employee
+            from sqlalchemy import func
+            emp = db.query(Employee).filter(func.lower(Employee.username) == func.lower(username)).first()
+            if emp:
+                doctor_id = emp.id
+
     branch_id = payload.get("branch_id")
     if not branch_id or not payload.get("blocked_date"):
         raise HTTPException(status_code=400, detail="branch_id y blocked_date son requeridos.")
@@ -1511,6 +1543,18 @@ def delete_doctor_block(
     claims: dict = Depends(get_current_claims),
     db: Session = Depends(get_db),
 ):
+    # Resolve true Employee ID if role is Doctor
+    roles = claims.get("roles", [])
+    role = claims.get("role", "")
+    if "Doctor" in roles or role.lower() == "doctor":
+        username = claims.get("username")
+        if username:
+            from core.models.user import Employee
+            from sqlalchemy import func
+            emp = db.query(Employee).filter(func.lower(Employee.username) == func.lower(username)).first()
+            if emp:
+                doctor_id = emp.id
+
     block = db.query(DoctorScheduleBlock).filter_by(id=block_id, doctor_id=doctor_id).first()
     if not block:
         raise HTTPException(status_code=404, detail="Bloqueo no encontrado.")
@@ -2017,7 +2061,15 @@ def get_finance_summary(
     role = claims.get("role", "")
     is_doctor = "Doctor" in roles or role.lower() == "doctor"
     if is_doctor:
-        doc_id = claims.get("employee_id") or claims.get("sub") or claims.get("user_id")
+        doc_id = claims.get("employee_id")
+        username = claims.get("username")
+        if not doc_id and username:
+            from core.models.user import Employee
+            from sqlalchemy import func
+            emp = db.query(Employee).filter(func.lower(Employee.username) == func.lower(username)).first()
+            if emp:
+                doc_id = emp.id
+        doc_id = doc_id or claims.get("sub") or claims.get("user_id")
         q_in = q_in.filter(Appointment.doctor_id == doc_id)
     
     incomes = []
