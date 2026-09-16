@@ -11,7 +11,7 @@ from sendgrid.helpers.mail import Mail
 from core.database import get_db
 from core.dependencies import require_business_admin, get_current_claims
 from core.models.user import Admin, Employee, Role
-from core.security import hash_password, verify_password
+from core.security import hash_password, verify_password, validate_password_policy, generate_unique_username
 from core.schemas.user import (
     EmployeeCreate, EmployeeUpdate, EmployeeOut,
     ChangePasswordRequest, RoleOut,
@@ -21,22 +21,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["users"])
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://zentro-5b3g.onrender.com")
-
-
-def _slugify(text: str) -> str:
-    nfkd = unicodedata.normalize("NFKD", text)
-    ascii_text = nfkd.encode("ascii", "ignore").decode("ascii")
-    return re.sub(r"[^a-z0-9]", "", ascii_text.lower())
-
-
-def _generate_username(first: str, last: str, db: Session) -> str:
-    base = f"{_slugify(first)}.{_slugify(last)}" if last else _slugify(first)
-    username = base
-    count = 1
-    while db.query(Employee).filter(Employee.username == username).first():
-        username = f"{base}{count}"
-        count += 1
-    return username
 
 
 def _send_staff_credentials(email: str, full_name: str, username: str, password: str, business_name: str = "Zentro", business_email: str = None):
@@ -106,7 +90,7 @@ def create_employee(
 ):
     business_id = claims["business_id"]
 
-    username = _generate_username(payload.full_name, payload.last_name or "", db)
+    username = generate_unique_username(payload.full_name, payload.last_name or "", db)
     temp_password = payload.phone.strip() if payload.phone else "zentro2024"
 
     roles = db.query(Role).filter(Role.name.in_(payload.role_names)).all()
@@ -153,9 +137,11 @@ def change_password(
     if not employee:
         raise HTTPException(status_code=404, detail="Empleado no encontrado.")
     if not verify_password(payload.current_password, employee.password):
-        raise HTTPException(status_code=400, detail="Contraseña actual incorrecta.")
-    if len(payload.new_password) < 6:
-        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 6 caracteres.")
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta.")
+    try:
+        validate_password_policy(payload.new_password)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     employee.password = hash_password(payload.new_password)
     employee.must_change_password = False
     db.commit()

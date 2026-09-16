@@ -8,6 +8,7 @@ import secrets, string, os, logging, json, tempfile, io, requests
 
 import sendgrid as sg_module
 from sendgrid.helpers.mail import Mail
+from core.security import validate_password_policy, generate_unique_username
 from werkzeug.security import generate_password_hash, check_password_hash
 from jose import jwt
 
@@ -79,22 +80,6 @@ def _send_patient_credentials(email: str, full_name: str, username: str, passwor
         return False
 
 
-def _generate_username(full_name: str, last_name: str, db: Session) -> str:
-    import unicodedata, re
-    def slugify(s):
-        s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode()
-        return re.sub(r"[^a-z0-9]", "", s.lower())
-    name = slugify(full_name or "")
-    last = slugify(last_name or "")
-    base = f"{name}.{last}" if last else name
-    candidate = base
-    counter = 1
-    while db.query(Client).filter(Client.username == candidate).first():
-        candidate = f"{base}{counter}"
-        counter += 1
-    return candidate
-
-
 # ── Patients ──────────────────────────────────────────────────────────────────
 
 @router.get("/patients")
@@ -140,7 +125,7 @@ def create_patient(
             raise HTTPException(status_code=409, detail="Ya existe un paciente con ese teléfono.")
 
     # Generate credentials — username=nombre.apellido, password=phone
-    username = _generate_username(payload.full_name, payload.last_name or "", db)
+    username = generate_unique_username(payload.full_name, payload.last_name or "", db)
     raw_password = payload.phone  # temp password = phone number
 
     # Create client record
@@ -363,8 +348,10 @@ def change_patient_password(
     if claims.get("role") != "patient" and not claims.get("is_patient"):
         raise HTTPException(status_code=403, detail="Acceso denegado.")
     new_password = payload.get("new_password")
-    if not new_password or len(new_password) < 4:
-        raise HTTPException(status_code=400, detail="Contraseña muy corta.")
+    try:
+        validate_password_policy(new_password)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     
     patient_id = claims.get("patient_id")
     patient = db.query(Patient).filter(Patient.id == patient_id).first()

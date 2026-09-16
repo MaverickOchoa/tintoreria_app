@@ -5,7 +5,7 @@ from core.database import get_db
 from core.dependencies import require_business_admin, require_super_admin, get_current_claims
 from core.models.tenant import Business, Branch
 from core.models.user import Admin
-from core.security import hash_password
+from core.security import hash_password, validate_password_policy
 from core.schemas.tenant import (
     BusinessCreate, BusinessUpdate, BusinessOut,
     BranchCreate, BranchUpdate, BranchOut,
@@ -22,6 +22,10 @@ def create_business(
 ):
     if db.query(Business).filter(Business.name == payload.name).first():
         raise HTTPException(status_code=409, detail="Ya existe un negocio con ese nombre.")
+    try:
+        validate_password_policy(payload.admin_password)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     business = Business(
         name=payload.name, address=payload.address, phone=payload.phone,
         email=payload.email, country=payload.country, vertical_type=payload.vertical_type or "laundry",
