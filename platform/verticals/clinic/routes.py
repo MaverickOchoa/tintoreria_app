@@ -420,14 +420,13 @@ def portal_booking_metadata(
     biz_id = business_id or claims.get("business_id")
     
     if not biz_id and branch_id:
-        from core.models.branch import Branch
+        from core.models.tenant import Branch
         br = db.query(Branch).filter(Branch.id == branch_id).first()
         if br:
             biz_id = br.business_id
             
     if not biz_id or not branch_id:
-        from core.models.branch import Branch
-        from core.models.tenant import Business
+        from core.models.tenant import Branch, Business
         # Try to find a clinic that actually has services
         svc = db.query(ClinicService).first()
         if svc:
@@ -491,14 +490,14 @@ def portal_create_appointment(
     business_id = claims.get("business_id")
     
     if not business_id and branch_id:
-        from core.models.branch import Branch
+        from core.models.tenant import Branch
         br = db.query(Branch).filter(Branch.id == branch_id).first()
         if br:
             business_id = br.business_id
             
     # Fallback to first branch if missing
     if not business_id:
-        from core.models.branch import Branch
+        from core.models.tenant import Branch
         fallback = db.query(Branch).first()
         if fallback:
             business_id = fallback.business_id
@@ -506,7 +505,7 @@ def portal_create_appointment(
         else:
             raise HTTPException(status_code=500, detail="No se encontró sucursal.")
     elif not branch_id:
-        from core.models.branch import Branch
+        from core.models.tenant import Branch
         br = db.query(Branch).filter(Branch.business_id == business_id).first()
         if br:
             branch_id = br.id
@@ -796,7 +795,7 @@ def create_appointment(
 ):
     business_id = claims.get("business_id")
     if not business_id and payload.branch_id:
-        from core.models.branch import Branch
+        from core.models.tenant import Branch
         br = db.query(Branch).filter(Branch.id == payload.branch_id).first()
         if br:
             business_id = br.business_id
