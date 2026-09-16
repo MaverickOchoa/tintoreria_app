@@ -60,7 +60,7 @@ export default function PatientAppointments() {
       .then(r => r.json())
       .then(d => {
         if (!d.doctors || d.doctors.length === 0 || !d.services || d.services.length === 0) {
-          alert("Debug Metadata: " + JSON.stringify(d.debug || {}));
+          alert("Debug Metadata: " + JSON.stringify(d));
         }
         setDoctors(d.doctors || []);
         setServices(d.services || []);
