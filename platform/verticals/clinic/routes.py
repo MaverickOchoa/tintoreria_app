@@ -424,10 +424,18 @@ def portal_booking_metadata(claims: dict = Depends(get_current_claims), db: Sess
     if not business_id or not branch_id:
         from core.models.branch import Branch
         from core.models.tenant import Business
-        fallback = db.query(Branch).join(Business).filter(Business.vertical_type == 'clinic').first()
-        if fallback:
-            business_id = business_id or fallback.business_id
-            branch_id = branch_id or fallback.id
+        # Try to find a clinic that actually has services
+        svc = db.query(ClinicService).first()
+        if svc:
+            business_id = svc.business_id
+            br = db.query(Branch).filter_by(business_id=business_id).first()
+            if br:
+                branch_id = br.id
+        else:
+            fallback = db.query(Branch).join(Business).filter(Business.vertical_type == 'clinic').first()
+            if fallback:
+                business_id = business_id or fallback.business_id
+                branch_id = branch_id or fallback.id
 
     # Fetch services
     services = []
