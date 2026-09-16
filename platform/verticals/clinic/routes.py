@@ -468,6 +468,10 @@ def portal_create_appointment(
 ):
     if claims.get("role") != "patient" and not claims.get("is_patient"):
         raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
+        
+    from datetime import datetime as dt_now
+    if payload.scheduled_at < dt_now.now():
+        raise HTTPException(status_code=400, detail="No puedes agendar una cita en el pasado.")
     
     patient_id = claims.get("patient_id")
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
@@ -1421,16 +1425,30 @@ def get_available_slots(
         Appointment.status.notin_(["Cancelada", "No Show"]),
     ).all()
     
-    for apt in booked:
-        apt_end = apt.scheduled_at + timedelta(minutes=apt.duration_minutes or 30)
-        # Remove any slot that overlaps with the appointment
-        all_slots = [s for s in all_slots if not (
-            datetime.combine(target_date, dt_time(*map(int, s.split(":")))) < apt_end and
-            datetime.combine(target_date, dt_time(*map(int, s.split(":")))) + timedelta(minutes=30) > apt.scheduled_at
-        )]
+    from datetime import datetime as dt_now
+    now = dt_now.now()
+    
+    valid_slots = []
+    for s in all_slots:
+        slot_dt = datetime.combine(target_date, dt_time(*map(int, s.split(":"))))
+        
+        # 1. Filter out past slots if the target date is today
+        if target_date == now.date() and slot_dt < now:
+            continue
+            
+        # 2. Filter out slots that overlap with booked appointments
+        is_booked = False
+        for apt in booked:
+            apt_end = apt.scheduled_at + timedelta(minutes=apt.duration_minutes or 30)
+            if slot_dt < apt_end and slot_dt + timedelta(minutes=30) > apt.scheduled_at:
+                is_booked = True
+                break
+                
+        if not is_booked:
+            valid_slots.append(s)
 
     # Sort slots chronologically and return
-    return {"slots": sorted(list(set(all_slots)))}
+    return {"slots": sorted(list(set(valid_slots)))}
 
 
 @router.get("/doctors/{doctor_id}/calendar-events")
