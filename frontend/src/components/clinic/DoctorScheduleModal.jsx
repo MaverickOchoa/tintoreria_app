@@ -84,27 +84,27 @@ export default function DoctorScheduleModal({ open, onClose, doctorId, branchId,
           <Box display="flex" flexDirection="column" gap={2}>
             {schedules.map((sch, i) => (
               <Box key={i} display="flex" alignItems="center" gap={2} p={1.5} border="1px solid #eee" borderRadius={2}
-                sx={{ opacity: sch.is_working ? 1 : 0.5, transition: "0.2s" }}>
+                sx={{ opacity: sch.active ? 1 : 0.5, transition: "0.2s" }}>
                 <Box width={100}>
-                  <Typography fontWeight={700}>{DAYS[sch.day_of_week]}</Typography>
+                  <Typography fontWeight={700}>{DAYS[sch.day]}</Typography>
                 </Box>
                 <Switch 
-                  checked={sch.is_working} 
-                  onChange={(e) => updateDay(i, "is_working", e.target.checked)} 
+                  checked={sch.active} 
+                  onChange={(e) => updateDay(i, "active", e.target.checked)} 
                   color="primary" 
                 />
                 <TextField 
                   type="time" size="small" 
-                  value={sch.start_time} 
-                  onChange={(e) => updateDay(i, "start_time", e.target.value)}
-                  disabled={!sch.is_working}
+                  value={sch.start} 
+                  onChange={(e) => updateDay(i, "start", e.target.value)}
+                  disabled={!sch.active}
                 />
                 <Typography color="text.secondary">a</Typography>
                 <TextField 
                   type="time" size="small" 
-                  value={sch.end_time} 
-                  onChange={(e) => updateDay(i, "end_time", e.target.value)}
-                  disabled={!sch.is_working}
+                  value={sch.end} 
+                  onChange={(e) => updateDay(i, "end", e.target.value)}
+                  disabled={!sch.active}
                 />
               </Box>
             ))}
