@@ -52,13 +52,18 @@ export default function PatientAppointments() {
   };
 
   const loadMetadata = () => {
-    fetch(`${CLINIC_API}/clinic/portal/booking-metadata`, {
+    const localBiz = localStorage.getItem("patient_business_id");
+    const bizQuery = localBiz ? `?business_id=${localBiz}` : '';
+    fetch(`${CLINIC_API}/clinic/portal/booking-metadata${bizQuery}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
       .then(d => {
-        setServices(d.services || []);
+        if (!d.doctors || d.doctors.length === 0 || !d.services || d.services.length === 0) {
+          alert("Debug Metadata: " + JSON.stringify(d.debug || {}));
+        }
         setDoctors(d.doctors || []);
+        setServices(d.services || []);
       })
       .catch(() => {});
   };

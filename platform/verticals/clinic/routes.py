@@ -405,7 +405,11 @@ def portal_appointments(claims: dict = Depends(get_current_claims), db: Session 
 
 
 @router.get("/portal/booking-metadata")
-def portal_booking_metadata(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+def portal_booking_metadata(
+    business_id: Optional[int] = Query(None),
+    claims: dict = Depends(get_current_claims), 
+    db: Session = Depends(get_db)
+):
     if claims.get("role") != "patient" and not claims.get("is_patient"):
         raise HTTPException(status_code=403, detail="Acceso solo para pacientes.")
     
@@ -413,34 +417,34 @@ def portal_booking_metadata(claims: dict = Depends(get_current_claims), db: Sess
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     
     branch_id = patient.client.branch_id if patient and patient.client else None
-    business_id = claims.get("business_id")
+    biz_id = business_id or claims.get("business_id")
     
-    if not business_id and branch_id:
+    if not biz_id and branch_id:
         from core.models.branch import Branch
         br = db.query(Branch).filter(Branch.id == branch_id).first()
         if br:
-            business_id = br.business_id
+            biz_id = br.business_id
             
-    if not business_id or not branch_id:
+    if not biz_id or not branch_id:
         from core.models.branch import Branch
         from core.models.tenant import Business
         # Try to find a clinic that actually has services
         svc = db.query(ClinicService).first()
         if svc:
-            business_id = svc.business_id
-            br = db.query(Branch).filter_by(business_id=business_id).first()
+            biz_id = svc.business_id
+            br = db.query(Branch).filter_by(business_id=biz_id).first()
             if br:
                 branch_id = br.id
         else:
             fallback = db.query(Branch).join(Business).filter(Business.vertical_type == 'clinic').first()
             if fallback:
-                business_id = business_id or fallback.business_id
+                biz_id = biz_id or fallback.business_id
                 branch_id = branch_id or fallback.id
 
     # Fetch services
     services = []
-    if business_id:
-        svc_objs = db.query(ClinicService).filter_by(business_id=business_id, is_active=True).all()
+    if biz_id:
+        svc_objs = db.query(ClinicService).filter_by(business_id=biz_id, is_active=True).all()
         services = [s.to_dict() for s in svc_objs]
 
     # Fetch doctors
@@ -452,7 +456,17 @@ def portal_booking_metadata(claims: dict = Depends(get_current_claims), db: Sess
         # The admin portal just lists all employees as doctors in the calendar.
         doctors = [{"id": d.id, "name": f"{d.full_name} {d.last_name or ''}".strip()} for d in doc_objs]
 
-    return {"services": services, "doctors": doctors}
+    return {
+        "services": services, 
+        "doctors": doctors,
+        "debug": {
+            "business_id": biz_id,
+            "branch_id": branch_id,
+            "svc_found": bool(svc) if 'svc' in locals() else False,
+            "doc_objs_count": len(doc_objs) if 'doc_objs' in locals() else 0,
+            "patient_branch_id": patient.client.branch_id if patient and patient.client else None
+        }
+    }
 
 class PortalAppointmentCreate(BaseModel):
     scheduled_at: datetime
