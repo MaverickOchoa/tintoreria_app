@@ -1,3 +1,4 @@
+import ClinicStuckAppointmentsModal from "./ClinicStuckAppointmentsModal";
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -349,6 +350,16 @@ export default function ClinicLayout() {
         </Box>
 
         <Box sx={{ flex: 1, overflow: "auto" }}>
+          
+          {stuckAppointments > 0 && (
+            <Alert 
+              severity="warning" 
+              sx={{ m: 2, cursor: "pointer", borderRadius: 2 }}
+              onClick={() => setStuckModalOpen(true)}
+            >
+              Tienes {stuckAppointments} cita{stuckAppointments > 1 ? "s" : ""} de días anteriores sin finalizar (en espera, consulta, etc). Por favor revísalas y márcalas como Completadas o Canceladas para liberar tu tablero.
+            </Alert>
+          )}
           <Outlet context={{ token, claims, branches, selectedBranch, setSelectedBranch, business }} />
         </Box>
 
@@ -357,6 +368,16 @@ export default function ClinicLayout() {
           <Typography variant="caption" color="text.disabled">{BRAND.footer} · © {BRAND.year}</Typography>
         </Box>
       </Box>
+
+      <ClinicStuckAppointmentsModal 
+        open={stuckModalOpen} 
+        onClose={() => setStuckModalOpen(false)} 
+        token={token} 
+        onResolved={() => {
+          setStuckAppointments(prev => Math.max(0, prev - 1));
+        }} 
+      />
+
     </Box>
   );
 }

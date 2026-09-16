@@ -777,6 +777,51 @@ def list_appointments(
     appointments = q.order_by(Appointment.scheduled_at.asc()).all()
     return {"appointments": [a.to_dict() for a in appointments]}
 
+@router.get("/appointments/stuck")
+def get_stuck_appointments(
+    branch_id: Optional[int] = None,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    business_id = claims.get("business_id")
+    q = (
+        db.query(Appointment)
+        .options(
+            joinedload(Appointment.patient).joinedload(Patient.client),
+            joinedload(Appointment.doctor),
+            joinedload(Appointment.clinic_service),
+        )
+        .filter(Appointment.business_id == business_id)
+    )
+    if branch_id:
+        q = q.filter(Appointment.branch_id == branch_id)
+    elif claims.get("branch_id"):
+        q = q.filter(Appointment.branch_id == claims["branch_id"])
+
+    # If the user is a Doctor, they can ONLY see their own appointments
+    roles = claims.get("roles", [])
+    role = claims.get("role", "")
+    if "Doctor" in roles or role.lower() == "doctor":
+        doc_id = None
+        username = claims.get("username")
+        if username:
+            from core.models.user import Employee
+            from sqlalchemy import func
+            emp = db.query(Employee).filter(func.lower(Employee.username) == func.lower(username)).first()
+            if emp:
+                doc_id = emp.id
+        doc_id = doc_id or claims.get("sub") or claims.get("user_id")
+        q = q.filter(Appointment.doctor_id == doc_id)
+
+    from datetime import datetime as dt_now
+    now = dt_now.now()
+    
+    q = q.filter(
+        Appointment.status.notin_(["Completada", "Cancelada", "No Show"]),
+        Appointment.scheduled_at < now
+    )
+    appointments = q.order_by(Appointment.scheduled_at.asc()).all()
+    return {"appointments": [a.to_dict() for a in appointments]}
 
 @router.post("/appointments", status_code=201)
 def create_appointment(
