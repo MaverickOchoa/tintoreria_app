@@ -1,6 +1,7 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
 import DoctorCalendarView from "./DoctorCalendarView";
+import DoctorScheduleModal from "./DoctorScheduleModal";
 
 export default function DoctorSchedule() {
   const token = localStorage.getItem("clinic_token") || localStorage.getItem("access_token");
@@ -24,6 +25,7 @@ export default function DoctorSchedule() {
 
   const doctor = { id: claims.employee_id || claims.sub || claims.user_id };
   const branchId = claims.branch_id || localStorage.getItem("branch_id");
+  const [showScheduleModal, setShowScheduleModal] = React.useState(false);
 
   if (!doctor.id) {
     return (
@@ -38,7 +40,16 @@ export default function DoctorSchedule() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: "auto" }}>
-      <Typography variant="h5" fontWeight="bold" sx={{ mb: 1 }}>Mi Horario</Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+        <Typography variant="h5" fontWeight="bold">Mi Horario</Typography>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={() => setShowScheduleModal(true)}
+        >
+          Ajustes de Plantilla Base
+        </Button>
+      </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Aquí puedes ver tus citas y configurar tus ausencias (bloqueos) o turnos extra.
       </Typography>
@@ -46,6 +57,15 @@ export default function DoctorSchedule() {
       <Box sx={{ bgcolor: "white", p: 2, borderRadius: 2, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
         <DoctorCalendarView doctor={doctor} branchId={branchId} token={token} />
       </Box>
+
+      {showScheduleModal && (
+        <DoctorScheduleModal
+          open={showScheduleModal}
+          onClose={() => setShowScheduleModal(false)}
+          doctorId={doctor.id}
+          token={token}
+        />
+      )}
     </Box>
   );
 }
