@@ -1428,7 +1428,7 @@ def get_calendar_events(
         DoctorScheduleBlock.blocked_date <= end
     ).all()
     # 3. Appointments
-    from datetime import datetime, time as dt_time
+    from datetime import datetime, time as dt_time, timedelta
     appointments = db.query(Appointment).filter(
         Appointment.doctor_id == doctor_id,
         Appointment.branch_id == branch_id,
