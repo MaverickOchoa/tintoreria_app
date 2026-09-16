@@ -1494,30 +1494,6 @@ def get_calendar_events(
 
     events = []
     
-    # Process base schedules (project across the date range)
-    current_date = start
-    while current_date <= end:
-        weekday = current_date.weekday()
-        for s in schedules:
-            if s.day_of_week == weekday and getattr(s, "is_available", getattr(s, "is_working", True)):
-                # Only add if start_time and end_time exist
-                if s.start_time and s.end_time:
-                    try:
-                        st = dt_time(*(map(int, s.start_time.split(":"))))
-                        et = dt_time(*(map(int, s.end_time.split(":"))))
-                        events.append({
-                            "id": f"sch_{s.id}_{current_date}",
-                            "type": "schedule",
-                            "title": "Plantilla Base",
-                            "start": datetime.combine(current_date, st),
-                            "end": datetime.combine(current_date, et),
-                            "allDay": False,
-                            "resource": s.to_dict()
-                        })
-                    except:
-                        pass
-        current_date += timedelta(days=1)
-    
     # Process blocks
     for b in blocks:
         events.append({
@@ -1564,7 +1540,7 @@ def get_calendar_events(
                 events.append({
                     "id": f"sched_{s.id}_{current_date.isoformat()}",
                     "type": "schedule",
-                    "title": "Turno Regular",
+                    "title": "Plantilla Base",
                     "start": datetime.combine(current_date, dt_time(st_h, st_m)),
                     "end": datetime.combine(current_date, dt_time(en_h, en_m)),
                     "allDay": False,
