@@ -423,7 +423,8 @@ def portal_booking_metadata(claims: dict = Depends(get_current_claims), db: Sess
             
     if not business_id or not branch_id:
         from core.models.branch import Branch
-        fallback = db.query(Branch).first()
+        from core.models.tenant import Business
+        fallback = db.query(Branch).join(Business).filter(Business.vertical_type == 'clinic').first()
         if fallback:
             business_id = business_id or fallback.business_id
             branch_id = branch_id or fallback.id
@@ -772,6 +773,11 @@ def create_appointment(
     db: Session = Depends(get_db),
 ):
     business_id = claims.get("business_id")
+    if not business_id and payload.branch_id:
+        from core.models.branch import Branch
+        br = db.query(Branch).filter(Branch.id == payload.branch_id).first()
+        if br:
+            business_id = br.business_id
 
     if payload.doctor_id:
         end_time = payload.scheduled_at + timedelta(minutes=payload.duration_minutes or 30)
