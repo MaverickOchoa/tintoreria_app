@@ -1250,6 +1250,18 @@ def get_doctor_schedule(
     claims: dict = Depends(get_current_claims),
     db: Session = Depends(get_db),
 ):
+    # Resolve true Employee ID if role is Doctor
+    roles = claims.get("roles", [])
+    role = claims.get("role", "")
+    if "Doctor" in roles or role.lower() == "doctor":
+        username = claims.get("username")
+        if username:
+            from core.models.user import Employee
+            from sqlalchemy import func
+            emp = db.query(Employee).filter(func.lower(Employee.username) == func.lower(username)).first()
+            if emp:
+                doctor_id = emp.id
+
     rows = db.query(DoctorSchedule).filter_by(
         doctor_id=doctor_id, branch_id=branch_id
     ).order_by(DoctorSchedule.day_of_week).all()
@@ -1280,6 +1292,18 @@ def save_doctor_schedule(
     claims: dict = Depends(get_current_claims),
     db: Session = Depends(get_db),
 ):
+    # Resolve true Employee ID if role is Doctor
+    roles = claims.get("roles", [])
+    role = claims.get("role", "")
+    if "Doctor" in roles or role.lower() == "doctor":
+        username = claims.get("username")
+        if username:
+            from core.models.user import Employee
+            from sqlalchemy import func
+            emp = db.query(Employee).filter(func.lower(Employee.username) == func.lower(username)).first()
+            if emp:
+                doctor_id = emp.id
+
     branch_id = payload.get("branch_id")
     schedule = payload.get("schedule", [])
     business_id = claims.get("business_id")
@@ -1464,6 +1488,30 @@ def get_calendar_events(
     ).all()
 
     events = []
+    
+    # Process base schedules (project across the date range)
+    current_date = start
+    while current_date <= end:
+        weekday = current_date.weekday()
+        for s in schedules:
+            if s.day_of_week == weekday and getattr(s, "is_available", getattr(s, "is_working", True)):
+                # Only add if start_time and end_time exist
+                if s.start_time and s.end_time:
+                    try:
+                        st = dt_time(*(map(int, s.start_time.split(":"))))
+                        et = dt_time(*(map(int, s.end_time.split(":"))))
+                        events.append({
+                            "id": f"sch_{s.id}_{current_date}",
+                            "type": "schedule",
+                            "title": "Plantilla Base",
+                            "start": datetime.combine(current_date, st),
+                            "end": datetime.combine(current_date, et),
+                            "allDay": False,
+                            "resource": s.to_dict()
+                        })
+                    except:
+                        pass
+        current_date += timedelta(days=1)
     
     # Process blocks
     for b in blocks:
