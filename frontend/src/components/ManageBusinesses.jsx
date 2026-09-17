@@ -80,7 +80,7 @@ export default function ManageBusinesses() {
 
   const handleToggleBusiness = async (id) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/businesses/${id}/toggle`, { method: "PUT", headers: authHeaders });
+      const res = await fetch(`${API_BASE_URL}/businesses/${id}`, { method: "PUT", headers: authHeaders });
       if (!res.ok) throw new Error("Error al cambiar estado");
       fetchBusinesses();
     } catch (e) { setError(e.message); }
@@ -88,7 +88,7 @@ export default function ManageBusinesses() {
 
   const handleDeleteBusiness = async (id) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/businesses/${id}/toggle`, { method: "DELETE", headers: authHeaders });
+      const res = await fetch(`${API_BASE_URL}/businesses/${id}`, { method: "DELETE", headers: authHeaders });
       if (!res.ok) throw new Error("Error al eliminar");
       setBusinesses((prev) => prev.filter((b) => b.id !== id));
     } catch (e) { setError(e.message); }
@@ -97,7 +97,7 @@ export default function ManageBusinesses() {
 
   const handleToggleBranch = async (branchId, businessId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/branches/${branchId}/toggle`, { method: "PUT", headers: authHeaders });
+      const res = await fetch(`${API_BASE_URL}/branches/${branchId}`, { method: "PUT", headers: authHeaders });
       if (!res.ok) throw new Error("Error al cambiar estado sucursal");
       fetchBranchesForBusiness(businessId);
     } catch (e) { setError(e.message); }
@@ -105,7 +105,7 @@ export default function ManageBusinesses() {
 
   const handleDeleteBranch = async (branchId, businessId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/branches/${branchId}/toggle`, { method: "DELETE", headers: authHeaders });
+      const res = await fetch(`${API_BASE_URL}/branches/${branchId}`, { method: "DELETE", headers: authHeaders });
       if (!res.ok) throw new Error("Error al eliminar sucursal");
       fetchBranchesForBusiness(businessId);
     } catch (e) { setError(e.message); }
