@@ -90,6 +90,8 @@ _STARTUP_MIGRATIONS = [
     "ALTER TABLE patients ADD COLUMN IF NOT EXISTS medical_diagnosis TEXT",
     "ALTER TABLE patients ADD COLUMN IF NOT EXISTS specialist_diagnosis TEXT",
     "ALTER TABLE patients ADD COLUMN IF NOT EXISTS chief_complaint TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS recall_date TIMESTAMP",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS recall_reason TEXT",
     """CREATE TABLE IF NOT EXISTS clinic_services (
         id SERIAL PRIMARY KEY,
         business_id INTEGER NOT NULL REFERENCES businesses(id),
