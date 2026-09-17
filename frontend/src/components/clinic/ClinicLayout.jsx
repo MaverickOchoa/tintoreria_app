@@ -118,6 +118,8 @@ export default function ClinicLayout() {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState(null);
   const [pwErr, setPwErr] = useState(null);
+  const [stuckAppointments, setStuckAppointments] = useState(0);
+  const [stuckModalOpen, setStuckModalOpen] = useState(false);
 
   useEffect(() => {
     if (!claims.business_id) {
@@ -125,6 +127,21 @@ export default function ClinicLayout() {
       return;
     }
     const apiUrl = import.meta.env.VITE_CLINIC_API_URL || import.meta.env.VITE_API_URL || "";
+
+    const fetchStuck = async () => {
+      try {
+        const r = await fetch(`${CLINIC_API}/clinic/appointments/stuck`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
+        if (r.ok) {
+          const d = await r.json();
+          setStuckAppointments(d.appointments?.length || 0);
+        }
+      } catch (err) {}
+    };
+    fetchStuck();
+    const interval = setInterval(fetchStuck, 5 * 60 * 1000);
+
     
     // Fetch Branches
     fetch(`${apiUrl}/businesses/${claims.business_id}`, {
@@ -160,6 +177,7 @@ export default function ClinicLayout() {
       })
       .catch(() => {})
       .finally(() => setThemeLoading(false));
+    return () => clearInterval(interval);
   }, [claims.business_id, token, setThemeConfig]);
 
   if (themeLoading) {
