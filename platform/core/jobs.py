@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from core.database import SessionLocal
-from core.models.auth import Client
+from core.models.client import Client
 from verticals.clinic.models import Appointment, Patient
 import os
 
