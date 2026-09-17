@@ -36,6 +36,7 @@ export default function ClinicPatientProfile() {
   const [formEntries, setFormEntries] = useState([]);
   const [formFillerOpen, setFormFillerOpen] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState(null);
+  const [records, setRecords] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
