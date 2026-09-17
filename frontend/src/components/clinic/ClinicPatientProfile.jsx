@@ -1,3 +1,4 @@
+import ClinicalFormFiller from "./ClinicalFormFiller";
 import React, { useState, useEffect } from "react";
 import { useParams, useOutletContext, useNavigate } from "react-router-dom";
 import {
@@ -32,9 +33,10 @@ export default function ClinicPatientProfile() {
   const { token } = useOutletContext();
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
-  const [records, setRecords] = useState([]);
-  const [appointments, setAppointments] = useState([]);
   const [formEntries, setFormEntries] = useState([]);
+  const [formFillerOpen, setFormFillerOpen] = useState(false);
+  const [selectedEntryId, setSelectedEntryId] = useState(null);
+  const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({});

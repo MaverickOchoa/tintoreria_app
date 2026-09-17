@@ -9,6 +9,7 @@ from sqlalchemy import text
 import logging
 
 from core.database import engine
+from core.jobs import setup_scheduler
 from core.routes.auth import router as auth_router
 from core.routes.tenants import router as tenants_router
 from core.routes.users import router as users_router

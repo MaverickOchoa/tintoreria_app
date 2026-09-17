@@ -41,6 +41,10 @@ class Patient(Base):
     specialist_diagnosis = Column(Text, nullable=True)   # Diagnóstico especializado
     chief_complaint = Column(Text, nullable=True)        # Motivo de consulta
 
+    # Recalls (Seguimientos automatizados)
+    recall_date = Column(DateTime, nullable=True)        # Fecha recomendada para su próxima cita de seguimiento
+    recall_reason = Column(Text, nullable=True)          # Razón del seguimiento (ej. "Limpieza semestral")
+
     # Contacto de emergencia
     emergency_contact_name = Column(String(150), nullable=True)
     emergency_contact_phone = Column(String(20), nullable=True)
@@ -73,6 +77,8 @@ class Patient(Base):
             "medical_diagnosis": self.medical_diagnosis,
             "specialist_diagnosis": self.specialist_diagnosis,
             "chief_complaint": self.chief_complaint,
+            "recall_date": self.recall_date.isoformat() if self.recall_date else None,
+            "recall_reason": self.recall_reason,
             "emergency_contact_name": self.emergency_contact_name,
             "emergency_contact_phone": self.emergency_contact_phone,
             "medical_history": self.medical_history,
@@ -380,7 +386,9 @@ class ClinicalRecord(Base):
             "doctor_id": self.doctor_id,
             "doctor_name": self.doctor.full_name if self.doctor else None,
             "business_id": self.business_id, "branch_id": self.branch_id,
-            "chief_complaint": self.chief_complaint, "diagnosis": self.diagnosis,
+            "chief_complaint": self.chief_complaint,
+            "recall_date": self.recall_date.isoformat() if self.recall_date else None,
+            "recall_reason": self.recall_reason, "diagnosis": self.diagnosis,
             "treatment": self.treatment, "prescription": self.prescription,
             "next_appointment_notes": self.next_appointment_notes,
             "vital_signs": self.vital_signs,

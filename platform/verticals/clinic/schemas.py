@@ -89,6 +89,8 @@ class AppointmentUpdate(BaseModel):
     status: Optional[str] = None
     reason: Optional[str] = None
     notes: Optional[str] = None
+    recall_date: Optional[str] = None
+    recall_reason: Optional[str] = None
 
 
 class ClinicalRecordCreate(BaseModel):
