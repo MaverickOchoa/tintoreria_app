@@ -150,76 +150,8 @@ function KanbanColumn({ status, appointments, onStatusChange, onViewRecord, onOp
             doctorColorMap={doctorColorMap}
           />
         ))}
-      
-      {recallApt && (
-        <Dialog open={Boolean(recallApt)} onClose={() => { executeStatusChange(recallApt.id, "Completada"); setRecallApt(null); }} maxWidth="xs" fullWidth>
-          <DialogTitle>Completar Cita</DialogTitle>
-          <DialogContent dividers>
-            <Typography variant="body2" mb={2}>La cita se marcará como Completada. ¿Deseas programar un seguimiento (Recall) para este paciente en el futuro?</Typography>
-            <TextField
-              type="date"
-              label="Fecha recomendada (opcional)"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={recallDate}
-              onChange={e => setRecallDate(e.target.value)}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              label="Motivo del seguimiento (opcional)"
-              fullWidth
-              placeholder="Ej. Limpieza a los 6 meses"
-              value={recallReason}
-              onChange={e => setRecallReason(e.target.value)}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => { executeStatusChange(recallApt.id, "Completada"); setRecallApt(null); }}>Omitir Recall</Button>
-            <Button onClick={() => {
-              executeStatusChange(recallApt.id, "Completada", recallDate ? { date: recallDate, reason: recallReason } : null);
-              setRecallApt(null);
-            }} variant="contained" sx={{ bgcolor: "primary.main" }}>
-              Guardar y Completar
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
-</Box>
-    
-      {recallApt && (
-        <Dialog open={Boolean(recallApt)} onClose={() => { executeStatusChange(recallApt.id, "Completada"); setRecallApt(null); }} maxWidth="xs" fullWidth>
-          <DialogTitle>Completar Cita</DialogTitle>
-          <DialogContent dividers>
-            <Typography variant="body2" mb={2}>La cita se marcará como Completada. ¿Deseas programar un seguimiento (Recall) para este paciente en el futuro?</Typography>
-            <TextField
-              type="date"
-              label="Fecha recomendada (opcional)"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={recallDate}
-              onChange={e => setRecallDate(e.target.value)}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              label="Motivo del seguimiento (opcional)"
-              fullWidth
-              placeholder="Ej. Limpieza a los 6 meses"
-              value={recallReason}
-              onChange={e => setRecallReason(e.target.value)}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => { executeStatusChange(recallApt.id, "Completada"); setRecallApt(null); }}>Omitir Recall</Button>
-            <Button onClick={() => {
-              executeStatusChange(recallApt.id, "Completada", recallDate ? { date: recallDate, reason: recallReason } : null);
-              setRecallApt(null);
-            }} variant="contained" sx={{ bgcolor: "primary.main" }}>
-              Guardar y Completar
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
-</Box>
+      </Box>
+    </Box>
   );
 }
 
