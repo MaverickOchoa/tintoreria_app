@@ -62,7 +62,8 @@ const EmployeeForm = () => {
         if (roleRes.ok) {
           const systemRoles = ["business_admin", "super_admin", "cliente", "empleado"];
           const excluded = role === "branch_manager" ? [...systemRoles, "Gerente"] : systemRoles;
-          setRoles((roleData.roles || []).filter(r => !excluded.includes(r.name)));
+          const fetchedRoles = Array.isArray(roleData) ? roleData : (roleData.roles || []);
+          setRoles(fetchedRoles.filter(r => !excluded.includes(r.name)));
         }
       } catch (e) {
         console.error(e);
