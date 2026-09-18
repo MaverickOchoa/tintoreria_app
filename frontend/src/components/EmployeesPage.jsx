@@ -38,7 +38,7 @@ const EmployeesPage = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (res.ok) setEmployees(data.employees || []);
+      if (res.ok) setEmployees(Array.isArray(data) ? data : (data.employees || []));
       else setError(data.message || "Error al cargar empleados.");
     } catch {
       setError("Error de conexión.");
