@@ -12,7 +12,7 @@ from verticals.laundry.schemas import OrderCreate, OrderStatusUpdate, OrderPayme
 from verticals.laundry.services import create_order
 from core.models.payment import OrderPayment
 
-router = APIRouter(prefix="/laundry", tags=["laundry"])
+router = APIRouter(tags=["laundry"])
 
 
 @router.post("/orders", status_code=201)
