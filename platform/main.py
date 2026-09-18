@@ -17,6 +17,7 @@ from core.routes.clients import router as clients_router
 from core.routes.expenses import router as expenses_router
 from core.routes.overrides import router as overrides_router
 from core.routes.agencies import router as agencies_router
+from core.routes.promotions import router as promotions_router
 from verticals.laundry.routes import router as laundry_router
 from verticals.clinic.routes import router as clinic_router
 
@@ -39,6 +40,12 @@ app.add_middleware(
 )
 
 _STARTUP_MIGRATIONS = [
+
+    "CREATE TABLE IF NOT EXISTS whatsapp_templates (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, template_text TEXT NOT NULL, business_id INTEGER REFERENCES businesses(id))",
+    "CREATE TABLE IF NOT EXISTS email_templates (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, subject VARCHAR(200) NOT NULL, body_html TEXT NOT NULL, business_id INTEGER REFERENCES businesses(id))",
+    "CREATE TABLE IF NOT EXISTS trigger_channel_config (id SERIAL PRIMARY KEY, trigger_type VARCHAR(50) NOT NULL, channel VARCHAR(50) NOT NULL, template_id INTEGER NOT NULL, business_id INTEGER REFERENCES businesses(id))",
+    "CREATE TABLE IF NOT EXISTS date_campaigns (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, send_date DATE NOT NULL, client_type_id INTEGER, channel VARCHAR(50) NOT NULL, template_id INTEGER NOT NULL, is_sent BOOLEAN DEFAULT FALSE, business_id INTEGER REFERENCES businesses(id))",
+
 
     "CREATE TABLE IF NOT EXISTS agencies (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, contact_name VARCHAR(150), email VARCHAR(120), phone VARCHAR(20), notes VARCHAR(500), is_active BOOLEAN NOT NULL DEFAULT TRUE)",
     "CREATE TABLE IF NOT EXISTS agency_businesses (agency_id INTEGER REFERENCES agencies(id) ON DELETE CASCADE, business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE, PRIMARY KEY (agency_id, business_id))",
@@ -323,6 +330,7 @@ app.include_router(clients_router, prefix=API_V2)
 app.include_router(expenses_router, prefix=API_V2)
 app.include_router(overrides_router, prefix=API_V2)
 app.include_router(agencies_router, prefix=API_V2)
+app.include_router(promotions_router, prefix=API_V2)
 app.include_router(laundry_router, prefix=API_V2)
 app.include_router(clinic_router, prefix=API_V2)
 
