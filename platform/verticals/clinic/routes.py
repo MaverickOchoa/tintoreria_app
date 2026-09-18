@@ -30,7 +30,7 @@ from verticals.clinic.schemas import (
     DoctorScheduleUpdate
 )
 
-router = APIRouter(tags=["clinic"])
+router = APIRouter(prefix="/clinic", tags=["clinic"])
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "supersecretkey")
 ALGORITHM = "HS256"
