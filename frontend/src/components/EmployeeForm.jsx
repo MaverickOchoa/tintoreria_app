@@ -132,8 +132,8 @@ const EmployeeForm = () => {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Error al crear usuario");
+      const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || data.message || "Error al crear usuario");
       alert("Usuario creado correctamente.");
       navigate(-1);
     } catch (err) {
