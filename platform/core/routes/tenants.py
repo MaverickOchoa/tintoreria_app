@@ -284,6 +284,7 @@ def set_scan_config(
 
 
 
+
 @router.delete("/businesses/{business_id}")
 def delete_business(business_id: int, claims: dict = Depends(require_super_admin), db: Session = Depends(get_db)):
     business = db.query(Business).filter(Business.id == business_id).first()
@@ -293,53 +294,48 @@ def delete_business(business_id: int, claims: dict = Depends(require_super_admin
     try:
         from sqlalchemy import text
         
-        # Helper to execute without failing the transaction if table/column doesn't exist
         def safe_execute(sql):
             try:
-                db.execute(text("SAVEPOINT sp1"))
-                db.execute(text(sql), {"b": business_id})
-                db.execute(text("RELEASE SAVEPOINT sp1"))
-            except Exception as e:
-                db.execute(text("ROLLBACK TO SAVEPOINT sp1"))
-        
-        # 1. Orders
+                with db.begin_nested():
+                    db.execute(text(sql), {"b": business_id})
+            except Exception:
+                pass
+                
+        # 1. Clean order details (order_id)
+        # Using branch_id to find orders since orders have branch_id.
         safe_execute("DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE branch_id IN (SELECT id FROM branches WHERE business_id = :b))")
         safe_execute("DELETE FROM order_payments WHERE order_id IN (SELECT id FROM orders WHERE branch_id IN (SELECT id FROM branches WHERE business_id = :b))")
-        safe_execute("DELETE FROM orders WHERE branch_id IN (SELECT id FROM branches WHERE business_id = :b)")
+        safe_execute("DELETE FROM order_garment_tickets WHERE order_id IN (SELECT id FROM orders WHERE branch_id IN (SELECT id FROM branches WHERE business_id = :b))")
         
-        # 2. Clinic
-        safe_execute("DELETE FROM clinical_form_entries WHERE patient_id IN (SELECT id FROM patients WHERE client_id IN (SELECT id FROM clients WHERE business_id = :b))")
-        safe_execute("DELETE FROM clinical_records WHERE patient_id IN (SELECT id FROM patients WHERE client_id IN (SELECT id FROM clients WHERE business_id = :b))")
-        safe_execute("DELETE FROM appointments WHERE business_id = :b")
-        safe_execute("DELETE FROM patients WHERE client_id IN (SELECT id FROM clients WHERE business_id = :b)")
-        safe_execute("DELETE FROM clinic_services WHERE business_id = :b")
-        safe_execute("DELETE FROM clinic_doctor_schedules WHERE doctor_id IN (SELECT id FROM employees WHERE business_id = :b)")
-        safe_execute("DELETE FROM clinic_doctor_blocks WHERE doctor_id IN (SELECT id FROM employees WHERE business_id = :b)")
+        # 2. Clean clinic tables linked via patient_id
+        safe_execute("DELETE FROM clinical_form_entries WHERE patient_id IN (SELECT id FROM patients WHERE client_id IN (SELECT id FROM clients WHERE branch_id IN (SELECT id FROM branches WHERE business_id = :b)))")
+        safe_execute("DELETE FROM clinical_records WHERE patient_id IN (SELECT id FROM patients WHERE client_id IN (SELECT id FROM clients WHERE branch_id IN (SELECT id FROM branches WHERE business_id = :b)))")
+        safe_execute("DELETE FROM patients WHERE client_id IN (SELECT id FROM clients WHERE branch_id IN (SELECT id FROM branches WHERE business_id = :b))")
         
-        # 3. Employees
-        safe_execute("DELETE FROM employee_roles WHERE employee_id IN (SELECT id FROM employees WHERE business_id = :b)")
-        safe_execute("DELETE FROM roles WHERE employee_id IN (SELECT id FROM employees WHERE business_id = :b)")
-        safe_execute("DELETE FROM employees WHERE business_id = :b")
+        # 3. Clean any table that has branch_id but NOT business_id
+        # Actually it's safer to just delete from all tables with branch_id
+        res_branch = db.execute(text("SELECT table_name FROM information_schema.columns WHERE column_name = 'branch_id' AND table_schema = 'public'"))
+        branch_tables = [row[0] for row in res_branch.fetchall()]
+        # Delete from branch tables (except branches itself)
+        for tbl in branch_tables:
+            if tbl not in ['branches', 'businesses']:
+                safe_execute(f"DELETE FROM {tbl} WHERE branch_id IN (SELECT id FROM branches WHERE business_id = :b)")
+                
+        # 4. Clean any table that has business_id
+        res_biz = db.execute(text("SELECT table_name FROM information_schema.columns WHERE column_name = 'business_id' AND table_schema = 'public'"))
+        biz_tables = [row[0] for row in res_biz.fetchall()]
         
-        # 4. Promotions
-        safe_execute("DELETE FROM promo_required_lines WHERE promotion_id IN (SELECT id FROM promotions WHERE business_id = :b)")
-        safe_execute("DELETE FROM promo_reward_lines WHERE promotion_id IN (SELECT id FROM promotions WHERE business_id = :b)")
-        
-        # 5. Direct
-        tables = [
-            "whatsapp_templates", "email_templates", "trigger_channel_config", "date_campaigns",
-            "colors", "prints", "defects", "promotions", "clinic_expenses", "expenses",
-            "items", "categories", "services", "client_types", "clients",
-            "business_hours", "business_holidays", "agency_businesses", "admins"
-        ]
-        for table in tables:
-            safe_execute(f"DELETE FROM {table} WHERE business_id = :b")
-            
-        # 6. Branches
-        safe_execute("DELETE FROM branch_item_overrides WHERE branch_id IN (SELECT id FROM branches WHERE business_id = :b)")
+        # We need to make sure we don't delete from businesses yet
+        # Some tables might have foreign keys to other biz tables (like employee_roles -> employees)
+        # So we just repeat the deletion a few times until it stabilizes, or use safe_execute
+        for _ in range(3):
+            for tbl in biz_tables:
+                if tbl not in ['businesses']:
+                    safe_execute(f"DELETE FROM {tbl} WHERE business_id = :b")
+                    
+        # 5. Finally branches and businesses
         safe_execute("DELETE FROM branches WHERE business_id = :b")
         
-        # Final delete
         db.execute(text("DELETE FROM businesses WHERE id = :b"), {"b": business_id})
         db.commit()
     except Exception as e:
@@ -347,6 +343,7 @@ def delete_business(business_id: int, claims: dict = Depends(require_super_admin
         raise HTTPException(status_code=400, detail=f"No se pudo eliminar el negocio. Existen registros vinculados. Error: {str(e)}")
     
     return {"message": "Negocio eliminado exitosamente."}
+
 
 
 
