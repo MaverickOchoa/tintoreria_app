@@ -89,7 +89,10 @@ export default function ManageBusinesses() {
   const handleDeleteBusiness = async (id) => {
     try {
       const res = await fetch(`${API_BASE_URL}/businesses/${id}`, { method: "DELETE", headers: authHeaders });
-      if (!res.ok) throw new Error("Error al eliminar");
+      if (!res.ok) {
+        const data = await res.json().catch(()=>({}));
+        throw new Error(data.detail || data.message || "Error al eliminar");
+      }
       setBusinesses((prev) => prev.filter((b) => b.id !== id));
     } catch (e) { setError(e.message); }
     setConfirmDialog({ open: false });
