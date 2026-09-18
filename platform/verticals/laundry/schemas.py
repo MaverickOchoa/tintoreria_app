@@ -65,3 +65,16 @@ class CategoryCreate(BaseModel):
 
 class ServiceCreate(BaseModel):
     name: str
+
+
+class BaseNameCreate(BaseModel):
+    name: str
+
+class ColorCreate(BaseNameCreate):
+    pass
+
+class PrintCreate(BaseNameCreate):
+    pass
+
+class DefectCreate(BaseNameCreate):
+    pass
