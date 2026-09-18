@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 
 from core.database import get_db
-from core.security import require_business_admin, get_current_claims
+from core.dependencies import require_business_admin, get_current_claims
 from core.models.promotion import Promotion
 from core.models.marketing import WhatsappTemplate, EmailTemplate, TriggerChannelConfig, DateCampaign
 

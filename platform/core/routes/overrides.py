@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from core.database import get_db
-from core.security import require_business_admin, get_current_claims
+from core.dependencies import require_business_admin, get_current_claims
 from core.models.tenant import BranchItemOverride, Branch
 from verticals.laundry.models import Item
 

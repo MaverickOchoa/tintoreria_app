@@ -4,7 +4,8 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 from core.database import get_db
-from core.security import require_super_admin, get_password_hash
+from core.dependencies import require_super_admin
+from core.security import hash_password as get_password_hash
 from core.models.agency import Agency, AgencyBusiness, AgencyAdminUser
 from core.models.tenant import Business
 from core.models.user import Admin

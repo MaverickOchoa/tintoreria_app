@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from core.database import get_db
-from core.security import get_current_claims
+from core.dependencies import get_current_claims
 
 router = APIRouter(tags=["reports"])
 
