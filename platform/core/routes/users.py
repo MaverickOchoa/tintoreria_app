@@ -90,10 +90,15 @@ def create_employee(
 ):
     business_id = claims["business_id"]
 
-    username = generate_unique_username(payload.full_name, payload.last_name or "", db)
-    temp_password = payload.phone.strip() if payload.phone else "zentro2024"
+    username = payload.base_username or generate_unique_username(payload.full_name, payload.last_name or "", db)
+    temp_password = payload.password or (payload.phone.strip() if payload.phone else "zentro2024")
 
-    roles = db.query(Role).filter(Role.name.in_(payload.role_names)).all()
+    # Fetch roles by ID if role_ids provided, otherwise by name
+    if payload.role_ids:
+        roles = db.query(Role).filter(Role.id.in_(payload.role_ids)).all()
+    else:
+        roles = db.query(Role).filter(Role.name.in_(payload.role_names)).all()
+        
     employee = Employee(
         username=username,
         password=hash_password(temp_password),
