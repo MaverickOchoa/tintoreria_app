@@ -15,6 +15,7 @@ from core.routes.tenants import router as tenants_router
 from core.routes.users import router as users_router
 from core.routes.clients import router as clients_router
 from core.routes.expenses import router as expenses_router
+from core.routes.overrides import router as overrides_router
 from verticals.laundry.routes import router as laundry_router
 from verticals.clinic.routes import router as clinic_router
 
@@ -314,6 +315,7 @@ app.include_router(tenants_router, prefix=API_V2)
 app.include_router(users_router, prefix=API_V2)
 app.include_router(clients_router, prefix=API_V2)
 app.include_router(expenses_router, prefix=API_V2)
+app.include_router(overrides_router, prefix=API_V2)
 app.include_router(laundry_router, prefix=API_V2)
 app.include_router(clinic_router, prefix=API_V2)
 
