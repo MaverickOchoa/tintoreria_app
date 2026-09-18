@@ -334,7 +334,7 @@ def delete_business(business_id: int, claims: dict = Depends(require_super_admin
                     safe_execute(f"DELETE FROM {tbl} WHERE business_id = :b")
                     
         # 5. Finally branches and businesses
-        safe_execute("DELETE FROM branches WHERE business_id = :b")
+        db.execute(text("DELETE FROM branches WHERE business_id = :b"), {"b": business_id})
         
         db.execute(text("DELETE FROM businesses WHERE id = :b"), {"b": business_id})
         db.commit()
