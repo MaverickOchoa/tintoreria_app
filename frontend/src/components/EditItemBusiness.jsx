@@ -37,7 +37,7 @@ export default function EditItemBusiness() {
     Promise.all([
       fetch(`${API}/items/${itemId}`, { headers: h }).then(r => r.json()),
       branchId
-        ? fetch(`${API}/api/v1/branch-item-overrides/branch/${branchId}/item/${itemId}`, { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null)
+        ? fetch(`${API}/branch-item-overrides/branch/${branchId}/item/${itemId}`, { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null)
         : Promise.resolve(null),
     ])
       .then(([itemData, overrideData]) => {
@@ -73,7 +73,7 @@ export default function EditItemBusiness() {
       }
       // Update branch-specific price override
       if (branchId) {
-        const resPrice = await fetch(`${API}/api/v1/branch-item-overrides/branch/${branchId}/item/${itemId}`, {
+        const resPrice = await fetch(`${API}/branch-item-overrides/branch/${branchId}/item/${itemId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ price: parseFloat(price) }),

@@ -46,7 +46,7 @@ function PrintTicketsModal({ order, onClose }) {
     if (claims.business_id) {
       fetch(`${API}/businesses/${claims.business_id}`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setBusinessInfo(d)).catch(() => {});
-      fetch(`${API}/api/v1/businesses/${claims.business_id}/hours`, { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`${API}/businesses/${claims.business_id}/hours`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setBusinessHours(Array.isArray(d) ? d : (d.hours || []))).catch(() => {});
     }
   }, []);
@@ -225,7 +225,7 @@ export default function CreateOrder() {
 
   useEffect(() => {
     // Cargar cliente
-    fetch(`${API}/api/v1/clients/${clientId}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/clients/${clientId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(setClient).catch(() => setError("Error al cargar cliente"))
       .finally(() => setLoadingClient(false));
 
@@ -291,7 +291,7 @@ export default function CreateOrder() {
         })
         .catch(console.error);
     }
-    fetch(`${API}/api/v1/promotions?active_only=1`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/promotions?active_only=1`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(d => setActivePromos(d.promotions || []))
         .catch(console.error);
@@ -369,9 +369,9 @@ export default function CreateOrder() {
     setLoadingDetails(true);
     try {
       const [cRes, pRes, dRes] = await Promise.all([
-        fetch(`${API}/api/v1/colors`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/api/v1/prints`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/api/v1/defects`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/colors`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/prints`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/defects`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const [cData, pData, dData] = await Promise.all([cRes.json(), pRes.json(), dRes.json()]);
       setColors(cData.colors || []);
@@ -534,7 +534,7 @@ export default function CreateOrder() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/api/v1/orders`, {
+      const res = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({

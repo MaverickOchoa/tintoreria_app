@@ -117,7 +117,7 @@ export default function Expenses() {
         ...(filterTo && { date_to: filterTo }),
         ...(role === "branch_manager" && branchIdStored && { branch_id: branchIdStored }),
       });
-      const r = await fetch(`${API}/api/v1/expenses?${params}`, { headers });
+      const r = await fetch(`${API}/expenses?${params}`, { headers });
       if (r.ok) {
         const d = await r.json();
         setExpenses(d.items);
@@ -135,7 +135,7 @@ export default function Expenses() {
       const to = today();
       const params = new URLSearchParams({ date_from: from, date_to: to });
       if (role === "branch_manager" && branchIdStored) params.set("branch_id", branchIdStored);
-      const r = await fetch(`${API}/api/v1/reports/expenses-summary?${params}`, { headers });
+      const r = await fetch(`${API}/reports/expenses-summary?${params}`, { headers });
       if (r.ok) {
         const d = await r.json();
         const map = {};
@@ -178,7 +178,7 @@ export default function Expenses() {
         unit_cost: Number(form.unit_cost),
         notes: form.notes,
       };
-      const r = await fetch(`${API}/api/v1/expenses`, { method: "POST", headers, body: JSON.stringify(body) });
+      const r = await fetch(`${API}/expenses`, { method: "POST", headers, body: JSON.stringify(body) });
       if (r.ok) {
         setSaveOk(true);
         setForm((prev) => ({ ...prev, quantity: "", unit_cost: "", notes: "", item_name: "", custom_item: "" }));
@@ -198,7 +198,7 @@ export default function Expenses() {
   const handleDelete = async () => {
     if (!deleteDialog) return;
     try {
-      const r = await fetch(`${API}/api/v1/expenses/${deleteDialog.id}`, { method: "DELETE", headers });
+      const r = await fetch(`${API}/expenses/${deleteDialog.id}`, { method: "DELETE", headers });
       if (r.ok) { setDeleteDialog(null); loadExpenses(); loadCategorySums(); }
     } catch {}
   };
@@ -208,7 +208,7 @@ export default function Expenses() {
     try {
       const itemName = editDialog.item_name === "Otro" ? editDialog.custom_item : editDialog.item_name;
       const body = { ...editDialog, item_name: itemName };
-      const r = await fetch(`${API}/api/v1/expenses/${editDialog.id}`, {
+      const r = await fetch(`${API}/expenses/${editDialog.id}`, {
         method: "PUT", headers, body: JSON.stringify(body),
       });
       if (r.ok) { setEditDialog(null); loadExpenses(); loadCategorySums(); }

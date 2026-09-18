@@ -114,7 +114,7 @@ export default function EditItemBranchPrice() {
 
         // 2) Override
         const ovRes = await fetch(
-          `${API_BASE_URL}/api/v1/branch-item-overrides/branch/${activeBranchId}/item/${itemId}`,
+          `${API_BASE_URL}/branch-item-overrides/branch/${activeBranchId}/item/${itemId}`,
           { method: "GET", headers: { Authorization: `Bearer ${token}` } },
         );
 
@@ -180,7 +180,7 @@ export default function EditItemBranchPrice() {
 
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/v1/branch-item-overrides/branch/${activeBranchId}/item/${itemId}`,
+        `${API_BASE_URL}/branch-item-overrides/branch/${activeBranchId}/item/${itemId}`,
         {
           method: "PUT",
           headers: {
@@ -229,7 +229,7 @@ export default function EditItemBranchPrice() {
 
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/v1/branch-item-overrides/branch/${activeBranchId}/item/${itemId}`,
+        `${API_BASE_URL}/branch-item-overrides/branch/${activeBranchId}/item/${itemId}`,
         { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
       );
 

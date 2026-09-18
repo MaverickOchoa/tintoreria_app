@@ -19,7 +19,7 @@ export default function ClientPortalLogin() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/api/v1/client-auth/login`, {
+      const res = await fetch(`${API}/client-auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

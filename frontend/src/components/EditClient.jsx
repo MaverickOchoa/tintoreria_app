@@ -35,10 +35,10 @@ const EditClient = () => {
   const [response, setResponse] = useState(null);
 
   useEffect(() => {
-    fetch(`${API}/api/v1/client-types`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/client-types`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setClientTypes(d.client_types || [])).catch(() => {});
 
-    fetch(`${API}/api/v1/clients/${clientId}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/clients/${clientId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {
         setClientData({
@@ -101,7 +101,7 @@ const EditClient = () => {
     dataToSend.username = clientData.first_name.trim().toLowerCase();
 
     try {
-      const res = await fetch(`${API}/api/v1/clients/${clientId}`, {
+      const res = await fetch(`${API}/clients/${clientId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(dataToSend),

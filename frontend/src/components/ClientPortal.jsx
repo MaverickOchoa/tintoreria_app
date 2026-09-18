@@ -27,7 +27,7 @@ function useBranding(businessId) {
   const [brand, setBrand] = useState({ portal_primary_color: "#1976d2", portal_bg_color: "#f5f5f5", portal_slogan: "", portal_logo_url: "", name: "" });
   useEffect(() => {
     if (!businessId) return;
-    fetch(`${API}/api/v1/businesses/${businessId}/public`)
+    fetch(`${API}/businesses/${businessId}/public`)
       .then(r => r.json())
       .then(d => setBrand(d))
       .catch(() => {});
@@ -60,7 +60,7 @@ export default function ClientPortal() {
     if (cpForm.next !== cpForm.confirm) { setCpMsg({ type: "error", text: "Las contraseñas no coinciden" }); return; }
     setCpSaving(true); setCpMsg(null);
     try {
-      const res = await fetch(`${API}/api/v1/client-portal/change-password`, {
+      const res = await fetch(`${API}/client-portal/change-password`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ current_password: cpForm.current, new_password: cpForm.next }),
@@ -89,9 +89,9 @@ export default function ClientPortal() {
         .catch(() => null);
 
     Promise.all([
-      safeFetch(`${API}/api/v1/client-portal/me`),
-      safeFetch(`${API}/api/v1/client-portal/orders`),
-      safeFetch(`${API}/api/v1/client-portal/discounts`),
+      safeFetch(`${API}/client-portal/me`),
+      safeFetch(`${API}/client-portal/orders`),
+      safeFetch(`${API}/client-portal/discounts`),
     ])
       .then(([meData, ordersData, discData]) => {
         if (!meData || meData.message) {

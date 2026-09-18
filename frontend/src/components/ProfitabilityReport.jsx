@@ -31,7 +31,7 @@ export default function ProfitabilityReport() {
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
-    fetch(`${API}/api/v1/reports/profitability`, {
+    fetch(`${API}/reports/profitability`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())

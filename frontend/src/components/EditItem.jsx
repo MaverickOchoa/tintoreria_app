@@ -30,7 +30,7 @@ export default function EditItem() {
 
       try {
         const res = await fetch(
-          `${API_BASE_URL}/api/v1/branch-item-overrides/branch/${branchId}/item/${itemId}`,
+          `${API_BASE_URL}/branch-item-overrides/branch/${branchId}/item/${itemId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
@@ -64,7 +64,7 @@ export default function EditItem() {
 
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/v1/branch-item-overrides/branch/${branchId}/item/${itemId}`,
+        `${API_BASE_URL}/branch-item-overrides/branch/${branchId}/item/${itemId}`,
         {
           method: "PUT",
           headers: {

@@ -62,8 +62,8 @@ export default function OrderStatsCards() {
 
   useEffect(() => {
     const url = branchId
-      ? `${API}/api/v1/orders/stats?branch_id=${branchId}`
-      : `${API}/api/v1/orders/stats`;
+      ? `${API}/orders/stats?branch_id=${branchId}`
+      : `${API}/orders/stats`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(setStats)
@@ -77,8 +77,8 @@ export default function OrderStatsCards() {
     setModalLoading(true);
     try {
       const url = branchId
-        ? `${API}/api/v1/orders?branch_id=${branchId}`
-        : `${API}/api/v1/orders`;
+        ? `${API}/orders?branch_id=${branchId}`
+        : `${API}/orders`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       const all = data.orders || [];

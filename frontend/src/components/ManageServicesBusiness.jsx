@@ -65,7 +65,7 @@ function ManageServicesBusiness() {
     }
 
     try {
-      // ✅ FIX: /api/v1 y trailing slash
+      // ✅ FIX:  y trailing slash
       const response = await fetch(`${API_BASE_URL}/services`, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },

@@ -99,32 +99,32 @@ export default function ManagePromotions() {
     loadMessageData();
     loadCampaigns();
     fetch(`${API}/services`,                                         { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setServices(Array.isArray(d) ? d : (d.services || []))).catch(() => {});
-    fetch(`${API}/api/v1/client-types`,                              { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setClientTypes(d.client_types || [])).catch(() => {});
+    fetch(`${API}/client-types`,                              { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setClientTypes(d.client_types || [])).catch(() => {});
     fetch(`${API}/businesses/${claims.business_id}/branches`,        { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setBranches(d.branches || [])).catch(() => {});
   }, []);
 
   const loadAll = () =>
-    fetch(`${API}/api/v1/promotions`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/promotions`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setPromotions(d.promotions || [])).catch(() => {});
 
   const loadMessageData = () => {
-    fetch(`${API}/api/v1/whatsapp-templates`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/whatsapp-templates`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => { if (Array.isArray(d)) { const m = {}; d.forEach(t => { m[t.trigger_type] = t; }); setWaTemplates(m); } }).catch(() => {});
-    fetch(`${API}/api/v1/email-templates`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/email-templates`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => { if (Array.isArray(d)) { const m = {}; d.forEach(t => { m[t.trigger_type] = t; }); setEmailTemplates(m); } }).catch(() => {});
-    fetch(`${API}/api/v1/trigger-channel-config`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/trigger-channel-config`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => { if (d && typeof d === "object") setChannelConfig(d); }).catch(() => {});
   };
 
   const loadCampaigns = () =>
-    fetch(`${API}/api/v1/date-campaigns`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/date-campaigns`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setCampaigns(Array.isArray(d) ? d : [])).catch(() => {});
 
   // â”€â”€ Channel selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleChannelChange = async (trigger, newChannel) => {
     if (!newChannel) return;
     setChannelConfig(prev => ({ ...prev, [trigger]: newChannel }));
-    await fetch(`${API}/api/v1/trigger-channel-config`, {
+    await fetch(`${API}/trigger-channel-config`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ trigger_type: trigger, channel: newChannel }),
@@ -141,7 +141,7 @@ export default function ManagePromotions() {
         const body = editWaText.trim() || DEFAULT_WA[trigger];
         const existing = waTemplates[trigger];
         await fetch(
-          existing ? `${API}/api/v1/whatsapp-templates/${existing.id}` : `${API}/api/v1/whatsapp-templates`,
+          existing ? `${API}/whatsapp-templates/${existing.id}` : `${API}/whatsapp-templates`,
           {
             method: existing ? "PUT" : "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -154,7 +154,7 @@ export default function ManagePromotions() {
         const body    = editEmailBody.trim()    || DEFAULT_EMAIL_BODY[trigger];
         const existing = emailTemplates[trigger];
         await fetch(
-          existing ? `${API}/api/v1/email-templates/${existing.id}` : `${API}/api/v1/email-templates`,
+          existing ? `${API}/email-templates/${existing.id}` : `${API}/email-templates`,
           {
             method: existing ? "PUT" : "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -189,7 +189,7 @@ export default function ManagePromotions() {
       setCampaignMsg({ type: "error", text: "La fecha de envío es requerida" }); return;
     }
     setSavingCampaign(true);
-    const r = await fetch(`${API}/api/v1/date-campaigns`, {
+    const r = await fetch(`${API}/date-campaigns`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(campaignForm),
@@ -206,7 +206,7 @@ export default function ManagePromotions() {
   };
 
   const handleDeleteCampaign = async (id) => {
-    await fetch(`${API}/api/v1/date-campaigns/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    await fetch(`${API}/date-campaigns/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
     loadCampaigns();
   };
 
@@ -242,7 +242,7 @@ export default function ManagePromotions() {
     setSaving(true); setMsg(null);
     try {
       const body = { ...form, service_id: form.service_id || null, client_type_id: form.client_type_id || null, bundle_price: form.bundle_price ? parseFloat(form.bundle_price) : null, discount_pct: form.discount_pct ? parseFloat(form.discount_pct) : null, required_lines: form.required_lines.map(l => ({ item_id: l.item_id || null, quantity: parseInt(l.quantity) })), reward_lines: form.reward_lines.map(l => ({ item_id: l.item_id, quantity: parseInt(l.quantity) })) };
-      const res = await fetch(`${API}/api/v1/promotions`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      const res = await fetch(`${API}/promotions`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
       const d = await res.json();
       if (res.ok) { setForm(EMPTY_FORM); setShowForm(false); loadAll(); setMsg({ type: "success", text: "Promoción creada" }); }
       else setMsg({ type: "error", text: d.message || "Error" });
@@ -250,8 +250,8 @@ export default function ManagePromotions() {
     finally { setSaving(false); }
   };
 
-  const handleToggle = async (promo) => { await fetch(`${API}/api/v1/promotions/${promo.id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ active: !promo.active }) }); loadAll(); };
-  const handleDelete = async (id) => { if (!window.confirm("¿Eliminar esta promoción?")) return; await fetch(`${API}/api/v1/promotions/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }); loadAll(); };
+  const handleToggle = async (promo) => { await fetch(`${API}/promotions/${promo.id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ active: !promo.active }) }); loadAll(); };
+  const handleDelete = async (id) => { if (!window.confirm("¿Eliminar esta promoción?")) return; await fetch(`${API}/promotions/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }); loadAll(); };
 
   const today = new Date().toISOString().slice(0, 10);
 

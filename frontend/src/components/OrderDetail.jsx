@@ -83,7 +83,7 @@ export default function OrderDetail() {
   const [businessHours, setBusinessHours] = useState([]);
 
   useEffect(() => {
-    fetch(`${API}/api/v1/orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => { if (d.id) setOrder(d); else setError(d.message || "Error al cargar la orden."); })
       .catch(() => setError("Error de conexión."))
@@ -92,7 +92,7 @@ export default function OrderDetail() {
     if (claims.business_id) {
       fetch(`${API}/businesses/${claims.business_id}`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setBusinessInfo(d)).catch(() => {});
-      fetch(`${API}/api/v1/businesses/${claims.business_id}/hours`, { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`${API}/businesses/${claims.business_id}/hours`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setBusinessHours(Array.isArray(d) ? d : (d.hours || []))).catch(() => {});
     }
   }, [orderId]);

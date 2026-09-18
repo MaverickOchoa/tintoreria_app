@@ -94,12 +94,12 @@ export default function ManageClientConfig() {
   };
 
   const loadTypes = () => {
-    fetch(`${API}/api/v1/client-types`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/client-types`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setTypes(d.client_types || [])).catch(() => {});
   };
 
   const loadPromos = () => {
-    fetch(`${API}/api/v1/promotions`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/promotions`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setPromotions(d.promotions || [])).catch(() => {});
   };
 
@@ -108,7 +108,7 @@ export default function ManageClientConfig() {
     setAddingType(true);
     setTypeMsg(null);
     try {
-      const res = await fetch(`${API}/api/v1/client-types`, {
+      const res = await fetch(`${API}/client-types`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: newType }),
@@ -121,7 +121,7 @@ export default function ManageClientConfig() {
   };
 
   const handleDeleteType = async (id) => {
-    await fetch(`${API}/api/v1/client-types/${id}`, {
+    await fetch(`${API}/client-types/${id}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` },
     });
     loadTypes();
@@ -136,7 +136,7 @@ export default function ManageClientConfig() {
       if (!body.client_type_id) delete body.client_type_id;
       if (!body.discount_pct) delete body.discount_pct;
       else body.discount_pct = parseFloat(body.discount_pct);
-      const res = await fetch(`${API}/api/v1/promotions`, {
+      const res = await fetch(`${API}/promotions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
@@ -152,7 +152,7 @@ export default function ManageClientConfig() {
   };
 
   const handleTogglePromo = async (promo) => {
-    await fetch(`${API}/api/v1/promotions/${promo.id}`, {
+    await fetch(`${API}/promotions/${promo.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ active: !promo.active }),
@@ -161,7 +161,7 @@ export default function ManageClientConfig() {
   };
 
   const handleDeletePromo = async (id) => {
-    await fetch(`${API}/api/v1/promotions/${id}`, {
+    await fetch(`${API}/promotions/${id}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` },
     });
     loadPromos();

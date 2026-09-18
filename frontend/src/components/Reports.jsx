@@ -124,24 +124,24 @@ export default function Reports() {
     const alertsGet = () => {
       const ap = new URLSearchParams();
       if (branchId) ap.append("branch_id", branchId);
-      return fetch(`${API}/api/v1/reports/alerts?${ap}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null);
+      return fetch(`${API}/reports/alerts?${ap}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null);
     };
 
     const ovGet = () => {
       const op = new URLSearchParams();
       if (branchId) op.append("branch_id", branchId);
-      return fetch(`${API}/api/v1/reports/overview?${op}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null);
+      return fetch(`${API}/reports/overview?${op}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null);
     };
 
     const [s, dt, ov, rec, cd, ti, disc, bb, al] = await Promise.all([
-      get("/api/v1/reports/summary"),
-      get("/api/v1/reports/daily-trend"),
+      get("/reports/summary"),
+      get("/reports/daily-trend"),
       ovGet(),
-      get("/api/v1/reports/receivable"),
-      get("/api/v1/reports/clients-detail"),
-      get("/api/v1/reports/top-items"),
-      get("/api/v1/reports/discounts"),
-      get("/api/v1/reports/by-branch"),
+      get("/reports/receivable"),
+      get("/reports/clients-detail"),
+      get("/reports/top-items"),
+      get("/reports/discounts"),
+      get("/reports/by-branch"),
       alertsGet(),
     ]);
 

@@ -29,7 +29,7 @@ export default function BusinessSchedule({ businessId, token }) {
 
   useEffect(() => {
     if (!businessId) return;
-    fetch(`${API}/api/v1/businesses/${businessId}/hours`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/businesses/${businessId}/hours`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
@@ -39,7 +39,7 @@ export default function BusinessSchedule({ businessId, token }) {
           }));
         }
       }).catch(console.error);
-    fetch(`${API}/api/v1/businesses/${businessId}/holidays`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/businesses/${businessId}/holidays`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setHolidays(data); })
       .catch(console.error);
@@ -52,7 +52,7 @@ export default function BusinessSchedule({ businessId, token }) {
   const saveHours = async () => {
     setSavingH(true); setMsgH(null);
     try {
-      const res = await fetch(`${API}/api/v1/businesses/${businessId}/hours`, {
+      const res = await fetch(`${API}/businesses/${businessId}/hours`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(hours),
@@ -67,7 +67,7 @@ export default function BusinessSchedule({ businessId, token }) {
     const body = newHoliday.is_recurring
       ? { name: newHoliday.name, is_recurring: true, month: parseInt(newHoliday.month), day: parseInt(newHoliday.day) }
       : { name: newHoliday.name, is_recurring: false, specific_date: newHoliday.specific_date };
-    const res = await fetch(`${API}/api/v1/businesses/${businessId}/holidays`, {
+    const res = await fetch(`${API}/businesses/${businessId}/holidays`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
@@ -81,7 +81,7 @@ export default function BusinessSchedule({ businessId, token }) {
   };
 
   const toggleHoliday = async (h) => {
-    const res = await fetch(`${API}/api/v1/businesses/${businessId}/holidays/${h.id}`, {
+    const res = await fetch(`${API}/businesses/${businessId}/holidays/${h.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ is_active: !h.is_active }),
@@ -90,7 +90,7 @@ export default function BusinessSchedule({ businessId, token }) {
   };
 
   const deleteHoliday = async (id) => {
-    await fetch(`${API}/api/v1/businesses/${businessId}/holidays/${id}`, {
+    await fetch(`${API}/businesses/${businessId}/holidays/${id}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` },
     });
     setHolidays(prev => prev.filter(x => x.id !== id));

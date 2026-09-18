@@ -16,7 +16,7 @@ export default function ClinicalRecords() {
   const fetchRecords = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/clinical-records`, {
+      const res = await fetch(`${API_BASE}/clinical-records`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Error al cargar hojas clínicas');
@@ -44,7 +44,7 @@ export default function ClinicalRecords() {
     formData.append('file', file);
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/clinical-records/upload`, {
+      const res = await fetch(`${API_BASE}/clinical-records/upload`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData
@@ -114,7 +114,7 @@ export default function ClinicalRecords() {
                   edge="end" 
                   color="primary" 
                   component="a" 
-                  href={`${API_BASE}/api/v1/clinical-records/${r.id}/download?token=${token}`} 
+                  href={`${API_BASE}/clinical-records/${r.id}/download?token=${token}`} 
                   target="_blank"
                 >
                   <DownloadIcon />

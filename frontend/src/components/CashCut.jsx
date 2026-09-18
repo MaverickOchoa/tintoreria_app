@@ -58,7 +58,7 @@ export default function CashCut() {
     setLoadingPreview(true);
     setPreviewError("");
     const params = branchId ? `?branch_id=${branchId}` : "";
-    fetch(`${API}/api/v1/cash-cuts/preview${params}`, {
+    fetch(`${API}/cash-cuts/preview${params}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -71,7 +71,7 @@ export default function CashCut() {
     setLoadingHist(true);
     const params = new URLSearchParams({ limit: PAGE_SIZE, offset: histPage * PAGE_SIZE });
     if (branchId) params.set("branch_id", branchId);
-    fetch(`${API}/api/v1/cash-cuts?${params}`, {
+    fetch(`${API}/cash-cuts?${params}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -88,7 +88,7 @@ export default function CashCut() {
     setSubmitting(true);
     setSubmitError("");
     setLastResult(null);
-    fetch(`${API}/api/v1/cash-cuts`, {
+    fetch(`${API}/cash-cuts`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({

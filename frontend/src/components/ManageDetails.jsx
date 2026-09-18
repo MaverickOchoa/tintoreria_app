@@ -18,9 +18,9 @@ import { toTitleCase } from "../utils";
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 const TABS = [
-  { label: "Colores",     icon: <PaletteIcon />,        endpoint: "/api/v1/colors",  plural: "colors",  hasColor: true  },
-  { label: "Estampados",  icon: <PatternIcon />,         endpoint: "/api/v1/prints",  plural: "prints",  hasColor: false },
-  { label: "Defectos",    icon: <ReportProblemIcon />,   endpoint: "/api/v1/defects", plural: "defects", hasColor: false },
+  { label: "Colores",     icon: <PaletteIcon />,        endpoint: "/colors",  plural: "colors",  hasColor: true  },
+  { label: "Estampados",  icon: <PatternIcon />,         endpoint: "/prints",  plural: "prints",  hasColor: false },
+  { label: "Defectos",    icon: <ReportProblemIcon />,   endpoint: "/defects", plural: "defects", hasColor: false },
 ];
 
 const emptyForm = { name: "", hex_code: "" };

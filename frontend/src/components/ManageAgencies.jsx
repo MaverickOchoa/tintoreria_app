@@ -42,7 +42,7 @@ export default function ManageAgencies() {
   const [assignBizId, setAssignBizId] = useState("");
 
   const load = useCallback(() => {
-    fetch(`${API}/api/v1/agencies`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/agencies`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setAgencies(Array.isArray(d) ? d : [])).catch(() => {});
     fetch(`${API}/businesses`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setAllBusinesses(d.businesses || [])).catch(() => {});
@@ -51,7 +51,7 @@ export default function ManageAgencies() {
   useEffect(() => { load(); }, [load]);
 
   const loadAgencyDetail = async (id) => {
-    const r = await fetch(`${API}/api/v1/agencies/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+    const r = await fetch(`${API}/agencies/${id}`, { headers: { Authorization: `Bearer ${token}` } });
     const d = await r.json();
     setAgencyDetails(prev => ({ ...prev, [id]: d }));
   };
@@ -79,7 +79,7 @@ export default function ManageAgencies() {
     if (!validateAgencyForm()) return;
     const contact_name = [createForm.contact_name, createForm.contact_last_name].filter(Boolean).join(" ");
     const method = editAgency ? "PUT" : "POST";
-    const url = editAgency ? `${API}/api/v1/agencies/${editAgency.id}` : `${API}/api/v1/agencies`;
+    const url = editAgency ? `${API}/agencies/${editAgency.id}` : `${API}/agencies`;
     const r = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -95,7 +95,7 @@ export default function ManageAgencies() {
   };
 
   const handleCreateAdmin = async () => {
-    const r = await fetch(`${API}/api/v1/agencies/${adminDialog}/create-admin`, {
+    const r = await fetch(`${API}/agencies/${adminDialog}/create-admin`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(adminForm),
@@ -109,7 +109,7 @@ export default function ManageAgencies() {
 
   const handleAssignBusiness = async () => {
     if (!assignBizId) return;
-    const r = await fetch(`${API}/api/v1/agencies/${assignDialog}/assign-business`, {
+    const r = await fetch(`${API}/agencies/${assignDialog}/assign-business`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ business_id: Number(assignBizId) }),

@@ -51,7 +51,7 @@ const CreateBranchForm = ({ businessList, toTitleCase }) => {
 
     try {
       // ✅ Endpoint real en backend_new
-      // POST /api/v1/branches/business/<business_id>
+      // POST /branches/business/<business_id>
       const url = `${API_BASE_URL}/businesses/${businessId}/branches`;
 
       const response = await fetch(url, {

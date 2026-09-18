@@ -83,7 +83,7 @@ export default function ProductionView() {
     setScanSuccess(null);
     setCarouselMsg(null);
     try {
-      const res = await fetch(`${API}/api/v1/orders/by-folio/${folio}`, {
+      const res = await fetch(`${API}/orders/by-folio/${folio}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -107,7 +107,7 @@ export default function ProductionView() {
     setScanError(null);
     setScanSuccess(null);
     try {
-      const res = await fetch(`${API}/api/v1/orders/${order.id}/scan-garment`, {
+      const res = await fetch(`${API}/orders/${order.id}/scan-garment`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ticket_code: code }),
@@ -139,7 +139,7 @@ export default function ProductionView() {
     setAssigningCarousel(true);
     setCarouselMsg(null);
     try {
-      const res = await fetch(`${API}/api/v1/orders/${order.id}/assign-carousel`, {
+      const res = await fetch(`${API}/orders/${order.id}/assign-carousel`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ carousel_position: pos }),

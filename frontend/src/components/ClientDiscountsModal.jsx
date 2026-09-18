@@ -21,7 +21,7 @@ export default function ClientDiscountsModal({ open, onClose, client, token }) {
   }, [open, client]);
 
   const loadDiscounts = () => {
-    fetch(`${API}/api/v1/clients/${client.id}/discounts`, {
+    fetch(`${API}/clients/${client.id}/discounts`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -34,7 +34,7 @@ export default function ClientDiscountsModal({ open, onClose, client, token }) {
     setSaving(true);
     setMsg(null);
     try {
-      const res = await fetch(`${API}/api/v1/clients/${client.id}/discounts`, {
+      const res = await fetch(`${API}/clients/${client.id}/discounts`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ discount_pct: parseFloat(pct), reason: reason.trim() || null }),
@@ -47,7 +47,7 @@ export default function ClientDiscountsModal({ open, onClose, client, token }) {
   };
 
   const handleDelete = async (id) => {
-    await fetch(`${API}/api/v1/clients/${client?.id}/discounts/${id}`, {
+    await fetch(`${API}/clients/${client?.id}/discounts/${id}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` },
     });
     loadDiscounts();

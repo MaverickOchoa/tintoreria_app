@@ -42,7 +42,7 @@ export default function ClientsPage() {
     if (!searchTerm.trim()) return;
     setLoading(true); setError(null); setSearched(true);
     try {
-      const res = await fetch(`${API}/api/v1/clients?search=${encodeURIComponent(searchTerm)}`, {
+      const res = await fetch(`${API}/clients?search=${encodeURIComponent(searchTerm)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -70,7 +70,7 @@ export default function ClientsPage() {
   const handleEditSave = async () => {
     setEditSaving(true); setEditMsg(null);
     try {
-      const res = await fetch(`${API}/api/v1/clients/${editClient.id}`, {
+      const res = await fetch(`${API}/clients/${editClient.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(editForm),
@@ -91,7 +91,7 @@ export default function ClientsPage() {
   const handleDelete = async (id) => {
     if (!window.confirm("¿Eliminar este cliente? Esta acción no se puede deshacer.")) return;
     try {
-      const res = await fetch(`${API}/api/v1/clients/${id}`, {
+      const res = await fetch(`${API}/clients/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

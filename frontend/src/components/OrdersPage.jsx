@@ -59,7 +59,7 @@ const OrdersPage = () => {
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/v1/orders`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API}/orders`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (res.ok) setOrders(data.orders || []);
       else setError(data.message || "Error al cargar órdenes.");
@@ -107,7 +107,7 @@ const OrdersPage = () => {
     }
     setDelivering(true);
     try {
-      const res = await fetch(`${API}/api/v1/orders/${deliverOrder.id}/deliver`, {
+      const res = await fetch(`${API}/orders/${deliverOrder.id}/deliver`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ payments }),
@@ -133,7 +133,7 @@ const OrdersPage = () => {
     setCancelling(true);
     setCancelError(null);
     try {
-      const res = await fetch(`${API}/api/v1/orders/${cancelOrder.id}`, {
+      const res = await fetch(`${API}/orders/${cancelOrder.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: "Cancelado", cancel_auth_code: cancelAuth }),

@@ -110,7 +110,7 @@ function ChangePasswordDialog({ open, onClose, clientId }) {
     if (pwd !== confirm) { setMsg({ type: "error", text: "Las contraseñas no coinciden" }); return; }
     setSaving(true);
     try {
-      const r = await fetch(`${API}/api/v1/clients/${clientId}`, {
+      const r = await fetch(`${API}/clients/${clientId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ password: pwd }),
@@ -154,9 +154,9 @@ export default function ClientProfile() {
     setLoading(true);
     const h = { Authorization: `Bearer ${token}` };
     Promise.all([
-      fetch(`${API}/api/v1/clients/${clientId}`, { headers: h }).then(r => r.json()),
-      fetch(`${API}/api/v1/orders?client_id=${clientId}`, { headers: h }).then(r => r.json()).catch(() => ({ orders: [] })),
-      fetch(`${API}/api/v1/clients/${clientId}/discounts`, { headers: h }).then(r => r.json()).catch(() => ({ discounts: [] })),
+      fetch(`${API}/clients/${clientId}`, { headers: h }).then(r => r.json()),
+      fetch(`${API}/orders?client_id=${clientId}`, { headers: h }).then(r => r.json()).catch(() => ({ orders: [] })),
+      fetch(`${API}/clients/${clientId}/discounts`, { headers: h }).then(r => r.json()).catch(() => ({ discounts: [] })),
     ]).then(([c, o, d]) => {
       setClient(c);
       setOrders((o.orders || []).sort((a, b) => b.id - a.id));

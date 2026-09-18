@@ -39,7 +39,7 @@ const CreateClient = () => {
   const [response, setResponse] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/v1/client-types`, {
+    fetch(`${API_BASE_URL}/client-types`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -95,7 +95,7 @@ const CreateClient = () => {
     if (claims.branch_id) dataToSend.branch_id = claims.branch_id;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/clients`, {
+      const res = await fetch(`${API_BASE_URL}/clients`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(dataToSend),

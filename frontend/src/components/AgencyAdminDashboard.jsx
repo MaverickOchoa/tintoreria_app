@@ -47,8 +47,8 @@ export default function AgencyAdminDashboard() {
   useEffect(() => {
     if (!agencyId) return;
     Promise.all([
-      fetch(`${API}/api/v1/agencies/${agencyId}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch(`${API}/api/v1/agencies/${agencyId}/businesses`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch(`${API}/agencies/${agencyId}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch(`${API}/agencies/${agencyId}/businesses`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
     ]).then(([ag, biz]) => {
       setAgency(ag);
       setBusinesses(Array.isArray(biz) ? biz : []);

@@ -14,7 +14,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import { isValidPhone, isValidEmail } from "../utils";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
-const BASE_URL = `${API}/api/v1`;
+const BASE_URL = `${API}`;
 
 // Eliminamos todos los objetos de estilo nativos (inputStyles, btnPrimary, btnSecondary)
 
