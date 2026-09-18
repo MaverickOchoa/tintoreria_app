@@ -112,9 +112,13 @@ def create_employee(
         must_change_password=True,
     )
     employee.roles = roles
-    db.add(employee)
-    db.commit()
-    db.refresh(employee)
+    try:
+        db.add(employee)
+        db.commit()
+        db.refresh(employee)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
     from core.models.tenant import Business
     biz = db.query(Business).filter(Business.id == business_id).first()
