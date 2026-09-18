@@ -63,7 +63,27 @@ const EmployeeForm = () => {
           const systemRoles = ["business_admin", "super_admin", "cliente", "empleado"];
           const excluded = role === "branch_manager" ? [...systemRoles, "Gerente"] : systemRoles;
           const fetchedRoles = Array.isArray(roleData) ? roleData : (roleData.roles || []);
-          setRoles(fetchedRoles.filter(r => !excluded.includes(r.name)));
+          
+          // Get business vertical to filter vertical-specific roles
+          let verticalType = "laundry";
+          try {
+            const bizRes = await fetch(`${API_BASE_URL}/businesses/${businessId}`, { headers: { Authorization: `Bearer ${token}` } });
+            if (bizRes.ok) {
+              const bizData = await bizRes.json();
+              verticalType = bizData.vertical_type || "laundry";
+            }
+          } catch(e) {}
+          
+          let finalRoles = fetchedRoles.filter(r => !excluded.includes(r.name));
+          if (verticalType === "laundry") {
+            const clinicRoles = ["Doctor", "doctor", "nurse", "receptionist", "admin"];
+            finalRoles = finalRoles.filter(r => !clinicRoles.includes(r.name));
+          } else if (verticalType === "clinic") {
+            const laundryRoles = ["Colaborador", "Lavador", "Planchador", "Repartidor"];
+            finalRoles = finalRoles.filter(r => !laundryRoles.includes(r.name));
+          }
+          
+          setRoles(finalRoles);
         }
       } catch (e) {
         console.error(e);
