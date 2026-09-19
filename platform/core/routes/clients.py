@@ -58,9 +58,13 @@ def create_client(
         dump.pop(k, None)
 
     client = Client(**dump, full_name=full_name, street_and_number=street_and_number)
-    db.add(client)
-    db.commit()
-    db.refresh(client)
+    try:
+        db.add(client)
+        db.commit()
+        db.refresh(client)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
     return client.to_dict()
 
 
