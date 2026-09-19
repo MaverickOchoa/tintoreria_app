@@ -46,8 +46,13 @@ def create_client(
     if db.query(Client).filter(Client.phone == payload.phone).first():
         raise HTTPException(status_code=409, detail="Ya existe un cliente con ese teléfono.")
     dump = payload.model_dump()
-    full_name = dump.pop("first_name", None) or dump.pop("full_name", None) or ""
-    street_and_number = dump.pop("street_number", None) or dump.pop("street_and_number", None)
+    fn1 = dump.pop("first_name", None)
+    fn2 = dump.pop("full_name", None)
+    full_name = fn1 or fn2 or ""
+    
+    sn1 = dump.pop("street_number", None)
+    sn2 = dump.pop("street_and_number", None)
+    street_and_number = sn1 or sn2
     
     for k in ["username", "whatsapp_consent", "email_consent"]:
         dump.pop(k, None)
