@@ -375,9 +375,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from fastapi.middleware.wsgi import WSGIMiddleware
     from backend.app import app as flask_app
-    
-
-app.mount("/", WSGIMiddleware(flask_app))
+    app.mount("/", WSGIMiddleware(flask_app))
     logger.info("Strangler Fig: Flask legacy app montada en / exitosamente.")
 except Exception as e:
     logger.error(f"Error al montar Flask legacy: {e}")
