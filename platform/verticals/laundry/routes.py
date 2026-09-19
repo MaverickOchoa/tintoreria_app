@@ -231,7 +231,8 @@ def list_services(db: Session = Depends(get_db)):
                 db.add(Defect(name=d_name))
                 db.commit()
     except Exception as e:
-        print("SEED ERROR", e)
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
 
     services = db.query(Service).all()
     return [s.to_dict() for s in services]
