@@ -110,7 +110,8 @@ const CreateClient = () => {
           setResponse({ success: false, message: "Este número de teléfono ya está registrado." });
         }
       } else {
-        setResponse({ success: false, message: data.message || "Error al registrar el cliente." });
+        const detailStr = data.detail ? (Array.isArray(data.detail) ? JSON.stringify(data.detail) : data.detail) : "";
+        setResponse({ success: false, message: data.message || detailStr || "Error al registrar el cliente." });
       }
     } catch {
       setResponse({ success: false, message: "Error de conexión con el servidor." });
