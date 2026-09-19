@@ -74,7 +74,16 @@ def update_client(
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Cliente no encontrado.")
-    for field, value in payload.model_dump(exclude_none=True).items():
+    dump = payload.model_dump(exclude_none=True)
+    if "first_name" in dump:
+        dump["full_name"] = dump.pop("first_name")
+    if "street_number" in dump:
+        dump["street_and_number"] = dump.pop("street_number")
+        
+    for k in ["username", "whatsapp_consent", "email_consent"]:
+        dump.pop(k, None)
+
+    for field, value in dump.items():
         setattr(client, field, value)
     db.commit()
     return client.to_dict()

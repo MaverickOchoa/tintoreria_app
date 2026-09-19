@@ -3,11 +3,13 @@ from typing import Optional, List
 
 
 class ClientCreate(BaseModel):
-    full_name: str
+    first_name: Optional[str] = None
+    full_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: str
     email: Optional[str] = None
     notes: Optional[str] = None
+    street_number: Optional[str] = None
     street_and_number: Optional[str] = None
     neighborhood: Optional[str] = None
     zip_code: Optional[str] = None
@@ -15,20 +17,27 @@ class ClientCreate(BaseModel):
     date_of_birth_month: Optional[int] = None
     branch_id: Optional[int] = None
     client_type_id: Optional[int] = None
+    username: Optional[str] = None
+    whatsapp_consent: Optional[bool] = None
+    email_consent: Optional[bool] = None
 
 
 class ClientUpdate(BaseModel):
+    first_name: Optional[str] = None
     full_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
+    street_number: Optional[str] = None
     street_and_number: Optional[str] = None
     neighborhood: Optional[str] = None
     zip_code: Optional[str] = None
     date_of_birth_day: Optional[int] = None
     date_of_birth_month: Optional[int] = None
     client_type_id: Optional[int] = None
+    whatsapp_consent: Optional[bool] = None
+    email_consent: Optional[bool] = None
 
 
 class ClientOut(BaseModel):
