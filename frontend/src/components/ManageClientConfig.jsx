@@ -94,12 +94,12 @@ export default function ManageClientConfig() {
   };
 
   const loadTypes = () => {
-    fetch(`${API}/client-types`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/client-types?_t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setTypes(Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.client_types || []))))).catch(() => {});
   };
 
   const loadPromos = () => {
-    fetch(`${API}/promotions`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/promotions?_t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setPromotions((Array.isArray(d) ? d : (d.promotions || [])))).catch(() => {});
   };
 
