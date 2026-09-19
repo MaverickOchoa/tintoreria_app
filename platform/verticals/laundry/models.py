@@ -57,8 +57,8 @@ class Color(Base):
     __tablename__ = "colors"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(50), nullable=False)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
+    name = Column(String(80), nullable=False, unique=True)
+    hex_code = Column(String(7), nullable=True)
 
     def to_dict(self) -> dict:
         return {"id": self.id, "name": self.name, "business_id": self.business_id}
@@ -69,7 +69,6 @@ class Print(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
 
     def to_dict(self) -> dict:
         return {"id": self.id, "name": self.name, "business_id": self.business_id}
@@ -80,7 +79,6 @@ class Defect(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
 
     def to_dict(self) -> dict:
         return {"id": self.id, "name": self.name, "business_id": self.business_id}

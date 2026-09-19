@@ -68,7 +68,7 @@ function ManageServices() {
         throw new Error(data.message || "Error al obtener los servicios.");
       }
 
-      const list = Array.isArray(data.services) ? data.services : [];
+      const list = Array.isArray(data) ? data : (data.services || []);
 
       setServices(
         list.map((s) => ({
