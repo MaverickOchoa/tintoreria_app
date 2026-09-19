@@ -384,6 +384,7 @@ except Exception as e:
 @app.get("/api/v1/seed_all_data")
 def seed_all_data(db: Session = Depends(get_db)):
     from verticals.laundry.models import Service, Category, Color, Print, Defect
+    try:
     
     # 1. Services
     services_data = ["Tintorería", "Planchado", "Sastrería", "Miscelánea"]
@@ -433,5 +434,8 @@ def seed_all_data(db: Session = Depends(get_db)):
             db.add(Defect(name=d_name))
             db.commit()
 
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
     return {"message": "Data seeded successfully!"}
 
