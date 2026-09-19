@@ -26,7 +26,7 @@ export default function ClinicStuckAppointmentsModal({ open, onClose, token, onR
       });
       if (r.ok) {
         const d = await r.json();
-        setAppointments(d.appointments || []);
+        setAppointments((Array.isArray(d) ? d : (d.appointments || [])));
       }
     } catch (e) {
       console.error(e);

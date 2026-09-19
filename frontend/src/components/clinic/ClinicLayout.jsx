@@ -149,7 +149,7 @@ export default function ClinicLayout() {
     })
       .then(r => r.ok ? r.json() : { branches: [] })
       .then(d => {
-        const branchList = Array.isArray(d) ? d : (d.branches || []);
+        const branchList = Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.branches || [])));
         if (branchList.length > 0) {
           setBranches(branchList);
           if (!localStorage.getItem("clinic_branch_id")) {

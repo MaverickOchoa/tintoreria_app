@@ -45,7 +45,7 @@ export default function ManageAgencies() {
     fetch(`${API}/agencies`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setAgencies(Array.isArray(d) ? d : [])).catch(() => {});
     fetch(`${API}/businesses`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setAllBusinesses(d.businesses || [])).catch(() => {});
+      .then(r => r.json()).then(d => setAllBusinesses((Array.isArray(d) ? d : (d.businesses || [])))).catch(() => {});
   }, [token]);
 
   useEffect(() => { load(); }, [load]);

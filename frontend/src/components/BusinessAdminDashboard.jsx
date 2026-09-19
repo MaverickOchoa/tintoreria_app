@@ -108,7 +108,7 @@ export default function BusinessAdminDashboard() {
     })
       .then(r => r.json())
       .then(d => {
-        const list = d.branches || [];
+        const list = (Array.isArray(d) ? d : (d.branches || []));
         setBranches(list);
         const edits = {};
         list.forEach(b => {

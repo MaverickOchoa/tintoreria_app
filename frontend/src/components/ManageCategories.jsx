@@ -100,7 +100,7 @@ export default function ManageCategories() {
       }
 
       setCategories(
-        (data.categories || []).map((c) => ({
+        ((Array.isArray(data) ? data : (data.categories || []))).map((c) => ({
           ...c,
           name: toTitleCase(c.name),
         })),

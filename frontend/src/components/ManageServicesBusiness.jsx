@@ -78,7 +78,7 @@ function ManageServicesBusiness() {
       }
 
       setServices(
-        (data.services || []).map((s) => ({
+        ((Array.isArray(data) ? data : (data.services || []))).map((s) => ({
           ...s,
           name: toTitleCase(s.name),
         })),

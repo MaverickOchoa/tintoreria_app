@@ -35,8 +35,8 @@ export default function PatientRecords() {
       fetch(`${CLINIC_API}/clinic/portal/records`, { headers }).then(r => r.json()).catch(() => ({ records: [] })),
       fetch(`${CLINIC_API}/clinic/portal/form-entries`, { headers }).then(r => r.json()).catch(() => ({ entries: [] })),
     ]).then(([rData, fData]) => {
-      setRecords(rData.records || []);
-      setHojas(fData.entries || []);
+      setRecords((Array.isArray(rData) ? rData : (rData.records || [])));
+      setHojas((Array.isArray(fData) ? fData : (fData.entries || [])));
     }).finally(() => setLoading(false));
   }, [token]);
 

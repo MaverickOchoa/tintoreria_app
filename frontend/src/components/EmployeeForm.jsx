@@ -58,11 +58,11 @@ const EmployeeForm = () => {
         ]);
         const branchData = await branchRes.json();
         const roleData = await roleRes.json();
-        if (branchRes.ok) setBranches(branchData.branches || []);
+        if (branchRes.ok) setBranches((Array.isArray(branchData) ? branchData : (branchData.branches || [])));
         if (roleRes.ok) {
           const systemRoles = ["business_admin", "super_admin", "cliente", "empleado"];
           const excluded = role === "branch_manager" ? [...systemRoles, "Gerente"] : systemRoles;
-          const fetchedRoles = Array.isArray(roleData) ? roleData : (roleData.roles || []);
+          const fetchedRoles = Array.isArray(roleData) ? roleData : ((Array.isArray(roleData) ? roleData : (roleData.roles || [])));
           
           // Get business vertical to filter vertical-specific roles
           let verticalType = "laundry";

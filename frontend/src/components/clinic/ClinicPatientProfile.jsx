@@ -52,8 +52,8 @@ export default function ClinicPatientProfile() {
       safe(fetch(`${CLINIC_API}/clinic/appointments?patient_id=${patientId}`, { headers })),
     ]).then(([p, rec, apt]) => {
       setPatient(p?.id ? p : null);
-      setRecords(rec.records || []);
-      setAppointments(apt.appointments || []);
+      setRecords((Array.isArray(rec) ? rec : (rec.records || [])));
+      setAppointments((Array.isArray(apt) ? apt : (apt.appointments || [])));
     }).finally(() => setLoading(false));
   }, [patientId, token]);
 
@@ -64,7 +64,7 @@ export default function ClinicPatientProfile() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : { entries: [] })
-      .then(data => setFormEntries(data.entries || []))
+      .then(data => setFormEntries((Array.isArray(data) ? data : (data.entries || []))))
       .catch(() => setFormEntries([]));
   }, [patientId, token]);
 

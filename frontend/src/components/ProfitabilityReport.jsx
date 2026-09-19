@@ -36,8 +36,8 @@ export default function ProfitabilityReport() {
     })
       .then(r => r.json())
       .then(d => {
-        setServices(d.services || []);
-        setBranches(d.branches || []);
+        setServices((Array.isArray(d) ? d : (d.services || [])));
+        setBranches((Array.isArray(d) ? d : (d.branches || [])));
         setLoading(false);
       })
       .catch(() => { setError("Error al cargar reporte"); setLoading(false); });

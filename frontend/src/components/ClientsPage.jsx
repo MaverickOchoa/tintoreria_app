@@ -46,7 +46,7 @@ export default function ClientsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      setClients(data.clients || []);
+      setClients((Array.isArray(data) ? data : (data.clients || [])));
     } catch {
       setError("Error al buscar clientes.");
     } finally {

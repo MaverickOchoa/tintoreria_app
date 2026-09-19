@@ -63,7 +63,7 @@ function BranchSelector() {
         const bizData = await bizRes.json();
         const branchData = await branchRes.json();
         if (bizRes.ok) setBusinessName(bizData.name);
-        if (branchRes.ok) setBranches(branchData.branches || []);
+        if (branchRes.ok) setBranches((Array.isArray(branchData) ? branchData : (branchData.branches || [])));
       } catch (e) {
         console.error(e);
       } finally {

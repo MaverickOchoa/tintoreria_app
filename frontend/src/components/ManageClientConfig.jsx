@@ -95,12 +95,12 @@ export default function ManageClientConfig() {
 
   const loadTypes = () => {
     fetch(`${API}/client-types`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setTypes(Array.isArray(d) ? d : (d.client_types || []))).catch(() => {});
+      .then(r => r.json()).then(d => setTypes(Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.client_types || []))))).catch(() => {});
   };
 
   const loadPromos = () => {
     fetch(`${API}/promotions`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setPromotions(d.promotions || [])).catch(() => {});
+      .then(r => r.json()).then(d => setPromotions((Array.isArray(d) ? d : (d.promotions || [])))).catch(() => {});
   };
 
   const handleAddType = async () => {

@@ -36,7 +36,7 @@ const EditClient = () => {
 
   useEffect(() => {
     fetch(`${API}/client-types`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setClientTypes(d.client_types || [])).catch(() => {});
+      .then(r => r.json()).then(d => setClientTypes((Array.isArray(d) ? d : (d.client_types || [])))).catch(() => {});
 
     fetch(`${API}/clients/${clientId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())

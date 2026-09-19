@@ -98,14 +98,14 @@ export default function ManagePromotions() {
     loadAll();
     loadMessageData();
     loadCampaigns();
-    fetch(`${API}/services`,                                         { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setServices(Array.isArray(d) ? d : (d.services || []))).catch(() => {});
-    fetch(`${API}/client-types`,                              { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setClientTypes(d.client_types || [])).catch(() => {});
-    fetch(`${API}/businesses/${claims.business_id}/branches`,        { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setBranches(d.branches || [])).catch(() => {});
+    fetch(`${API}/services`,                                         { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setServices(Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.services || []))))).catch(() => {});
+    fetch(`${API}/client-types`,                              { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setClientTypes((Array.isArray(d) ? d : (d.client_types || [])))).catch(() => {});
+    fetch(`${API}/businesses/${claims.business_id}/branches`,        { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setBranches((Array.isArray(d) ? d : (d.branches || [])))).catch(() => {});
   }, []);
 
   const loadAll = () =>
     fetch(`${API}/promotions`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setPromotions(d.promotions || [])).catch(() => {});
+      .then(r => r.json()).then(d => setPromotions((Array.isArray(d) ? d : (d.promotions || [])))).catch(() => {});
 
   const loadMessageData = () => {
     fetch(`${API}/whatsapp-templates`, { headers: { Authorization: `Bearer ${token}` } })
@@ -222,17 +222,17 @@ export default function ManagePromotions() {
     setRewardLineOptions([]);
     if (!serviceId) return;
     fetch(`${API}/services/${serviceId}/categories`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => { const cats = Array.isArray(d) ? d : (d.categories || []); setServices(prev => prev.map(s => s.id === parseInt(serviceId) ? { ...s, _cats: cats } : s)); }).catch(() => {});
+      .then(r => r.json()).then(d => { const cats = Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.categories || []))); setServices(prev => prev.map(s => s.id === parseInt(serviceId) ? { ...s, _cats: cats } : s)); }).catch(() => {});
   };
 
   const addRequiredLine = () => { setForm(p => ({ ...p, required_lines: [...p.required_lines, { item_id: "", category_id: "", quantity: 1 }] })); setLineOptions(prev => [...prev, { categories: getServiceCats(), items: [], selectedCategory: "" }]); };
   const setRequiredLine = (i, key, val) => setForm(p => { const lines = [...p.required_lines]; lines[i] = { ...lines[i], [key]: val }; return { ...p, required_lines: lines }; });
-  const handleRequiredCategoryChange = (i, catId) => { setRequiredLine(i, "category_id", catId); setRequiredLine(i, "item_id", ""); setLineOptions(prev => { const u = [...prev]; u[i] = { ...u[i], selectedCategory: catId, items: [] }; return u; }); if (!catId) return; fetch(`${API}/categories/${catId}/items`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => { const its = Array.isArray(d) ? d : (d.items || []); setLineOptions(prev => { const u = [...prev]; u[i] = { ...u[i], items: its }; return u; }); }).catch(() => {}); };
+  const handleRequiredCategoryChange = (i, catId) => { setRequiredLine(i, "category_id", catId); setRequiredLine(i, "item_id", ""); setLineOptions(prev => { const u = [...prev]; u[i] = { ...u[i], selectedCategory: catId, items: [] }; return u; }); if (!catId) return; fetch(`${API}/categories/${catId}/items`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => { const its = Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.items || []))); setLineOptions(prev => { const u = [...prev]; u[i] = { ...u[i], items: its }; return u; }); }).catch(() => {}); };
   const removeRequiredLine = (i) => { setForm(p => ({ ...p, required_lines: p.required_lines.filter((_, idx) => idx !== i) })); setLineOptions(prev => prev.filter((_, idx) => idx !== i)); };
 
   const addRewardLine = () => { setForm(p => ({ ...p, reward_lines: [...p.reward_lines, { item_id: "", category_id: "", quantity: 1 }] })); setRewardLineOptions(prev => [...prev, { categories: getServiceCats(), items: [], selectedCategory: "" }]); };
   const setRewardLine = (i, key, val) => setForm(p => { const lines = [...p.reward_lines]; lines[i] = { ...lines[i], [key]: val }; return { ...p, reward_lines: lines }; });
-  const handleRewardCategoryChange = (i, catId) => { setRewardLine(i, "category_id", catId); setRewardLine(i, "item_id", ""); setRewardLineOptions(prev => { const u = [...prev]; u[i] = { ...u[i], selectedCategory: catId, items: [] }; return u; }); if (!catId) return; fetch(`${API}/categories/${catId}/items`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => { const its = Array.isArray(d) ? d : (d.items || []); setRewardLineOptions(prev => { const u = [...prev]; u[i] = { ...u[i], items: its }; return u; }); }).catch(() => {}); };
+  const handleRewardCategoryChange = (i, catId) => { setRewardLine(i, "category_id", catId); setRewardLine(i, "item_id", ""); setRewardLineOptions(prev => { const u = [...prev]; u[i] = { ...u[i], selectedCategory: catId, items: [] }; return u; }); if (!catId) return; fetch(`${API}/categories/${catId}/items`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => { const its = Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.items || []))); setRewardLineOptions(prev => { const u = [...prev]; u[i] = { ...u[i], items: its }; return u; }); }).catch(() => {}); };
   const removeRewardLine = (i) => { setForm(p => ({ ...p, reward_lines: p.reward_lines.filter((_, idx) => idx !== i) })); setRewardLineOptions(prev => prev.filter((_, idx) => idx !== i)); };
 
   const handleSave = async () => {
@@ -557,7 +557,7 @@ export default function ManagePromotions() {
                         <Box display="flex" gap={0.5} alignItems="center"><Button size="small" onClick={() => handleToggle(p)}>{p.active ? "Desactivar" : "Activar"}</Button><IconButton size="small" onClick={() => setExpanded(expanded === p.id ? null : p.id)}>{expanded === p.id ? <ExpandLessIcon /> : <ExpandMoreIcon />}</IconButton><IconButton size="small" color="error" onClick={() => handleDelete(p.id)}><DeleteIcon fontSize="small" /></IconButton></Box>
                       </Box>
                     </Box>
-                    <Collapse in={expanded === p.id}><Divider /><Box sx={{ p: 2, bgcolor: "action.hover" }}><Typography variant="caption" fontWeight={700} display="block" mb={0.5}>Items requeridos:</Typography>{(p.required_lines || []).map((l, i) => (<Typography key={i} variant="body2">• {l.item_name || "Cualquier item"} × {l.quantity}</Typography>))}{p.promo_type === "buy_get_free" && (p.reward_lines || []).length > 0 && (<><Typography variant="caption" fontWeight={700} display="block" mt={1} mb={0.5}>Items de regalo:</Typography>{p.reward_lines.map((l, i) => (<Typography key={i} variant="body2" color="success.main">🎁 {l.item_name} × {l.quantity} gratis</Typography>))}</>)}</Box></Collapse>
+                    <Collapse in={expanded === p.id}><Divider /><Box sx={{ p: 2, bgcolor: "action.hover" }}><Typography variant="caption" fontWeight={700} display="block" mb={0.5}>Items requeridos:</Typography>{((Array.isArray(p) ? p : (p.required_lines || []))).map((l, i) => (<Typography key={i} variant="body2">• {l.item_name || "Cualquier item"} × {l.quantity}</Typography>))}{p.promo_type === "buy_get_free" && ((Array.isArray(p) ? p : (p.reward_lines || []))).length > 0 && (<><Typography variant="caption" fontWeight={700} display="block" mt={1} mb={0.5}>Items de regalo:</Typography>{p.reward_lines.map((l, i) => (<Typography key={i} variant="body2" color="success.main">🎁 {l.item_name} × {l.quantity} gratis</Typography>))}</>)}</Box></Collapse>
                   </Paper>
                 ); })}
               </Stack>

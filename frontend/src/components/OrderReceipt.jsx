@@ -100,7 +100,7 @@ function numberToWords(amount) {
 // ────────────────────────────────────────────────────────────────────────────
 
 function buildCopyHTML(order, b, businessHours, barcodeDataUri, label) { // eslint-disable-line no-unused-vars
-  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) * (parseInt(i.units) || 1) || 0), 0);
+  const totalPieces = ((Array.isArray(order) ? order : (order.items || []))).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) * (parseInt(i.units) || 1) || 0), 0);
   const subtotal    = parseFloat(order.subtotal || 0);
   const discount    = parseFloat(order.discount || 0);
   const tax         = parseFloat(order.tax || 0);
@@ -133,7 +133,7 @@ function buildCopyHTML(order, b, businessHours, barcodeDataUri, label) { // esli
     ? `<img src="${barcodeDataUri}" style="height:36px;max-width:180px;display:block" />`
     : `<span style="font-family:monospace;font-size:11px;font-weight:bold">${order.folio || order.id}</span>`;
 
-  const itemRows = (order.items || []).map(item => {
+  const itemRows = ((Array.isArray(order) ? order : (order.items || []))).map(item => {
     const lineTotal = (parseInt(item.quantity) || 0) * parseFloat(item.unit_price || 0);
     return `<tr style="border-bottom:1px solid #ddd">
       <td style="padding:1px 2px;text-align:center">${item.quantity}</td>
@@ -146,7 +146,7 @@ function buildCopyHTML(order, b, businessHours, barcodeDataUri, label) { // esli
     </tr>`;
   }).join("");
 
-  const paymentRows = (order.payments || []).map(p =>
+  const paymentRows = ((Array.isArray(order) ? order : (order.payments || []))).map(p =>
     `<tr style="font-size:7.5px;color:#555">
       <td>${{ cash: "Efectivo", card: "Tarjeta", points: "Puntos" }[p.method] || p.method}</td>
       <td style="text-align:right">$${parseFloat(p.amount).toFixed(2)}</td>
@@ -257,7 +257,7 @@ function buildCopyHTML(order, b, businessHours, barcodeDataUri, label) { // esli
 
 function buildReceiptHTML(order, businessInfo, businessHours, barcodeDataUri) {
   const b = businessInfo || {};
-  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) * (parseInt(i.units) || 1) || 0), 0);
+  const totalPieces = ((Array.isArray(order) ? order : (order.items || []))).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) * (parseInt(i.units) || 1) || 0), 0);
   const subtotal    = parseFloat(order.subtotal || 0);
   const discount    = parseFloat(order.discount || 0);
   const tax         = parseFloat(order.tax || 0);
@@ -283,7 +283,7 @@ function buildReceiptHTML(order, businessInfo, businessHours, barcodeDataUri) {
     ? `<img src="${barcodeDataUri}" style="height:40px;display:block;margin-left:auto" />`
     : `<span style="font-size:12px;font-weight:bold">${order.folio || order.id}</span>`;
 
-  const itemRows = (order.items || []).map(item => {
+  const itemRows = ((Array.isArray(order) ? order : (order.items || []))).map(item => {
     const lineTotal = (parseInt(item.quantity)||0) * parseFloat(item.unit_price||0);
     return `<tr>
       <td style="text-align:center;padding:2px 2px">${item.quantity}</td>
@@ -296,7 +296,7 @@ function buildReceiptHTML(order, businessInfo, businessHours, barcodeDataUri) {
     </tr>`;
   }).join("");
 
-  const paymentRows = (order.payments || []).map(p =>
+  const paymentRows = ((Array.isArray(order) ? order : (order.payments || []))).map(p =>
     `<tr><td>${{cash:"Efectivo",card:"Tarjeta",points:"Puntos"}[p.method]||p.method}</td><td style="text-align:right">$${parseFloat(p.amount).toFixed(2)}</td></tr>`
   ).join("");
 
@@ -413,7 +413,7 @@ export default function OrderReceipt({ order, businessInfo, businessHours }) {
 
   if (!order) return null;
   const b = businessInfo || {};
-  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) * (parseInt(i.units) || 1) || 0), 0);
+  const totalPieces = ((Array.isArray(order) ? order : (order.items || []))).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) * (parseInt(i.units) || 1) || 0), 0);
   const subtotal = parseFloat(order.subtotal || 0);
   const discount = parseFloat(order.discount || 0);
   const tax      = parseFloat(order.tax || 0);
@@ -473,7 +473,7 @@ export default function OrderReceipt({ order, businessInfo, businessHours }) {
           </tr>
         </thead>
         <tbody>
-          {(order.items || []).map((item, i) => {
+          {((Array.isArray(order) ? order : (order.items || []))).map((item, i) => {
             const lineTotal = (parseInt(item.quantity)||0) * parseFloat(item.unit_price||0);
             return (
               <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
@@ -510,7 +510,7 @@ export default function OrderReceipt({ order, businessInfo, businessHours }) {
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", borderTop: "1px solid #000", marginTop: "2px", paddingTop: "2px" }}>
             <span>Total</span><span>${total.toFixed(2)}</span>
           </div>
-          {(order.payments || []).map((p, i) => (
+          {((Array.isArray(order) ? order : (order.payments || []))).map((p, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "7.5px", color: "#555" }}>
               <span>{{ cash: "Efectivo", card: "Tarjeta", points: "Puntos" }[p.method] || p.method}</span>
               <span>${parseFloat(p.amount).toFixed(2)}</span>

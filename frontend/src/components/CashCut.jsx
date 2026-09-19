@@ -75,7 +75,7 @@ export default function CashCut() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
-      .then(d => { setHistory(d.items || []); setHistTotal(d.total || 0); })
+      .then(d => { setHistory((Array.isArray(d) ? d : (d.items || []))); setHistTotal(d.total || 0); })
       .catch(console.error)
       .finally(() => setLoadingHist(false));
   }, [token, branchId, histPage]);

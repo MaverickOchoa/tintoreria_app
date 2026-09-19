@@ -269,7 +269,7 @@ export default function FormTemplateEditor() {
   if (loading) return <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}><CircularProgress sx={{ color: C.rose }} /></Box>;
   if (!template) return <Alert severity="error">Template no encontrado</Alert>;
 
-  const pages = template.pages_urls || [];
+  const pages = (Array.isArray(template) ? template : (template.pages_urls || []));
   const fieldsForPage = (pageIdx) => fields.filter(f => f.page === pageIdx);
 
   return (

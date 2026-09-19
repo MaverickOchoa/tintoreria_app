@@ -198,8 +198,8 @@ export default function FormViewer() {
 
   if (!template) return <Alert severity="error">Formulario no encontrado</Alert>;
 
-  const pages = template.pages_urls || [];
-  const fieldMap = template.field_map || [];
+  const pages = (Array.isArray(template) ? template : (template.pages_urls || []));
+  const fieldMap = (Array.isArray(template) ? template : (template.field_map || []));
   const fieldsForPage = (idx) => fieldMap.filter(f => f.page === idx);
 
   return (

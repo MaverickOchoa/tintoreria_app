@@ -21,7 +21,7 @@ export default function ClinicalRecords() {
       });
       if (!res.ok) throw new Error('Error al cargar hojas clínicas');
       const data = await res.json();
-      setRecords(data.records || []);
+      setRecords((Array.isArray(data) ? data : (data.records || [])));
     } catch (err) {
       setMessage({ text: err.message, type: 'error' });
     } finally {

@@ -25,7 +25,7 @@ export default function ClientDiscountsModal({ open, onClose, client, token }) {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
-      .then(d => setDiscounts(d.discounts || []))
+      .then(d => setDiscounts((Array.isArray(d) ? d : (d.discounts || []))))
       .catch(() => {});
   };
 

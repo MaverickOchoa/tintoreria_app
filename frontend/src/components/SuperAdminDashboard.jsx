@@ -118,7 +118,7 @@ function SuperAdminDashboard() {
       }
 
       setBusinessList(
-        (businessListData.businesses || []).map((b) => ({
+        ((Array.isArray(businessListData) ? businessListData : (businessListData.businesses || []))).map((b) => ({
           ...b,
           name: toTitleCase(b.name),
         })),

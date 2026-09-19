@@ -81,7 +81,7 @@ export default function OrderStatsCards() {
         : `${API}/orders`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      const all = data.orders || [];
+      const all = (Array.isArray(data) ? data : (data.orders || []));
       const todayStr = now.toISOString().slice(0, 10);
       const active = all.filter(o => o.status !== "Entregado" && o.status !== "Cancelado");
       const getDateStr = (dt) => dt ? dt.slice(0, 10) : null;

@@ -49,7 +49,7 @@ export default function ManageBusinesses() {
       const res = await fetch(`${API_BASE_URL}/businesses`, { headers: authHeaders });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
-      setBusinesses((data.businesses || []).map((b) => ({ ...b, name: toTitleCase(b.name) })));
+      setBusinesses(((Array.isArray(data) ? data : (data.businesses || []))).map((b) => ({ ...b, name: toTitleCase(b.name) })));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -65,7 +65,7 @@ export default function ManageBusinesses() {
       if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
       setBranchesByBusiness((prev) => ({
         ...prev,
-        [businessId]: (data.branches || []).map((br) => ({
+        [businessId]: ((Array.isArray(data) ? data : (data.branches || []))).map((br) => ({
           ...br, name: toTitleCase(br.name), address: br.address ? toTitleCase(br.address) : "",
         })),
       }));

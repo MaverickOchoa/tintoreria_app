@@ -91,7 +91,7 @@ const Login = () => {
         business_id: data.business_id ?? null,
         branch_id: data.branch_id ?? null,
         active_branch_id: data.branch_id ?? null,
-        branches: data.branches || [],
+        branches: (Array.isArray(data) ? data : (data.branches || [])),
         is_superadmin: data.is_superadmin ?? null,
         user_id: data.user_id ?? null,
         username: data.username ?? username,

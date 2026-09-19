@@ -89,7 +89,7 @@ export default function ProductionView() {
       const data = await res.json();
       if (res.ok) {
         setOrder(data);
-        setTickets(data.garment_tickets || []);
+        setTickets((Array.isArray(data) ? data : (data.garment_tickets || [])));
       } else {
         setSearchError(data.message || "Orden no encontrada");
       }

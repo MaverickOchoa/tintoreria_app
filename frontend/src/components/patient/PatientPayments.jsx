@@ -15,7 +15,7 @@ export default function PatientPayments() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
-      .then(d => setPayments(d.payments || []))
+      .then(d => setPayments((Array.isArray(d) ? d : (d.payments || []))))
       .catch(() => setPayments([]))
       .finally(() => setLoading(false));
   }, [token]);

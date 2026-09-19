@@ -204,7 +204,7 @@ export default function ClientPortal() {
                             <TableCell colSpan={7} sx={{ p: 0, border: 0 }}>
                               <Collapse in={isOpen} unmountOnExit>
                                 <Box sx={{ p: 2, bgcolor: "#fafafa" }}>
-                                  {(order.items || []).length > 0 ? (
+                                  {((Array.isArray(order) ? order : (order.items || []))).length > 0 ? (
                                     <Table size="small">
                                       <TableHead>
                                         <TableRow>

@@ -70,7 +70,7 @@ export default function ClinicUsers() {
       fetch(`${CLINIC_API}/businesses/${businessId}`, { headers })
         .then(r => r.json())
         .then(d => {
-          const branchList = d.branches || [];
+          const branchList = (Array.isArray(d) ? d : (d.branches || []));
           setBranches(branchList);
           if (branchList.length > 0) {
             setForm(p => ({ ...p, branch_id: branchList[0].id }));

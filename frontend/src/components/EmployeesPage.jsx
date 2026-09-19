@@ -38,7 +38,7 @@ const EmployeesPage = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (res.ok) setEmployees(Array.isArray(data) ? data : (data.employees || []));
+      if (res.ok) setEmployees(Array.isArray(data) ? data : ((Array.isArray(data) ? data : (data.employees || []))));
       else setError(data.message || "Error al cargar empleados.");
     } catch {
       setError("Error de conexión.");
@@ -55,7 +55,7 @@ const EmployeesPage = () => {
         const branchData = await branchRes.json();
         if (branchRes.ok) {
           const map = {};
-          (branchData.branches || []).forEach((b) => { map[b.id] = b.name; });
+          ((Array.isArray(branchData) ? branchData : (branchData.branches || []))).forEach((b) => { map[b.id] = b.name; });
           setBranchMap(map);
         }
       } catch { }

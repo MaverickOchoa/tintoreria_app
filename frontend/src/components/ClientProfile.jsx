@@ -159,8 +159,8 @@ export default function ClientProfile() {
       fetch(`${API}/clients/${clientId}/discounts`, { headers: h }).then(r => r.json()).catch(() => ({ discounts: [] })),
     ]).then(([c, o, d]) => {
       setClient(c);
-      setOrders((o.orders || []).sort((a, b) => b.id - a.id));
-      setDiscounts(d.discounts || []);
+      setOrders(((Array.isArray(o) ? o : (o.orders || []))).sort((a, b) => b.id - a.id));
+      setDiscounts((Array.isArray(d) ? d : (d.discounts || [])));
       setLoading(false);
     }).catch(() => { setError("Error al cargar los datos del cliente"); setLoading(false); });
   }, [clientId, token]);

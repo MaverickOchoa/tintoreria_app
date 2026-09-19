@@ -37,7 +37,7 @@ export default function ClientBehaviorReport() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
-      .then(d => { setData(d.clients || []); setLoading(false); })
+      .then(d => { setData((Array.isArray(d) ? d : (d.clients || []))); setLoading(false); })
       .catch(() => { setError("Error al cargar reporte"); setLoading(false); });
   }, []);
 

@@ -79,7 +79,7 @@ function ManageCategoriesBusiness() {
         }
 
         setCategories(
-          (cData.categories || []).map((cat) => ({
+          ((Array.isArray(cData) ? cData : (cData.categories || []))).map((cat) => ({
             ...cat,
             name: toTitleCase(cat.name),
           })),

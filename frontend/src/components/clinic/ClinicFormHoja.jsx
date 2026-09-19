@@ -83,7 +83,7 @@ export default function ClinicFormHoja() {
           const listRes = await fetch(listUrl, { headers });
           if (listRes.ok) {
             const list = await listRes.json();
-            const drafts = (list.entries || []).filter(e => e.status === "draft");
+            const drafts = ((Array.isArray(list) ? list : (list.entries || []))).filter(e => e.status === "draft");
             if (drafts.length > 0) {
               const latest = drafts[0];
               setForm(prev => ({ ...prev, ...latest.form_data }));

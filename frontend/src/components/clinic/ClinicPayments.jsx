@@ -66,8 +66,8 @@ export default function ClinicPayments() {
       .then(r => r.json())
       .then(d => {
         setSummary({
-          incomes: d.incomes || [],
-          expenses: d.expenses || [],
+          incomes: (Array.isArray(d) ? d : (d.incomes || [])),
+          expenses: (Array.isArray(d) ? d : (d.expenses || [])),
           total_income: d.total_income || 0,
           total_expense: d.total_expense || 0,
           net_balance: d.net_balance || 0
@@ -79,7 +79,7 @@ export default function ClinicPayments() {
     fetch(`${CLINIC_API}/clinic/appointments?date_from=${startDate}&date_to=${endDate}`, { headers })
       .then(r => r.json())
       .then(d => {
-        const apts = (d.appointments || []).filter(a => a.status !== "Cancelada" && !a.is_paid);
+        const apts = ((Array.isArray(d) ? d : (d.appointments || []))).filter(a => a.status !== "Cancelada" && !a.is_paid);
         setPendingAppointments(apts);
       })
       .catch(console.error)

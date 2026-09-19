@@ -46,7 +46,7 @@ export default function PatientAppointments() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
-      .then(d => setAppointments(d.appointments || []))
+      .then(d => setAppointments((Array.isArray(d) ? d : (d.appointments || []))))
       .catch(() => setAppointments([]))
       .finally(() => setLoading(false));
   };
@@ -62,8 +62,8 @@ export default function PatientAppointments() {
         if (!d.doctors || d.doctors.length === 0 || !d.services || d.services.length === 0) {
           alert("Debug Metadata: " + JSON.stringify(d));
         }
-        setDoctors(d.doctors || []);
-        setServices(d.services || []);
+        setDoctors((Array.isArray(d) ? d : (d.doctors || [])));
+        setServices((Array.isArray(d) ? d : (d.services || [])));
       })
       .catch(() => {});
   };
@@ -84,7 +84,7 @@ export default function PatientAppointments() {
     })
       .then(r => r.json())
       .then(d => {
-        setSlots(d.slots || []);
+        setSlots((Array.isArray(d) ? d : (d.slots || [])));
         if (d.slots && !d.slots.includes(time)) setTime("");
       })
       .catch(() => setSlots([]))

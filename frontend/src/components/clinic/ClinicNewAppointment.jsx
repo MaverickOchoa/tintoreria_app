@@ -40,9 +40,9 @@ export default function ClinicNewAppointment({ open, onClose, onCreated, token, 
     fetch(`${CLINIC_API}/clinic/services`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => setServices(Array.isArray(d) ? d : [])).catch(() => {});
     fetch(`${FLASK_API}/employees?role=doctor&branch_id=${claims.branch_id || ""}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setDoctors(Array.isArray(d) ? d : (d.employees || []))).catch(() => {});
+      .then(r => r.json()).then(d => setDoctors(Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.employees || []))))).catch(() => {});
     fetch(`${FLASK_API}/businesses/${claims.business_id}/branches`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setBranches(d.branches || [])).catch(() => {});
+      .then(r => r.json()).then(d => setBranches((Array.isArray(d) ? d : (d.branches || [])))).catch(() => {});
   }, [open]);
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function ClinicNewAppointment({ open, onClose, onCreated, token, 
     })
       .then(r => r.json())
       .then(d => {
-        setSlots(d.slots || []);
+        setSlots((Array.isArray(d) ? d : (d.slots || [])));
         if (d.slots && !d.slots.includes(time)) setTime(""); // Reset time if not available
       })
       .catch(() => setSlots([]))

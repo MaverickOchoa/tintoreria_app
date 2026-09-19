@@ -43,7 +43,7 @@ const CreateClient = () => {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
-      .then(d => setClientTypes(d.client_types || []))
+      .then(d => setClientTypes((Array.isArray(d) ? d : (d.client_types || []))))
       .catch(() => {});
   }, []);
 

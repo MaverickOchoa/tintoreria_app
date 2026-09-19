@@ -61,7 +61,7 @@ const OrdersPage = () => {
     try {
       const res = await fetch(`${API}/orders`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      if (res.ok) setOrders(data.orders || []);
+      if (res.ok) setOrders((Array.isArray(data) ? data : (data.orders || [])));
       else setError(data.message || "Error al cargar órdenes.");
     } catch { setError("Error de conexión."); }
     finally { setLoading(false); }

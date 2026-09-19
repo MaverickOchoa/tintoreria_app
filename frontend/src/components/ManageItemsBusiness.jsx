@@ -51,7 +51,7 @@ export default function ManageItemsBusiness() {
       const itemsData = await itemsRes.json();
       if (!itemsRes.ok) throw new Error(itemsData.message || `Error ${itemsRes.status}`);
       setCategoryName(catData.name || catData.category_name || "");
-      setItems(itemsData.items || []);
+      setItems((Array.isArray(itemsData) ? itemsData : (itemsData.items || [])));
     } catch (err) {
       setError(err.message || "Error al cargar artículos.");
     } finally {

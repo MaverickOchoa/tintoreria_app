@@ -32,7 +32,7 @@ export default function OrderDetail() {
   const printReceipt = usePrintReceipt();
 
   const handlePrintTickets = (ord) => {
-    const tickets = ord.garment_tickets || [];
+    const tickets = (Array.isArray(ord) ? ord : (ord.garment_tickets || []));
     if (tickets.length === 0) { alert("Esta orden no tiene tickets de prendas."); return; }
 
     const win = window.open("", "_blank", "width=600,height=500");
@@ -93,7 +93,7 @@ export default function OrderDetail() {
       fetch(`${API}/businesses/${claims.business_id}`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setBusinessInfo(d)).catch(() => {});
       fetch(`${API}/businesses/${claims.business_id}/hours`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(d => setBusinessHours(Array.isArray(d) ? d : (d.hours || []))).catch(() => {});
+        .then(r => r.json()).then(d => setBusinessHours(Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.hours || []))))).catch(() => {});
     }
   }, [orderId]);
 
@@ -107,7 +107,7 @@ export default function OrderDetail() {
   const total    = parseFloat(order.total_amount || 0);
   const paid     = parseFloat(order.amount_paid || 0);
   const pending  = total - paid;
-  const totalPieces = (order.items || []).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) || 0), 0);
+  const totalPieces = ((Array.isArray(order) ? order : (order.items || []))).reduce((s, i) => s + (parseInt(i.total_pieces) || parseInt(i.quantity) || 0), 0);
 
   const deliveryDay = order.delivery_date
     ? DAYS_ES[new Date(order.delivery_date + "T12:00:00").getDay()]
@@ -219,7 +219,7 @@ export default function OrderDetail() {
             <span style={{ textAlign: "right" }}>P. Unitario</span>
             <span style={{ textAlign: "right" }}>Subtotal</span>
           </Box>
-          {(order.items || []).map((item, i) => (
+          {((Array.isArray(order) ? order : (order.items || []))).map((item, i) => (
             <Box key={i} display="grid" sx={{ gridTemplateColumns: "1fr 60px 90px 90px", px: 2, py: 1, borderBottom: i < order.items.length - 1 ? "1px solid" : "none", borderColor: "divider", fontSize: "0.875rem" }}>
               <span>{item.product_name}{item.service_name ? <Typography component="span" variant="caption" color="text.secondary"> ({item.service_name})</Typography> : ""}</span>
               <span style={{ textAlign: "center" }}>{item.quantity}{(item.units || 1) > 1 ? <Typography component="span" variant="caption" color="text.secondary"> ({item.total_pieces || item.quantity * item.units} pzas)</Typography> : ""}</span>
@@ -268,7 +268,7 @@ export default function OrderDetail() {
               <Typography variant="subtitle1" fontWeight={700}>Total</Typography>
               <Typography variant="subtitle1" fontWeight={700} color="primary">${total.toFixed(2)}</Typography>
             </Box>
-            {(order.payments || []).map((p, i) => (
+            {((Array.isArray(order) ? order : (order.payments || []))).map((p, i) => (
               <Box key={i} display="flex" justifyContent="space-between">
                 <Typography variant="caption" color="text.secondary">{paymentLabel[p.method] || p.method}</Typography>
                 <Typography variant="caption">${parseFloat(p.amount).toFixed(2)}</Typography>

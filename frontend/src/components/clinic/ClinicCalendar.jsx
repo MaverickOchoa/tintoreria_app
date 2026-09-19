@@ -57,7 +57,7 @@ export default function ClinicCalendar() {
         { headers }
       );
       const data = await res.json();
-      setAppointments(data.appointments || []);
+      setAppointments((Array.isArray(data) ? data : (data.appointments || [])));
     } catch { setAppointments([]); }
     setLoading(false);
   }, [filterDoctor]);

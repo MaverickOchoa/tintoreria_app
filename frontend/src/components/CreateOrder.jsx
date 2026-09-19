@@ -47,7 +47,7 @@ function PrintTicketsModal({ order, onClose }) {
       fetch(`${API}/businesses/${claims.business_id}`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setBusinessInfo(d)).catch(() => {});
       fetch(`${API}/businesses/${claims.business_id}/hours`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(d => setBusinessHours(Array.isArray(d) ? d : (d.hours || []))).catch(() => {});
+        .then(r => r.json()).then(d => setBusinessHours(Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.hours || []))))).catch(() => {});
     }
   }, []);
 
@@ -232,7 +232,7 @@ export default function CreateOrder() {
     // Cargar servicios
     fetch(`${API}/services`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(d => setServices(Array.isArray(d) ? d : (d.services || [])))
+      .then(d => setServices(Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.services || [])))))
       .catch(console.error);
 
     // Obtener folio del backend si hay sucursal
@@ -293,7 +293,7 @@ export default function CreateOrder() {
     }
     fetch(`${API}/promotions?active_only=1`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
-        .then(d => setActivePromos(d.promotions || []))
+        .then(d => setActivePromos((Array.isArray(d) ? d : (d.promotions || []))))
         .catch(console.error);
   }, [clientId, token]);
 
@@ -339,7 +339,7 @@ export default function CreateOrder() {
     try {
       const res = await fetch(`${API}/services/${svc.id}/categories`, { headers: { Authorization: `Bearer ${token}` } });
       const d = await res.json();
-      setCategories(d.categories || []);
+      setCategories((Array.isArray(d) ? d : (d.categories || [])));
     } catch { setError("Error al cargar categorías"); }
     finally { setLoadingCats(false); }
   };
@@ -353,7 +353,7 @@ export default function CreateOrder() {
     try {
       const res = await fetch(`${API}/categories/${cat.id}/items`, { headers: { Authorization: `Bearer ${token}` } });
       const d = await res.json();
-      setItems(d.items || []);
+      setItems((Array.isArray(d) ? d : (d.items || [])));
     } catch { setError("Error al cargar artículos"); }
     finally { setLoadingItems(false); }
   };
@@ -374,9 +374,9 @@ export default function CreateOrder() {
         fetch(`${API}/defects`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const [cData, pData, dData] = await Promise.all([cRes.json(), pRes.json(), dRes.json()]);
-      setColors(cData.colors || []);
-      setPrints(pData.prints || []);
-      setDefects(dData.defects || []);
+      setColors((Array.isArray(cData) ? cData : (cData.colors || [])));
+      setPrints((Array.isArray(pData) ? pData : (pData.prints || [])));
+      setDefects((Array.isArray(dData) ? dData : (dData.defects || [])));
     } catch { setError("Error al cargar detalles"); }
     finally { setLoadingDetails(false); }
   };
@@ -470,14 +470,14 @@ export default function CreateOrder() {
           totalPromoDiscount += saving;
         }
       } else if (promo.promo_type === "buy_get_free") {
-        const freeValue = bundleCount * (promo.reward_lines || []).reduce((s, rl) => {
+        const freeValue = bundleCount * ((Array.isArray(promo) ? promo : (promo.reward_lines || []))).reduce((s, rl) => {
           const item = currentCart.find(i => parseInt(i.item_id) === parseInt(rl.item_id));
           return s + ((item?.unit_price || 0) * rl.quantity);
         }, 0);
         if (freeValue > 0) {
           appliedPromos.push({ ...promo, saving: freeValue });
           totalPromoDiscount += freeValue;
-          const gifts = (promo.reward_lines || []).map(rl => ({
+          const gifts = ((Array.isArray(promo) ? promo : (promo.reward_lines || []))).map(rl => ({
             item_id: rl.item_id, item_name: rl.item_name, quantity: bundleCount * rl.quantity,
             unit_price: 0, service_name: promo.service_name || "",
             service_id: promo.service_id, is_gift: true,
