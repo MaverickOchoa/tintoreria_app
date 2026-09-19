@@ -375,13 +375,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from fastapi.middleware.wsgi import WSGIMiddleware
     from backend.app import app as flask_app
-    app.mount("/", WSGIMiddleware(flask_app))
-    logger.info("Strangler Fig: Flask legacy app montada en / exitosamente.")
-except Exception as e:
-    logger.error(f"Error al montar Flask legacy: {e}")
-
-
-@app.get("/api/v1/seed_all_data")
+    @app.get("/api/v1/seed_all_data")
 def seed_all_data(db: Session = Depends(get_db)):
     from verticals.laundry.models import Service, Category, Color, Print, Defect
     try:
@@ -438,4 +432,12 @@ def seed_all_data(db: Session = Depends(get_db)):
         import traceback
         return {"error": str(e), "traceback": traceback.format_exc()}
     return {"message": "Data seeded successfully!"}
+
+app.mount("/", WSGIMiddleware(flask_app))
+    logger.info("Strangler Fig: Flask legacy app montada en / exitosamente.")
+except Exception as e:
+    logger.error(f"Error al montar Flask legacy: {e}")
+
+
+
 
