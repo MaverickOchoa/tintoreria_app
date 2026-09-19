@@ -229,11 +229,16 @@ export default function CreateOrder() {
       .then(r => r.json()).then(setClient).catch(() => setError("Error al cargar cliente"))
       .finally(() => setLoadingClient(false));
 
-    // Cargar servicios
-    fetch(`${API}/services`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(d => setServices(Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.services || [])))))
-      .catch(console.error);
+      // Cargar servicios
+      fetch(`${API}/services`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(async r => {
+           const d = await r.json();
+           console.log("SERVICES RESPONSE:", r.status, d);
+           const svcs = Array.isArray(d) ? d : (d.services || []);
+           console.log("PARSED SERVICES:", svcs);
+           setServices(svcs);
+        })
+        .catch(e => console.error("SERVICES FETCH ERROR:", e));
 
     // Obtener folio del backend si hay sucursal
     if (branchId) {
