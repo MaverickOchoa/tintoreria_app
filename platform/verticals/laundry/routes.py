@@ -193,13 +193,22 @@ from core.dependencies import require_super_admin
 @router.post("/services", status_code=201)
 def create_service(
     payload: ServiceCreate,
-    claims: dict = Depends(require_super_admin),
+    claims: dict = Depends(get_current_claims),
     db: Session = Depends(get_db),
 ):
+    # Check if exists
+    existing = db.query(Service).filter(func.lower(Service.name) == payload.name.lower()).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="El servicio ya existe.")
+        
     service = Service(name=payload.name)
-    db.add(service)
-    db.commit()
-    db.refresh(service)
+    try:
+        db.add(service)
+        db.commit()
+        db.refresh(service)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
     return service.to_dict()
 
 
@@ -301,7 +310,7 @@ def delete_category(category_id: int, claims: dict = Depends(require_business_ad
     return {"message": "Categoría eliminada"}
 
 @router.put("/services/{service_id}")
-def update_service(service_id: int, payload: ServiceCreate, claims: dict = Depends(require_super_admin), db: Session = Depends(get_db)):
+def update_service(service_id: int, payload: ServiceCreate, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     srv = db.query(Service).filter(Service.id == service_id).first()
     if not srv:
         raise HTTPException(status_code=404, detail="Service no encontrado")
@@ -312,7 +321,7 @@ def update_service(service_id: int, payload: ServiceCreate, claims: dict = Depen
     return srv.to_dict()
 
 @router.delete("/services/{service_id}")
-def delete_service(service_id: int, claims: dict = Depends(require_super_admin), db: Session = Depends(get_db)):
+def delete_service(service_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     srv = db.query(Service).filter(Service.id == service_id).first()
     if not srv:
         raise HTTPException(status_code=404, detail="Service no encontrado")
