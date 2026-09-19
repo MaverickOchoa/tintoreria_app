@@ -95,7 +95,7 @@ export default function ManageClientConfig() {
 
   const loadTypes = () => {
     fetch(`${API}/client-types`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setTypes(d.client_types || [])).catch(() => {});
+      .then(r => r.json()).then(d => setTypes(Array.isArray(d) ? d : (d.client_types || []))).catch(() => {});
   };
 
   const loadPromos = () => {
