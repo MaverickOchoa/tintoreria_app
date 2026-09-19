@@ -256,12 +256,7 @@ def list_services(db: Session = Depends(get_db)):
     colors = db.query(Color).count()
     prints = db.query(Print).count()
     defects = db.query(Defect).count()
-    return {
-        "services_seeded": [s.to_dict() for s in services],
-        "colors_count": colors,
-        "prints_count": prints,
-        "defects_count": defects
-    }
+    return {"services": [s.to_dict() for s in services]}
 
 
 from core.dependencies import require_super_admin
