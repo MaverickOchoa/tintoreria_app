@@ -188,10 +188,12 @@ def list_services(db: Session = Depends(get_db)):
     return [s.to_dict() for s in services]
 
 
+from core.dependencies import require_super_admin
+
 @router.post("/services", status_code=201)
 def create_service(
     payload: ServiceCreate,
-    claims: dict = Depends(require_business_admin),
+    claims: dict = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
     service = Service(name=payload.name)
@@ -299,7 +301,7 @@ def delete_category(category_id: int, claims: dict = Depends(require_business_ad
     return {"message": "Categoría eliminada"}
 
 @router.put("/services/{service_id}")
-def update_service(service_id: int, payload: ServiceCreate, claims: dict = Depends(require_business_admin), db: Session = Depends(get_db)):
+def update_service(service_id: int, payload: ServiceCreate, claims: dict = Depends(require_super_admin), db: Session = Depends(get_db)):
     srv = db.query(Service).filter(Service.id == service_id).first()
     if not srv:
         raise HTTPException(status_code=404, detail="Service no encontrado")
@@ -310,7 +312,7 @@ def update_service(service_id: int, payload: ServiceCreate, claims: dict = Depen
     return srv.to_dict()
 
 @router.delete("/services/{service_id}")
-def delete_service(service_id: int, claims: dict = Depends(require_business_admin), db: Session = Depends(get_db)):
+def delete_service(service_id: int, claims: dict = Depends(require_super_admin), db: Session = Depends(get_db)):
     srv = db.query(Service).filter(Service.id == service_id).first()
     if not srv:
         raise HTTPException(status_code=404, detail="Service no encontrado")
