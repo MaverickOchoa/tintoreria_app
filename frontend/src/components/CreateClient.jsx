@@ -85,7 +85,7 @@ const CreateClient = () => {
     for (const key in clientData) {
       if (key === "username") continue;
       if (clientData[key] !== "") {
-        const numFields = ["date_of_birth_day", "date_of_birth_month", "zip_code", "client_type_id"];
+        const numFields = ["date_of_birth_day", "date_of_birth_month", "client_type_id"];
         dataToSend[key] = numFields.includes(key) ? parseInt(clientData[key], 10) : clientData[key];
       }
     }
