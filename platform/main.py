@@ -1,0 +1,443 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+import logging
+
+from core.database import engine
+from core.jobs import setup_scheduler
+from core.routes.auth import router as auth_router
+from core.routes.tenants import router as tenants_router
+from core.routes.users import router as users_router
+from core.routes.clients import router as clients_router
+from core.routes.expenses import router as expenses_router
+from core.routes.overrides import router as overrides_router
+from core.routes.agencies import router as agencies_router
+from core.routes.promotions import router as promotions_router
+from core.routes.reports import router as reports_router
+from verticals.laundry.routes import router as laundry_router
+from verticals.clinic.routes import router as clinic_router
+
+logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="SaaS Platform API",
+    description="Multi-vertical SaaS — Laundry, Clinic, Barbershop, Cafe",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+_STARTUP_MIGRATIONS = [
+
+    "CREATE TABLE IF NOT EXISTS whatsapp_templates (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, template_text TEXT NOT NULL, business_id INTEGER REFERENCES businesses(id))",
+    "CREATE TABLE IF NOT EXISTS email_templates (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, subject VARCHAR(200) NOT NULL, body_html TEXT NOT NULL, business_id INTEGER REFERENCES businesses(id))",
+    "CREATE TABLE IF NOT EXISTS trigger_channel_config (id SERIAL PRIMARY KEY, trigger_type VARCHAR(50) NOT NULL, channel VARCHAR(50) NOT NULL, template_id INTEGER NOT NULL, business_id INTEGER REFERENCES businesses(id))",
+    "CREATE TABLE IF NOT EXISTS date_campaigns (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, send_date DATE NOT NULL, client_type_id INTEGER, channel VARCHAR(50) NOT NULL, template_id INTEGER NOT NULL, is_sent BOOLEAN DEFAULT FALSE, business_id INTEGER REFERENCES businesses(id))",
+
+
+    "CREATE TABLE IF NOT EXISTS agencies (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, contact_name VARCHAR(150), email VARCHAR(120), phone VARCHAR(20), notes VARCHAR(500), is_active BOOLEAN NOT NULL DEFAULT TRUE)",
+    "CREATE TABLE IF NOT EXISTS agency_businesses (agency_id INTEGER REFERENCES agencies(id) ON DELETE CASCADE, business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE, PRIMARY KEY (agency_id, business_id))",
+    "CREATE TABLE IF NOT EXISTS agency_admins (agency_id INTEGER REFERENCES agencies(id) ON DELETE CASCADE, admin_id INTEGER REFERENCES admins(id) ON DELETE CASCADE, PRIMARY KEY (agency_id, admin_id))",
+
+    "ALTER TABLE clinic_doctor_schedules DROP CONSTRAINT IF EXISTS uq_doctor_day;",
+    "ALTER TABLE clinic_doctor_blocks ADD COLUMN IF NOT EXISTS is_available BOOLEAN DEFAULT FALSE;",
+    # Core auth tables for clinic employees
+    """CREATE TABLE IF NOT EXISTS roles (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(50) UNIQUE NOT NULL,
+        description VARCHAR(255)
+    )""",
+    "INSERT INTO roles (name, description) VALUES ('Doctor', 'Doctor / Médico') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('Empleado', 'Staff / Recepción') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('Gerente', 'Administrador de Sucursal') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('doctor', 'Doctor / Médico') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('receptionist', 'Recepcionista') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('nurse', 'Enfermera') ON CONFLICT (name) DO NOTHING",
+    "INSERT INTO roles (name, description) VALUES ('admin', 'Administrador') ON CONFLICT (name) DO NOTHING",
+    """CREATE TABLE IF NOT EXISTS employee_roles (
+        employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+        role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+        PRIMARY KEY (employee_id, role_id)
+    )""",
+    """CREATE TABLE IF NOT EXISTS doctor_schedules (
+        id SERIAL PRIMARY KEY,
+        doctor_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+        day_of_week INTEGER NOT NULL CHECK (day_of_week >= 0 AND day_of_week <= 6),
+        start_time VARCHAR(5) NOT NULL DEFAULT '09:00',
+        end_time VARCHAR(5) NOT NULL DEFAULT '18:00',
+        is_working BOOLEAN NOT NULL DEFAULT TRUE,
+        UNIQUE (doctor_id, day_of_week)
+    )""",
+    # Consent columns
+    "ALTER TABLE clients ADD COLUMN IF NOT EXISTS whatsapp_consent BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE clients ADD COLUMN IF NOT EXISTS email_consent BOOLEAN NOT NULL DEFAULT FALSE",
+    # Clinic core tables
+    """CREATE TABLE IF NOT EXISTS patients (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL UNIQUE REFERENCES clients(id),
+        blood_type VARCHAR(10),
+        allergies TEXT,
+        emergency_contact_name VARCHAR(150),
+        emergency_contact_phone VARCHAR(20),
+        occupation VARCHAR(100),
+        medical_history TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS gender VARCHAR(20)",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS marital_status VARCHAR(30)",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS app_history TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS current_medications TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS weight_kg FLOAT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS height_cm FLOAT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS medical_diagnosis TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS specialist_diagnosis TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS chief_complaint TEXT",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS recall_date TIMESTAMP",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS recall_reason TEXT",
+    """CREATE TABLE IF NOT EXISTS clinic_services (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        duration_minutes INTEGER NOT NULL DEFAULT 30,
+        price FLOAT,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE
+    )""",
+    """CREATE TABLE IF NOT EXISTS appointments (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        patient_id INTEGER NOT NULL REFERENCES patients(id),
+        doctor_id INTEGER REFERENCES employees(id),
+        clinic_service_id INTEGER REFERENCES clinic_services(id),
+        scheduled_at TIMESTAMP NOT NULL,
+        duration_minutes INTEGER NOT NULL DEFAULT 30,
+        status VARCHAR(30) NOT NULL DEFAULT 'Agendada',
+        notes TEXT,
+        reason VARCHAR(255),
+        created_by VARCHAR(120),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        completed_at TIMESTAMP
+    )""",
+    "ALTER TABLE appointments ADD COLUMN IF NOT EXISTS is_paid BOOLEAN NOT NULL DEFAULT FALSE",
+    """CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        patient_id INTEGER REFERENCES patients(id),
+        employee_id INTEGER REFERENCES employees(id),
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh VARCHAR(100) NOT NULL,
+        auth VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    # Clinic Expenses
+    """CREATE TABLE IF NOT EXISTS clinic_expenses (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        amount FLOAT NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        description TEXT,
+        expense_date TIMESTAMP NOT NULL DEFAULT NOW(),
+        registered_by_id INTEGER REFERENCES employees(id),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    """CREATE TABLE IF NOT EXISTS clinical_records (
+        id SERIAL PRIMARY KEY,
+        patient_id INTEGER NOT NULL REFERENCES patients(id),
+        appointment_id INTEGER REFERENCES appointments(id),
+        doctor_id INTEGER REFERENCES employees(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        chief_complaint TEXT,
+        diagnosis TEXT,
+        treatment TEXT,
+        prescription TEXT,
+        next_appointment_notes TEXT,
+        vital_signs TEXT,
+        record_date TIMESTAMP NOT NULL DEFAULT NOW(),
+        created_by VARCHAR(120)
+    )""",
+    # Branch config tables
+    """CREATE TABLE IF NOT EXISTS clinic_branch_schedules (
+        id SERIAL PRIMARY KEY,
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        day_of_week INTEGER NOT NULL,
+        is_open BOOLEAN NOT NULL DEFAULT TRUE,
+        open_time VARCHAR(5) NOT NULL DEFAULT '09:00',
+        close_time VARCHAR(5) NOT NULL DEFAULT '18:00',
+        CONSTRAINT uq_branch_day UNIQUE (branch_id, day_of_week)
+    )""",
+    """CREATE TABLE IF NOT EXISTS clinic_branch_messages (
+        id SERIAL PRIMARY KEY,
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        trigger_key VARCHAR(60) NOT NULL,
+        channel VARCHAR(20) NOT NULL,
+        text TEXT NOT NULL DEFAULT '',
+        CONSTRAINT uq_branch_msg UNIQUE (branch_id, trigger_key, channel)
+    )""",
+    """CREATE TABLE IF NOT EXISTS clinic_promotions (
+        id SERIAL PRIMARY KEY,
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        name VARCHAR(120) NOT NULL,
+        description TEXT,
+        discount_pct FLOAT NOT NULL DEFAULT 0,
+        min_orders INTEGER,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    # Doctor schedule tables
+    """CREATE TABLE IF NOT EXISTS clinic_doctor_schedules (
+        id SERIAL PRIMARY KEY,
+        doctor_id INTEGER NOT NULL REFERENCES employees(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        day_of_week INTEGER NOT NULL,
+        is_available BOOLEAN NOT NULL DEFAULT TRUE,
+        start_time VARCHAR(5) NOT NULL DEFAULT '09:00',
+        end_time VARCHAR(5) NOT NULL DEFAULT '17:00',
+        slot_duration_minutes INTEGER NOT NULL DEFAULT 30,
+        CONSTRAINT uq_doctor_day UNIQUE (doctor_id, branch_id, day_of_week)
+    )""",
+    """CREATE TABLE IF NOT EXISTS clinic_doctor_blocks (
+        id SERIAL PRIMARY KEY,
+        doctor_id INTEGER NOT NULL REFERENCES employees(id),
+        branch_id INTEGER NOT NULL REFERENCES branches(id),
+        blocked_date DATE NOT NULL,
+        all_day BOOLEAN NOT NULL DEFAULT FALSE,
+        start_time VARCHAR(5),
+        end_time VARCHAR(5),
+        reason VARCHAR(200)
+    )""",
+    # Employee new columns (must_change_password, last_name, email)
+    "ALTER TABLE employees ADD COLUMN IF NOT EXISTS last_name VARCHAR(150)",
+    "ALTER TABLE employees ADD COLUMN IF NOT EXISTS email VARCHAR(200)",
+    "ALTER TABLE employees ADD COLUMN IF NOT EXISTS specialty VARCHAR(200)",
+    "ALTER TABLE employees ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE",
+    # Indexes
+    "CREATE INDEX IF NOT EXISTS ix_appointments_business_branch ON appointments(business_id, branch_id)",
+    "CREATE INDEX IF NOT EXISTS ix_appointments_scheduled_at ON appointments(scheduled_at)",
+    "CREATE INDEX IF NOT EXISTS ix_appointments_patient ON appointments(patient_id)",
+    "CREATE INDEX IF NOT EXISTS ix_clinical_records_patient ON clinical_records(patient_id)",
+    "CREATE INDEX IF NOT EXISTS ix_patients_client ON patients(client_id)",
+    "CREATE INDEX IF NOT EXISTS ix_doctor_schedule_doctor ON clinic_doctor_schedules(doctor_id)",
+    "CREATE INDEX IF NOT EXISTS ix_doctor_blocks_date ON clinic_doctor_blocks(blocked_date)",
+    # Clinical form entries (structured forms per appointment)
+    """CREATE TABLE IF NOT EXISTS clinical_form_entries (
+        id SERIAL PRIMARY KEY,
+        patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+        appointment_id INTEGER REFERENCES appointments(id) ON DELETE SET NULL,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        branch_id INTEGER REFERENCES branches(id),
+        form_type VARCHAR(60) NOT NULL DEFAULT 'neurologica',
+        form_data TEXT NOT NULL DEFAULT '{}',
+        status VARCHAR(20) NOT NULL DEFAULT 'draft',
+        created_by VARCHAR(120),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_form_entries_patient ON clinical_form_entries(patient_id)",
+    "CREATE INDEX IF NOT EXISTS ix_form_entries_appointment ON clinical_form_entries(appointment_id)",
+    # Make branch_id nullable in case table already existed with NOT NULL constraint
+    "ALTER TABLE clinical_form_entries ALTER COLUMN branch_id DROP NOT NULL",
+    # PDF form templates system
+    """CREATE TABLE IF NOT EXISTS form_templates (
+        id          SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES businesses(id),
+        name        VARCHAR(200) NOT NULL,
+        description TEXT,
+        pdf_url     TEXT NOT NULL DEFAULT '',
+        pages_urls  TEXT NOT NULL DEFAULT '[]',
+        field_map   TEXT NOT NULL DEFAULT '[]',
+        is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at  TIMESTAMP NOT NULL DEFAULT NOW()
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_form_templates_business ON form_templates(business_id)",
+    "ALTER TABLE clinical_form_entries ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES form_templates(id)",
+    "ALTER TABLE clinical_form_entries ADD COLUMN IF NOT EXISTS filled_pdf_url TEXT",
+    "CREATE INDEX IF NOT EXISTS ix_cfe_template_id ON clinical_form_entries(template_id)",
+]
+
+
+@app.on_event("startup")
+async def apply_migrations():
+    try:
+        with engine.connect() as conn:
+            for sql in _STARTUP_MIGRATIONS:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                except Exception as e:
+                    conn.rollback()
+                    logger.warning("Migration skipped (%s): %s", sql[:60], e)
+        logger.info("Startup migrations applied.")
+    except Exception as e:
+        logger.error("Startup migration failed: %s", e)
+
+    # Log env var status for debugging
+    import os
+    logger.info("CLOUDINARY_CLOUD_NAME set: %s", bool(os.getenv("CLOUDINARY_CLOUD_NAME")))
+    logger.info("SENDGRID_API_KEY set: %s", bool(os.getenv("SENDGRID_API_KEY")))
+    logger.info("DATABASE_URL set: %s", bool(os.getenv("DATABASE_URL")))
+
+
+_ALLOW_ORIGINS_SET = {
+    "https://zentro-iik7.onrender.com",
+    "https://zentro-5b3g.onrender.com",
+    "https://zentro.onrender.com",
+    "https://tintoreria-frontend.onrender.com",
+    "http://localhost:5173",
+    "http://localhost:3000",
+}
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    origin = request.headers.get("origin")
+    cors_headers = {}
+    if origin:
+        cors_headers["Access-Control-Allow-Origin"] = origin
+        cors_headers["Access-Control-Allow-Credentials"] = "true"
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers=cors_headers,
+    )
+
+
+API_V2 = "/api/v2"
+
+app.include_router(auth_router, prefix=API_V2)
+app.include_router(tenants_router, prefix=API_V2)
+app.include_router(users_router, prefix=API_V2)
+app.include_router(clients_router, prefix=API_V2)
+app.include_router(expenses_router, prefix=API_V2)
+app.include_router(overrides_router, prefix=API_V2)
+app.include_router(agencies_router, prefix=API_V2)
+app.include_router(promotions_router, prefix=API_V2)
+app.include_router(reports_router, prefix=API_V2)
+app.include_router(laundry_router, prefix=API_V2)
+app.include_router(clinic_router, prefix=API_V2)
+API_V1 = "/api/v1"
+app.include_router(auth_router, prefix=API_V1)
+app.include_router(tenants_router, prefix=API_V1)
+app.include_router(users_router, prefix=API_V1)
+app.include_router(clients_router, prefix=API_V1)
+app.include_router(expenses_router, prefix=API_V1)
+app.include_router(overrides_router, prefix=API_V1)
+app.include_router(agencies_router, prefix=API_V1)
+app.include_router(promotions_router, prefix=API_V1)
+app.include_router(reports_router, prefix=API_V1)
+app.include_router(laundry_router, prefix=API_V1)
+app.include_router(clinic_router, prefix=API_V1)
+
+# Keep the no-prefix routes just in case
+app.include_router(auth_router)
+app.include_router(tenants_router)
+app.include_router(users_router)
+app.include_router(clients_router)
+app.include_router(expenses_router)
+app.include_router(overrides_router)
+app.include_router(agencies_router)
+app.include_router(promotions_router)
+app.include_router(reports_router)
+app.include_router(laundry_router)
+app.include_router(clinic_router)
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "version": "2.0.0"}
+
+
+import sys
+import os
+# Permitir que Python encuentre la carpeta "backend" vieja
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from fastapi.middleware.wsgi import WSGIMiddleware
+    from backend.app import app as flask_app
+    @app.get("/api/v1/seed_all_data")
+def seed_all_data(db: Session = Depends(get_db)):
+    from verticals.laundry.models import Service, Category, Color, Print, Defect
+    try:
+    
+    # 1. Services
+    services_data = ["Tintorería", "Planchado", "Sastrería", "Miscelánea"]
+    svc_objs = {}
+    for s_name in services_data:
+        svc = db.query(Service).filter(Service.name == s_name).first()
+        if not svc:
+            svc = Service(name=s_name)
+            db.add(svc)
+            db.commit()
+            db.refresh(svc)
+        svc_objs[s_name] = svc
+
+    # 2. Categories
+    cats_data = [
+        ("Trajes", "Tintorería"),
+        ("Camisas", "Planchado"),
+        ("Vestidos", "Tintorería"),
+        ("Pantalones", "Planchado")
+    ]
+    for c_name, s_name in cats_data:
+        svc = svc_objs[s_name]
+        cat = db.query(Category).filter(Category.name == c_name, Category.service_id == svc.id).first()
+        if not cat:
+            cat = Category(name=c_name, service_id=svc.id)
+            db.add(cat)
+            db.commit()
+
+    # 3. Colors
+    colors_data = ['Rojo', 'Negro', 'Blanco', 'Gris Oxford', 'Gris', 'Gris Claro', 'Cafe', 'Cafe Claro', 'Cafe Obscuro', 'Azul', 'Azul Cielo', 'Azul Claro', 'Azul Rey', 'Azul Marino', 'Lila', 'Morado', 'Mora', 'Verde', 'Verde Pistache', 'Verde Claro', 'Verde Seco', 'Verde Militar', 'Verde Limon', 'Verde Agua', 'Hueso', 'Crema', 'Naranja', 'Rojo Ladrillo', 'Shedron', 'Guinda', 'Vino', 'Rosa', 'Palo De Rosa', 'Durazno', 'Melon', 'Coral', 'Fiusha', 'Amarillo', 'Amarillo Palido', 'Mostaza', 'Varios Colores', 'Dorado', 'Plateado', 'Beige', 'Amarillo Oscuro']
+    for c_name in colors_data:
+        if not db.query(Color).filter(Color.name == c_name).first():
+            db.add(Color(name=c_name))
+            db.commit()
+
+    # 4. Prints
+    prints_data = ['Liso', 'Bolitas', 'Rayas', 'Gales', 'Encaje', 'Flores', 'Jaspeado', 'Tejido', 'Cuadros', 'Dos Todos', 'Palmas', 'Cuadro Chico', 'Cuadro Grande', 'Rombos', 'Panel', 'Moscata']
+    for p_name in prints_data:
+        if not db.query(Print).filter(Print.name == p_name).first():
+            db.add(Print(name=p_name))
+            db.commit()
+
+    # 5. Defects
+    defects_data = ['Quemado', 'Manchado', 'Sin Raya', 'Boton Roto', 'Falta Boton', 'Luido', 'Color Corrido', 'Agujerado', 'Tela Abierta', 'Brillado', 'Encogido', 'Llorado', 'Percudido', 'Rasgado', 'Hilo Jalado', 'Adornos Maltratados', 'Tela Pelada', 'Quebrado', 'Bajo Riesgo Del Cliente', 'Sin Garantia']
+    for d_name in defects_data:
+        if not db.query(Defect).filter(Defect.name == d_name).first():
+            db.add(Defect(name=d_name))
+            db.commit()
+
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
+    return {"message": "Data seeded successfully!"}
+
+app.mount("/", WSGIMiddleware(flask_app))
+    logger.info("Strangler Fig: Flask legacy app montada en / exitosamente.")
+except Exception as e:
+    logger.error(f"Error al montar Flask legacy: {e}")
+
+
+
+
