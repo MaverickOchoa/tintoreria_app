@@ -381,6 +381,7 @@ def toggle_business(business_id: int, claims: dict = Depends(require_super_admin
 def toggle_branch(branch_id: int, claims: dict = Depends(require_super_admin), db: Session = Depends(get_db)):
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch: raise HTTPException(status_code=404)
+    if branch.business_id != claims.get("business_id"): raise HTTPException(status_code=403, detail="Acceso denegado a esta sucursal")
     branch.is_active = not branch.is_active
     db.commit()
     db.refresh(branch)
@@ -390,6 +391,7 @@ def toggle_branch(branch_id: int, claims: dict = Depends(require_super_admin), d
 def update_branch_folio(branch_id: int, payload: dict, claims: dict = Depends(require_business_admin), db: Session = Depends(get_db)):
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch: raise HTTPException(status_code=404)
+    if branch.business_id != claims.get("business_id"): raise HTTPException(status_code=403, detail="Acceso denegado a esta sucursal")
     if "folio_prefix" in payload:
         branch.folio_prefix = str(payload["folio_prefix"]).strip()[:20]
     if "folio_counter" in payload:
@@ -402,6 +404,7 @@ def update_branch_folio(branch_id: int, payload: dict, claims: dict = Depends(re
 def update_branch_config(branch_id: int, payload: dict, claims: dict = Depends(require_business_admin), db: Session = Depends(get_db)):
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch: raise HTTPException(status_code=404)
+    if branch.business_id != claims.get("business_id"): raise HTTPException(status_code=403, detail="Acceso denegado a esta sucursal")
     cfg = branch.get_config()
     cfg["payment_points"] = payload.get("payment_points", cfg.get("payment_points", False))
     cfg["points_per_peso"] = float(payload.get("points_per_peso", cfg.get("points_per_peso", 0.0)))
@@ -416,6 +419,7 @@ def update_branch_config(branch_id: int, payload: dict, claims: dict = Depends(r
 def update_branch_scan_config(branch_id: int, payload: dict, claims: dict = Depends(require_business_admin), db: Session = Depends(get_db)):
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch: raise HTTPException(status_code=404)
+    if branch.business_id != claims.get("business_id"): raise HTTPException(status_code=403, detail="Acceso denegado a esta sucursal")
     if "require_scan" in payload:
         branch.require_scan = bool(payload["require_scan"])
     db.commit()
@@ -426,12 +430,14 @@ def update_branch_scan_config(branch_id: int, payload: dict, claims: dict = Depe
 def get_branch_config(branch_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch: raise HTTPException(status_code=404)
+    if branch.business_id != claims.get("business_id"): raise HTTPException(status_code=403, detail="Acceso denegado a esta sucursal")
     return branch.get_config()
 
 @router.get("/branches/{branch_id}/folio")
 def get_branch_folio(branch_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch: raise HTTPException(status_code=404)
+    if branch.business_id != claims.get("business_id"): raise HTTPException(status_code=403, detail="Acceso denegado a esta sucursal")
     # The frontend expects {"folio": "..."}
     prefix = branch.folio_prefix or ""
     counter = (branch.folio_counter or 0) + 1
