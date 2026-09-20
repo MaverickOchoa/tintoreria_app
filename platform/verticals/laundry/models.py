@@ -61,7 +61,7 @@ class Color(Base):
     hex_code = Column(String(7), nullable=True)
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "business_id": self.business_id}
+        return {"id": self.id, "name": self.name, "hex_code": self.hex_code}
 
 
 class Print(Base):
@@ -71,7 +71,7 @@ class Print(Base):
     name = Column(String(50), nullable=False)
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "business_id": self.business_id}
+        return {"id": self.id, "name": self.name}
 
 
 class Defect(Base):
@@ -81,7 +81,7 @@ class Defect(Base):
     name = Column(String(50), nullable=False)
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "business_id": self.business_id}
+        return {"id": self.id, "name": self.name}
 
 
 class OrderGarmentTicket(Base):
