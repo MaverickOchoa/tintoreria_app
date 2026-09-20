@@ -143,6 +143,7 @@ _STARTUP_MIGRATIONS = [
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )""",
     "ALTER TABLE orders ALTER COLUMN employee_id DROP NOT NULL;",
+    "ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS reference VARCHAR(100);",
     # Clinic Expenses
     """CREATE TABLE IF NOT EXISTS clinic_expenses (
         id SERIAL PRIMARY KEY,

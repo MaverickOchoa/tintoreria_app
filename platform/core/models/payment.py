@@ -11,7 +11,8 @@ class OrderPayment(Base):
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
     method = Column(String(30), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
-    paid_at = Column(DateTime, default=datetime.utcnow)
+    points_used = Column(Float, nullable=True, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow)
     reference = Column(String(100), nullable=True)
 
     order = relationship("Order", back_populates="payments")
@@ -20,7 +21,7 @@ class OrderPayment(Base):
         return {
             "id": self.id, "order_id": self.order_id,
             "method": self.method, "amount": str(self.amount),
-            "paid_at": self.paid_at.isoformat() if self.paid_at else None,
+            "paid_at": self.created_at.isoformat() if self.created_at else None,
             "reference": self.reference,
         }
 
