@@ -144,6 +144,10 @@ _STARTUP_MIGRATIONS = [
     )""",
     "ALTER TABLE orders ALTER COLUMN employee_id DROP NOT NULL;",
     "ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS reference VARCHAR(100);",
+    "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS notes TEXT;",
+    "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS color VARCHAR(50);",
+    "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS brand VARCHAR(80);",
+    "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS defects TEXT;",
     # Clinic Expenses
     """CREATE TABLE IF NOT EXISTS clinic_expenses (
         id SERIAL PRIMARY KEY,

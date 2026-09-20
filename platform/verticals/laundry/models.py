@@ -113,10 +113,10 @@ class OrderItem(Base):
 
     id = Column(Integer, primary_key=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    item_id = Column(Integer, ForeignKey("items.id"), nullable=False)
+    product_service_id = Column(Integer, ForeignKey("items.id"), nullable=False)
     quantity = Column(Integer, nullable=False, default=1)
     unit_price = Column(Numeric(10, 2), nullable=False)
-    subtotal = Column(Numeric(10, 2), nullable=False)
+    line_total = Column(Numeric(10, 2), nullable=False)
     notes = Column(Text, nullable=True)
     color = Column(String(50), nullable=True)
     brand = Column(String(80), nullable=True)
@@ -127,10 +127,10 @@ class OrderItem(Base):
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id, "order_id": self.order_id, "item_id": self.item_id,
+            "id": self.id, "order_id": self.order_id, "product_service_id": self.product_service_id,
             "item_name": self.product_service.name if self.product_service else None,
             "quantity": self.quantity,
-            "unit_price": str(self.unit_price), "subtotal": str(self.subtotal),
+            "unit_price": str(self.unit_price), "line_total": str(self.line_total),
             "notes": self.notes, "color": self.color,
             "brand": self.brand, "defects": self.defects,
         }

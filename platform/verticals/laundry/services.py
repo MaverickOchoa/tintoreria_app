@@ -132,9 +132,9 @@ def create_order(db: Session, data: dict, claims: dict) -> Order:
         item_id = i.get("item_id") or i.get("product_service_id")
         line_total = round(float(i["unit_price"]) * int(i["quantity"]), 2)
         db.add(OrderItem(
-            order_id=new_order.id, item_id=item_id,
+            order_id=new_order.id, product_service_id=item_id,
             quantity=int(i["quantity"]), unit_price=float(i["unit_price"]),
-            subtotal=line_total, notes=i.get("notes"),
+            line_total=line_total, notes=i.get("notes"),
             color=i.get("color"), brand=i.get("brand"), defects=i.get("defects"),
         ))
 
