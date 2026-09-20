@@ -142,6 +142,7 @@ _STARTUP_MIGRATIONS = [
         auth VARCHAR(50) NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )""",
+    "ALTER TABLE orders ALTER COLUMN employee_id DROP NOT NULL;",
     # Clinic Expenses
     """CREATE TABLE IF NOT EXISTS clinic_expenses (
         id SERIAL PRIMARY KEY,

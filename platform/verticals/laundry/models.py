@@ -146,7 +146,7 @@ class Order(Base):
     notes = Column(Text, nullable=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
-    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
     subtotal = Column(Numeric(10, 2), nullable=False, default=0.00)
     discount = Column(Numeric(10, 2), nullable=False, default=0.00)
     tax = Column(Numeric(10, 2), nullable=False, default=0.00)

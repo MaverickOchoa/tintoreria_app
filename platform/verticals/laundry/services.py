@@ -77,8 +77,8 @@ def create_order(db: Session, data: dict, claims: dict) -> Order:
         from core.models.user import Employee
         emp = db.query(Employee).filter_by(branch_id=branch_id).first()
         emp_id = emp.id if emp else None
-    if not emp_id:
-        raise HTTPException(status_code=400, detail="No se encontró empleado para esta sucursal.")
+    # if not emp_id:
+    #     raise HTTPException(status_code=400, detail="No se encontró empleado para esta sucursal.")
 
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     business = db.query(Business).filter(Business.id == branch.business_id).first() if branch else None
