@@ -160,7 +160,8 @@ def create_order(db: Session, data: dict, claims: dict) -> Order:
         for _ in range(total_tickets):
             code = f"{new_order.folio}-{ticket_seq}"
             db.add(OrderGarmentTicket(
-                order_id=new_order.id, ticket_number=code, item_name=item_name,
+                order_id=new_order.id, ticket_code=code, item_name=item_name,
+                quantity_index=ticket_seq, scanned=False
             ))
             ticket_seq += 1
 

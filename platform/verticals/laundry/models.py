@@ -89,12 +89,10 @@ class OrderGarmentTicket(Base):
 
     id = Column(Integer, primary_key=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    ticket_number = Column(String(30), nullable=False)
-    item_name = Column(String(120), nullable=True)
-    color = Column(String(50), nullable=True)
-    brand = Column(String(80), nullable=True)
-    defects = Column(Text, nullable=True)
-    notes = Column(Text, nullable=True)
+    ticket_code = Column(String(40), unique=True, nullable=False)
+    item_name = Column(String(100), nullable=False)
+    quantity_index = Column(Integer, nullable=False)
+    scanned = Column(Boolean, nullable=False, default=False)
     scanned_at = Column(DateTime, nullable=True)
 
     order = relationship("Order", back_populates="garment_tickets")
@@ -102,9 +100,10 @@ class OrderGarmentTicket(Base):
     def to_dict(self) -> dict:
         return {
             "id": self.id, "order_id": self.order_id,
-            "ticket_number": self.ticket_number,
-            "item_name": self.item_name, "color": self.color,
-            "brand": self.brand, "defects": self.defects, "notes": self.notes,
+            "ticket_code": self.ticket_code,
+            "item_name": self.item_name,
+            "quantity_index": self.quantity_index,
+            "scanned": self.scanned,
             "scanned_at": self.scanned_at.isoformat() if self.scanned_at else None,
         }
 
