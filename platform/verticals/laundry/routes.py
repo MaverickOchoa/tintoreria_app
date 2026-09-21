@@ -148,7 +148,7 @@ def scan_garment(
         raise HTTPException(status_code=404, detail="Orden no encontrada.")
     ticket = db.query(OrderGarmentTicket).filter(
         OrderGarmentTicket.order_id == order_id,
-        OrderGarmentTicket.ticket_code == payload.ticket_number,
+        OrderGarmentTicket.ticket_code == payload.ticket_code,
     ).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado en esta orden.")

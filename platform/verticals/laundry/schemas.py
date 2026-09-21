@@ -35,7 +35,7 @@ class OrderPaymentIn(BaseModel):
 
 
 class GarmentScanIn(BaseModel):
-    ticket_number: str
+    ticket_code: str
 
 
 class CarouselAssignIn(BaseModel):
