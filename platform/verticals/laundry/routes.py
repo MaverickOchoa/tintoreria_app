@@ -153,10 +153,10 @@ def scan_garment(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado en esta orden.")
     ticket.scanned_at = datetime.utcnow()
+    ticket.scanned = True
     db.commit()
-    total = len(order.garment_tickets)
-    scanned = len([t for t in order.garment_tickets if t.scanned_at])
-    return {"scanned": scanned, "total": total, "all_scanned": scanned == total}
+    db.refresh(order)
+    return {"message": "Ticket escaneado", "tickets": [t.to_dict() for t in order.garment_tickets]}
 
 
 @router.post("/orders/{order_id}/assign-carousel")
