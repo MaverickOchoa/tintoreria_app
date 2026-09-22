@@ -12,7 +12,7 @@ from core.models.promotion import Promotion
 from core.models.expense import Expense
 from core.models.payment import OrderPayment
 
-router = APIRouter(tags=["reports"])
+router = APIRouter(tags=["reports"], prefix="/reports")
 
 def _get_dates(date_from, date_to):
     now = datetime.utcnow()

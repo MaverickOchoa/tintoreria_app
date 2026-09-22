@@ -19,6 +19,7 @@ from core.routes.overrides import router as overrides_router
 from core.routes.agencies import router as agencies_router
 from core.routes.promotions import router as promotions_router
 from core.routes.reports import router as reports_router
+from core.routes.cash_cuts import router as cash_cuts_router
 from verticals.laundry.routes import router as laundry_router
 from verticals.clinic.routes import router as clinic_router
 
@@ -357,6 +358,7 @@ app.include_router(overrides_router, prefix=API_V2)
 app.include_router(agencies_router, prefix=API_V2)
 app.include_router(promotions_router, prefix=API_V2)
 app.include_router(reports_router, prefix=API_V2)
+app.include_router(cash_cuts_router, prefix=API_V2)
 app.include_router(laundry_router, prefix=API_V2)
 app.include_router(clinic_router, prefix=API_V2)
 API_V1 = "/api/v1"
@@ -369,6 +371,7 @@ app.include_router(overrides_router, prefix=API_V1)
 app.include_router(agencies_router, prefix=API_V1)
 app.include_router(promotions_router, prefix=API_V1)
 app.include_router(reports_router, prefix=API_V1)
+app.include_router(cash_cuts_router, prefix=API_V1)
 app.include_router(laundry_router, prefix=API_V1)
 app.include_router(clinic_router, prefix=API_V1)
 
@@ -382,6 +385,7 @@ app.include_router(overrides_router)
 app.include_router(agencies_router)
 app.include_router(promotions_router)
 app.include_router(reports_router)
+app.include_router(cash_cuts_router)
 app.include_router(laundry_router)
 app.include_router(clinic_router)
 
