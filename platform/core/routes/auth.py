@@ -15,7 +15,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(Admin).filter(Admin.username == payload.username).first()
     if user and verify_password(payload.password, user.password):
         if user.is_super_admin:
-            token_data = {"sub": user.username, "is_super_admin": True, "role": "super_admin"}
+            token_data = {"sub": user.username, "is_super_admin": True, "role": "super_admin", "username": user.username, "full_name": "Super Admin"}
             return TokenResponse(
                 access_token=create_access_token(token_data),
                 role="super_admin",
@@ -27,6 +27,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             "business_id": user.business_id,
             "active_branch_id": user.branch_id,
             "role": "business_admin",
+            "username": user.username,
+            "full_name": user.username,
             "vertical_type": business.vertical_type if business else "laundry",
         }
         return TokenResponse(
@@ -51,6 +53,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             "employee_id": employee.id,
             "roles": role_names,
             "role": role_names[0] if role_names else "employee",
+            "username": employee.username,
+            "full_name": employee.full_name,
             "vertical_type": business.vertical_type if business else "laundry",
         }
         return TokenResponse(
