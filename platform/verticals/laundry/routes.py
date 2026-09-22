@@ -172,7 +172,8 @@ def assign_carousel(
     order.carousel_position = payload.carousel_position
     order.status = "Listo"
     db.commit()
-    return order.to_dict()
+    db.refresh(order)
+    return {"message": "Posición asignada", "order": order.to_dict()}
 
 
 @router.post("/orders/{order_id}/deliver")
