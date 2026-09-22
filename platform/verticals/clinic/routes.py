@@ -97,9 +97,7 @@ def list_patients(
         db.query(Patient)
         .join(Patient.client)
         .options(joinedload(Patient.client))
-        .filter(
-            (Client.branch_id.in_(branch_ids)) | (Client.branch_id.is_(None))
-        )
+        .filter(Client.branch_id.in_(branch_ids))
     )
     if search:
         q = q.filter(Client.phone.contains(search) | Client.full_name.ilike(f"%{search}%"))
