@@ -169,7 +169,7 @@ def assign_carousel(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Orden no encontrada.")
-    order.carousel_position = payload.position
+    order.carousel_position = payload.carousel_position
     order.status = "Listo"
     db.commit()
     return order.to_dict()

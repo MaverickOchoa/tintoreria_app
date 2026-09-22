@@ -39,7 +39,7 @@ class GarmentScanIn(BaseModel):
 
 
 class CarouselAssignIn(BaseModel):
-    position: str
+    carousel_position: str
 
 
 class ItemCreate(BaseModel):
