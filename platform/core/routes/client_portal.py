@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from core.database import get_db
 from core.models.client import Client, ClientDiscount
 from core.models.tenant import Branch
-from core.models.order import Order
+from verticals.laundry.models import Order
 from core.models.promotion import Promotion
 from core.security import create_access_token
 from core.dependencies import get_current_claims
