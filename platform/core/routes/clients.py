@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from werkzeug.security import generate_password_hash
 from typing import Optional, List
 from core.database import get_db
 from core.dependencies import require_business_admin, get_current_claims
@@ -57,7 +58,18 @@ def create_client(
     for k in ["username", "whatsapp_consent", "email_consent"]:
         dump.pop(k, None)
 
-    client = Client(**dump, full_name=full_name, street_and_number=street_and_number)
+    # Auto-generate username and password for portal access
+    base_user = full_name.split()[0].lower() if full_name else "user"
+    base_user = base_user.replace(' ', '')
+    username = base_user
+    counter = 1
+    while db.query(Client).filter(Client.username == username).first():
+        username = f"{base_user}{counter}"
+        counter += 1
+    
+    password_hash = generate_password_hash(payload.phone) if payload.phone else generate_password_hash("1234567890")
+
+    client = Client(**dump, full_name=full_name, street_and_number=street_and_number, username=username, password=password_hash)
     try:
         db.add(client)
         db.commit()
