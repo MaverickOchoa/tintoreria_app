@@ -20,6 +20,7 @@ from core.routes.agencies import router as agencies_router
 from core.routes.promotions import router as promotions_router
 from core.routes.reports import router as reports_router
 from core.routes.cash_cuts import router as cash_cuts_router
+from core.routes.client_portal import router as client_portal_router
 from verticals.laundry.routes import router as laundry_router
 from verticals.clinic.routes import router as clinic_router
 
