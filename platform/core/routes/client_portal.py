@@ -36,7 +36,8 @@ def client_login(payload: LoginRequest, db: Session = Depends(get_db)):
         branch = db.query(Branch).filter(Branch.id == client.branch_id).first()
         business_id = branch.business_id if branch else None
         
-    additional = {
+    token_data = {
+        "sub": str(client.id),
         "role": "client",
         "client_id": client.id,
         "business_id": business_id,
@@ -44,7 +45,7 @@ def client_login(payload: LoginRequest, db: Session = Depends(get_db)):
         "is_super_admin": False,
     }
     
-    token = create_access_token(subject=str(client.id), extra_claims=additional)
+    token = create_access_token(token_data)
     return {
         "access_token": token,
         "role": "client",
