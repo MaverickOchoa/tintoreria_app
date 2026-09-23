@@ -62,8 +62,8 @@ export default function ManageClientConfig() {
       // 1. Si hay archivo de logo nuevo, súbelo primero via multipart
       if (brandingLogoFile) {
         const form = new FormData();
-        form.append("logo", brandingLogoFile);
-        const logoRes = await fetch(`${API}/businesses/${claims.business_id}/upload-logo`, {
+        form.append("file", brandingLogoFile);
+        const logoRes = await fetch(`${API}/businesses/${claims.business_id}/logo`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: form,
@@ -82,7 +82,7 @@ export default function ManageClientConfig() {
         portal_bg_color: branding.portal_bg_color,
         portal_slogan: branding.portal_slogan,
       };
-      const res = await fetch(`${API}/businesses/${claims.business_id}/config`, {
+      const res = await fetch(`${API}/businesses/${claims.business_id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
@@ -296,6 +296,32 @@ export default function ManageClientConfig() {
               </Box>
             </Box>
           </Stack>
+
+          
+          <Paper sx={{ p: 2, borderRadius: 2, bgcolor: "#f8f9fa", border: "1px solid #e0e0e0", mt: 3, mb: 2 }}>
+            <Typography variant="subtitle2" mb={1} fontWeight={600}>Enlace a tu Portal de Clientes</Typography>
+            <Typography variant="body2" color="text.secondary" mb={1.5}>
+              Comparte este enlace con tus clientes. Al entrar, verán tu logotipo y colores.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField 
+                fullWidth
+                size="small"
+                value={`${window.location.origin}/#/client-portal?c=${claims.business_id}`}
+                InputProps={{ readOnly: true }}
+              />
+              <Button 
+                variant="outlined" 
+                size="small"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/#/client-portal?c=${claims.business_id}`);
+                  alert("¡Enlace copiado!");
+                }}
+              >
+                Copiar
+              </Button>
+            </Box>
+          </Paper>
 
           {brandingMsg && <Alert severity={brandingMsg.type} sx={{ mt: 2 }}>{brandingMsg.text}</Alert>}
 

@@ -63,6 +63,10 @@ class BusinessCreate(BusinessBase):
 
 class BusinessUpdate(BaseModel):
     name: Optional[str] = None
+    portal_primary_color: Optional[str] = None
+    portal_bg_color: Optional[str] = None
+    portal_slogan: Optional[str] = None
+    portal_logo_url: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
