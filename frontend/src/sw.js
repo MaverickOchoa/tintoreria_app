@@ -1,3 +1,4 @@
+/* global clients */
 /* eslint-env serviceworker */
 import { precacheAndRoute } from 'workbox-precaching';
 
