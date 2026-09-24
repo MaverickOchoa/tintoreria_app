@@ -15,6 +15,9 @@ export default defineConfig({
         enabled: true,
         type: 'module',
       },
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024 // 5 MB
+      },
       manifest: {
         short_name: 'Zentro',
         name: 'Zentro SaaS Platform',
