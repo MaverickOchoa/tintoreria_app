@@ -21,6 +21,7 @@ from core.routes.promotions import router as promotions_router
 from core.routes.reports import router as reports_router
 from core.routes.cash_cuts import router as cash_cuts_router
 from core.routes.client_portal import router as client_portal_router
+from core.routes.notifications import router as notifications_router
 from verticals.laundry.routes import router as laundry_router
 from verticals.clinic.routes import router as clinic_router
 
@@ -361,6 +362,7 @@ app.include_router(promotions_router, prefix=API_V2)
 app.include_router(reports_router, prefix=API_V2)
 app.include_router(cash_cuts_router, prefix=API_V2)
 app.include_router(client_portal_router, prefix=API_V2)
+app.include_router(notifications_router, prefix=API_V2)
 app.include_router(laundry_router, prefix=API_V2)
 app.include_router(clinic_router, prefix=API_V2)
 API_V1 = "/api/v1"
@@ -375,6 +377,7 @@ app.include_router(promotions_router, prefix=API_V1)
 app.include_router(reports_router, prefix=API_V1)
 app.include_router(cash_cuts_router, prefix=API_V1)
 app.include_router(client_portal_router, prefix=API_V1)
+app.include_router(notifications_router, prefix=API_V1)
 app.include_router(laundry_router, prefix=API_V1)
 app.include_router(clinic_router, prefix=API_V1)
 
@@ -390,6 +393,7 @@ app.include_router(promotions_router)
 app.include_router(reports_router)
 app.include_router(cash_cuts_router)
 app.include_router(client_portal_router)
+app.include_router(notifications_router)
 app.include_router(laundry_router)
 app.include_router(clinic_router)
 

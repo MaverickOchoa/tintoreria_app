@@ -78,3 +78,23 @@ class ClientDiscount(Base):
             "discount_pct": self.discount_pct, "reason": self.reason,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+class ClientPushSubscription(Base):
+    __tablename__ = "client_push_subscriptions"
+
+    id = Column(Integer, primary_key=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    endpoint = Column(String(1024), nullable=False)
+    p256dh = Column(String(255), nullable=False)
+    auth = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    client = relationship("Client", backref="push_subscriptions")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "endpoint": self.endpoint,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

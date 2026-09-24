@@ -14,6 +14,10 @@ import PersonIcon from "@mui/icons-material/Person";
 import HistoryIcon from "@mui/icons-material/History";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import LockIcon from "@mui/icons-material/Lock";
+import DownloadIcon from "@mui/icons-material/Download";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
+
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 

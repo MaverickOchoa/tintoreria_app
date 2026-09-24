@@ -77,6 +77,11 @@ def create_client(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+        
+    branch = db.query(Branch).filter(Branch.id == client.branch_id).first()
+    if branch:
+        dispatch_event(db, "client_welcome", branch.business_id, client, {"plain_password": payload.phone if payload.phone else "1234567890"})
+        
     return client.to_dict()
 
 

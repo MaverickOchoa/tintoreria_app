@@ -5,7 +5,9 @@ from typing import Optional
 from datetime import datetime
 
 from core.database import get_db
-from core.dependencies import get_current_claims, require_business_admin
+from core.dependencies import get_current_claims
+from core.utils.push import dispatch_event
+from core.models.tenant import Branch, require_business_admin
 from core.models.tenant import Branch
 from verticals.laundry.models import Order, OrderItem, OrderGarmentTicket, Item, Category, Service, Color, Print, Defect
 from verticals.laundry.schemas import OrderCreate, OrderStatusUpdate, OrderPaymentIn, GarmentScanIn, CarouselAssignIn, ItemCreate, ItemUpdate, CategoryCreate, ServiceCreate, ColorCreate, PrintCreate, DefectCreate
@@ -172,6 +174,14 @@ def assign_carousel(
     order.carousel_position = payload.carousel_position
     order.status = "Listo"
     db.commit()
+    
+    # Try sending Push Notification
+    client = db.query(Client).filter(Client.id == order.client_id).first()
+    branch = db.query(Branch).filter(Branch.id == order.branch_id).first()
+    if client and branch:
+        from core.utils.push import dispatch_event
+        dispatch_event(db, "order_ready", branch.business_id, client, {"folio": order.folio or str(order.id)})
+
     db.refresh(order)
     return {"message": "Posición asignada", "order": order.to_dict()}
 
