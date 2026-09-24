@@ -46,6 +46,10 @@ export default function ClientPortal() {
   const brand = useBranding(clientInfo.business_id);
 
   const [tab, setTab] = useState(0);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [pushStatus, setPushStatus] = useState(Notification.permission);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [showIosPrompt, setShowIosPrompt] = useState(false);
   const [me, setMe] = useState(null);
   const [orders, setOrders] = useState([]);
   const [discounts, setDiscounts] = useState([]);
@@ -57,6 +61,75 @@ export default function ClientPortal() {
   const [cpForm, setCpForm] = useState({ current: "", next: "", confirm: "" });
   const [cpMsg, setCpMsg] = useState(null);
   const [cpSaving, setCpSaving] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    if (isIos() && !isStandalone) setShowIosPrompt(true);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
+    }
+  };
+
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+    return outputArray;
+  };
+
+  const handleSubscribePush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert("Tu navegador no soporta notificaciones web.");
+      return;
+    }
+    try {
+      setIsSubscribing(true);
+      const permission = await Notification.requestPermission();
+      setPushStatus(permission);
+      if (permission !== 'granted') { alert("Necesitas dar permisos de notificación en tu navegador."); setIsSubscribing(false); return; }
+      const reg = await navigator.serviceWorker.ready;
+      const pkRes = await fetch(`${API}/client-portal/notifications/public-key`);
+      const pkData = await pkRes.json();
+      const applicationServerKey = urlBase64ToUint8Array(pkData.public_key);
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
+      }
+      const p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh'))));
+      const auth = btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth'))));
+      const payload = { endpoint: sub.endpoint, keys: { p256dh, auth } };
+      const token = localStorage.getItem("access_token");
+      const res = await fetch(`${API}/client-portal/notifications/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) alert("¡Notificaciones activadas exitosamente!");
+      else alert("Hubo un error al activar notificaciones en el servidor.");
+    } catch (err) {
+      console.error(err);
+      alert("Error al intentar suscribirse a notificaciones: " + err.message);
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   const handleChangeClientPw = async () => {
     if (!cpForm.current || !cpForm.next || !cpForm.confirm) { setCpMsg({ type: "error", text: "Completa todos los campos" }); return; }
@@ -164,6 +237,48 @@ export default function ClientPortal() {
               Salir
             </Button>
           </Box>
+
+          <Stack direction="row" spacing={2} sx={{ mt: 2, mb: 2 }} flexWrap="wrap">
+            {deferredPrompt && (
+              <Button 
+                variant="contained" 
+                color="primary" 
+                startIcon={<DownloadIcon />} 
+                onClick={handleInstallClick}
+                sx={{ borderRadius: "20px" }}
+              >
+                Instalar App
+              </Button>
+            )}
+            {pushStatus !== 'granted' && (
+              <Button 
+                variant="outlined" 
+                color="primary" 
+                startIcon={<NotificationsActiveIcon />} 
+                onClick={handleSubscribePush}
+                disabled={isSubscribing}
+                sx={{ borderRadius: "20px" }}
+              >
+                Activar Notificaciones
+              </Button>
+            )}
+            {pushStatus === 'granted' && (
+              <Chip 
+                icon={<NotificationsActiveIcon />} 
+                label="Notificaciones Activas" 
+                color="success" 
+                variant="outlined" 
+              />
+            )}
+          </Stack>
+
+          {showIosPrompt && (
+            <Box sx={{ mt: 2, mb: 2, p: 2, bgcolor: "#e3f2fd", borderRadius: "12px", color: "#0277bd" }}>
+              <Typography variant="body2">
+                Para instalar esta app en tu iPhone: presiona el ícono <strong>Compartir</strong> en la barra inferior y selecciona <strong>"Agregar a inicio"</strong>. Luego ábrela para activar las notificaciones.
+              </Typography>
+            </Box>
+          )}
 
           <Divider sx={{ mb: 2 }} />
 
