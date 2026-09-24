@@ -4,6 +4,7 @@ import {
   Box, Paper, Typography, Divider,
   Collapse, Chip, CircularProgress, Alert,
   Button, Stack, Table, TableBody, TableCell,
+  Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText,
   TableContainer, TableHead, TableRow, TextField,
   BottomNavigation, BottomNavigationAction,
 } from "@mui/material";
@@ -47,6 +48,7 @@ export default function ClientPortal() {
 
   const [tab, setTab] = useState(0);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [pushStatus, setPushStatus] = useState(Notification.permission);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
@@ -82,6 +84,8 @@ export default function ClientPortal() {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
+    } else {
+      setShowInstallGuide(true);
     }
   };
 
@@ -239,18 +243,17 @@ export default function ClientPortal() {
           </Box>
 
           <Stack direction="row" spacing={2} sx={{ mt: 2, mb: 2 }} flexWrap="wrap">
-            {deferredPrompt && (
-              <Button 
-                variant="contained" 
-                color="primary" 
-                startIcon={<DownloadIcon />} 
-                onClick={handleInstallClick}
-                sx={{ borderRadius: "20px" }}
-              >
-                Instalar App
-              </Button>
-            )}
-            {pushStatus !== 'granted' && (
+            <Button 
+              variant="contained" 
+              color="primary" 
+              startIcon={<DownloadIcon />} 
+              onClick={handleInstallClick}
+              sx={{ borderRadius: "20px" }}
+            >
+              Instalar App
+            </Button>
+            
+            {pushStatus !== 'granted' ? (
               <Button 
                 variant="outlined" 
                 color="primary" 
@@ -261,24 +264,35 @@ export default function ClientPortal() {
               >
                 Activar Notificaciones
               </Button>
-            )}
-            {pushStatus === 'granted' && (
-              <Chip 
-                icon={<NotificationsActiveIcon />} 
-                label="Notificaciones Activas" 
-                color="success" 
+            ) : (
+              <Button 
                 variant="outlined" 
-              />
+                color="success" 
+                startIcon={<NotificationsActiveIcon />} 
+                disabled
+                sx={{ borderRadius: "20px", opacity: "0.8 !important" }}
+              >
+                Notificaciones Activas
+              </Button>
             )}
           </Stack>
 
-          {showIosPrompt && (
-            <Box sx={{ mt: 2, mb: 2, p: 2, bgcolor: "#e3f2fd", borderRadius: "12px", color: "#0277bd" }}>
-              <Typography variant="body2">
-                Para instalar esta app en tu iPhone: presiona el ícono <strong>Compartir</strong> en la barra inferior y selecciona <strong>"Agregar a inicio"</strong>. Luego ábrela para activar las notificaciones.
-              </Typography>
-            </Box>
-          )}
+          <Dialog open={showInstallGuide} onClose={() => setShowInstallGuide(false)}>
+            <DialogTitle>Instalar Aplicación</DialogTitle>
+            <DialogContent>
+              <DialogContentText gutterBottom>
+                Tu navegador bloquea la instalación automática porque la app ya está instalada o estás usando un navegador no compatible (como Safari en iOS).
+              </DialogContentText>
+              <DialogContentText>
+                <strong>Para instalarla manualmente:</strong><br/>
+                1. Abre el menú de tu navegador (los 3 puntos verticales o el botón de compartir <strong>↑</strong> en iOS).<br/>
+                2. Selecciona <strong>"Agregar a la pantalla principal"</strong> o <strong>"Instalar aplicación"</strong>.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setShowInstallGuide(false)}>Entendido</Button>
+            </DialogActions>
+          </Dialog>
 
           <Divider sx={{ mb: 2 }} />
 
