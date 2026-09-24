@@ -1,3 +1,4 @@
+/* eslint-env serviceworker */
 import { precacheAndRoute } from 'workbox-precaching';
 
 // This will be replaced by workbox-precaching at build time
