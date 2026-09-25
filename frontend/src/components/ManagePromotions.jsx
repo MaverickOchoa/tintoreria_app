@@ -622,7 +622,11 @@ export default function ManagePromotions() {
                 {pushCampaign.target_type === "client" && (
                   <Autocomplete
                     options={clients}
-                    getOptionLabel={(option) => `${option.full_name} (${option.phone})`}
+                    getOptionLabel={(option) => {
+                      if (!option) return "";
+                      if (typeof option === "string") return option;
+                      return `${option.full_name || ""} (${option.phone || ""})`;
+                    }}
                     onChange={(e, newValue) => setPushCampaign({...pushCampaign, target_id: newValue ? newValue.id : ""})}
                     renderInput={(params) => <TextField {...params} label="Buscar Cliente" />}
                   />
