@@ -4,7 +4,7 @@ from werkzeug.security import check_password_hash
 from pydantic import BaseModel
 
 from core.database import get_db
-from core.models.client import Client, ClientDiscount
+from core.models.client import Client, ClientDiscount, ClientMessage
 from core.models.tenant import Branch
 from verticals.laundry.models import Order
 from core.models.promotion import Promotion
@@ -98,3 +98,22 @@ def get_client_discounts(claims: dict = Depends(get_current_claims), db: Session
         "discounts": [d.to_dict() for d in discounts],
         "promotions": promos
     }
+
+@router.get("/client-portal/messages")
+def get_client_messages(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    if claims.get("role") != "client":
+        raise HTTPException(status_code=403, detail="Not a client")
+    client_id = claims.get("client_id")
+    messages = db.query(ClientMessage).filter(ClientMessage.client_id == client_id).order_by(ClientMessage.created_at.desc()).all()
+    return [msg.to_dict() for msg in messages]
+
+@router.put("/client-portal/messages/{message_id}/read")
+def mark_message_read(message_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    if claims.get("role") != "client":
+        raise HTTPException(status_code=403, detail="Not a client")
+    client_id = claims.get("client_id")
+    msg = db.query(ClientMessage).filter(ClientMessage.id == message_id, ClientMessage.client_id == client_id).first()
+    if msg:
+        msg.is_read = True
+        db.commit()
+    return {"message": "ok"}

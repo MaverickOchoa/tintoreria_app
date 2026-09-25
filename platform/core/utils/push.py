@@ -2,7 +2,7 @@ import logging
 import json
 from pywebpush import webpush, WebPushException
 from sqlalchemy.orm import Session
-from core.models.client import Client, ClientPushSubscription
+from core.models.client import Client, ClientPushSubscription, ClientMessage
 from core.models.tenant import Business
 from core.config import get_settings
 
@@ -53,6 +53,11 @@ def dispatch_event(db: Session, event_type: str, business_id: int, client: Clien
         body = f"Hola {client.full_name}, ya eres cliente frecuente en {business_name}."
     else:
         return
+        
+    # Guardar en bandeja de entrada del cliente
+    new_msg = ClientMessage(client_id=client.id, title=title, body=body)
+    db.add(new_msg)
+    db.commit()
         
     subs = db.query(ClientPushSubscription).filter(ClientPushSubscription.client_id == client.id).all()
     if not subs:

@@ -15,6 +15,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import HistoryIcon from "@mui/icons-material/History";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import LockIcon from "@mui/icons-material/Lock";
+import MessageIcon from "@mui/icons-material/Message";
+import Badge from "@mui/material/Badge";
 import DownloadIcon from "@mui/icons-material/Download";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
@@ -55,6 +57,7 @@ export default function ClientPortal() {
   const [me, setMe] = useState(null);
   const [orders, setOrders] = useState([]);
   const [discounts, setDiscounts] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -173,8 +176,9 @@ export default function ClientPortal() {
       safeFetch(`${API}/client-portal/me`),
       safeFetch(`${API}/client-portal/orders`),
       safeFetch(`${API}/client-portal/discounts`),
+      safeFetch(`${API}/client-portal/messages`),
     ])
-      .then(([meData, ordersData, discData]) => {
+      .then(([meData, ordersData, discData, msgData]) => {
         if (!meData || meData.message) {
           setError(meData?.message || "Error al cargar tu información. Intenta cerrar sesión e iniciar de nuevo.");
           return;
@@ -183,6 +187,7 @@ export default function ClientPortal() {
         setOrders((ordersData?.orders) || []);
         setDiscounts((discData?.discounts) || []);
         setPromotions((discData?.promotions) || []);
+        setMessages(Array.isArray(msgData) ? msgData : []);
       })
       .catch((err) => setError(`Error de conexión: ${err.message}`))
       .finally(() => setLoading(false));
@@ -489,9 +494,37 @@ export default function ClientPortal() {
           )}
 
           {/* CONTRASEÑA */}
-          {tab === 3 && (
-            <>
-              <Typography variant="h6" fontWeight={700} mb={2}>Cambiar Contraseña</Typography>
+                  {tab === 3 && (
+          <Box mt={3}>
+            <Typography variant="h6" fontWeight={700} mb={2}>Mensajes y Notificaciones</Typography>
+            {messages.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">No tienes mensajes recientes.</Typography>
+            ) : (
+              <Stack spacing={2}>
+                {messages.map(msg => (
+                  <Paper key={msg.id} elevation={1} sx={{ p: 2, borderLeft: '4px solid', borderColor: msg.is_read ? 'transparent' : 'primary.main', bgcolor: msg.is_read ? '#fafafa' : '#fff' }}>
+                    <Typography variant="subtitle2" fontWeight={msg.is_read ? 500 : 700}>{msg.title}</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5 }}>{msg.body}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      {new Date(msg.created_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </Typography>
+                    {!msg.is_read && (
+                      <Button size="small" sx={{ mt: 1 }} onClick={() => {
+                        const token = localStorage.getItem("client_access_token");
+                        fetch(`${API}/client-portal/messages/${msg.id}/read`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } });
+                        setMessages(messages.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
+                      }}>Marcar como leído</Button>
+                    )}
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+          </Box>
+        )}
+
+        {tab === 4 && (
+          <>
+            <Typography variant="h6" fontWeight={700} mb={2}>Cambiar Contraseña</Typography>
               {cpMsg && <Alert severity={cpMsg.type} sx={{ mb: 2 }}>{cpMsg.text}</Alert>}
               <Stack spacing={2} maxWidth={360}>
                 <TextField type="password" fullWidth label="Contraseña actual" value={cpForm.current}
@@ -526,6 +559,14 @@ export default function ClientPortal() {
           <BottomNavigationAction icon={<HistoryIcon />} showLabel={false} />
           <BottomNavigationAction icon={<PersonIcon />} showLabel={false} />
           <BottomNavigationAction icon={<LocalOfferIcon />} showLabel={false} />
+          <BottomNavigationAction 
+            icon={
+              <Badge color="error" variant="dot" invisible={!messages.some(m => !m.is_read)}>
+                <MessageIcon />
+              </Badge>
+            } 
+            showLabel={false} 
+          />
           <BottomNavigationAction icon={<LockIcon />} showLabel={false} />
         </BottomNavigation>
       </Paper>

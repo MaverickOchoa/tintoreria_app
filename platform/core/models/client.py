@@ -98,3 +98,25 @@ class ClientPushSubscription(Base):
             "endpoint": self.endpoint,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+class ClientMessage(Base):
+    __tablename__ = "client_messages"
+
+    id = Column(Integer, primary_key=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    title = Column(String(200), nullable=False)
+    body = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    client = relationship("Client", backref="messages")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "title": self.title,
+            "body": self.body,
+            "is_read": self.is_read,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
