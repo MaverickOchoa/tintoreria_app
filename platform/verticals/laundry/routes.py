@@ -9,6 +9,7 @@ from core.dependencies import get_current_claims
 from core.utils.push import dispatch_event
 from core.dependencies import require_business_admin
 from core.models.tenant import Branch
+from core.models.client import Client
 from verticals.laundry.models import Order, OrderItem, OrderGarmentTicket, Item, Category, Service, Color, Print, Defect
 from verticals.laundry.schemas import OrderCreate, OrderStatusUpdate, OrderPaymentIn, GarmentScanIn, CarouselAssignIn, ItemCreate, ItemUpdate, CategoryCreate, ServiceCreate, ColorCreate, PrintCreate, DefectCreate
 from verticals.laundry.services import create_order
