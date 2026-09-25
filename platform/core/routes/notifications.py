@@ -2,7 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from core.database import get_db
+from fastapi import BackgroundTasks
+from typing import Optional
+from core.database import get_db, SessionLocal
+from core.models.client import Client, ClientMessage
+from core.models.tenant import Branch
+from core.dependencies import require_business_admin
+from core.utils.push import send_push_notification
 from core.models.client import ClientPushSubscription
 from core.dependencies import get_current_claims
 from core.config import get_settings
@@ -80,3 +86,65 @@ def unsubscribe_from_push(
     if deleted:
         return {"message": "Suscripción eliminada exitosamente"}
     return {"message": "No se encontró la suscripción"}
+
+class PushCampaignCreate(BaseModel):
+    title: str
+    body: str
+    target_type: str
+    target_id: Optional[int] = None
+
+def send_mass_push_task(client_ids: list, title: str, body: str):
+    db = SessionLocal()
+    try:
+        # Save messages
+        for cid in client_ids:
+            msg = ClientMessage(client_id=cid, title=title, body=body)
+            db.add(msg)
+        db.commit()
+        
+        # Send webpush
+        subs = db.query(ClientPushSubscription).filter(ClientPushSubscription.client_id.in_(client_ids)).all()
+        for sub in subs:
+            sub_info = {
+                "endpoint": sub.endpoint,
+                "keys": {
+                    "p256dh": sub.p256dh,
+                    "auth": sub.auth
+                }
+            }
+            res = send_push_notification(sub_info, { "title": title, "body": body, "url": "/#/client-portal" })
+            if res == "expired":
+                db.delete(sub)
+                db.commit()
+    except Exception as e:
+        print("Error in push task:", e)
+    finally:
+        db.close()
+
+@router.post("/businesses/{business_id}/push-campaign")
+def send_push_campaign(
+    business_id: int,
+    payload: PushCampaignCreate,
+    background_tasks: BackgroundTasks,
+    claims: dict = Depends(require_business_admin),
+    db: Session = Depends(get_db)
+):
+    q = db.query(Client).join(Branch, Branch.id == Client.branch_id).filter(Branch.business_id == business_id)
+    
+    if payload.target_type == 'branch':
+        if not payload.target_id:
+            raise HTTPException(400, "ID de sucursal requerido")
+        q = q.filter(Client.branch_id == payload.target_id)
+    elif payload.target_type == 'client':
+        if not payload.target_id:
+            raise HTTPException(400, "ID de cliente requerido")
+        q = q.filter(Client.id == payload.target_id)
+        
+    clients = q.all()
+    if not clients:
+        return {"message": "No hay clientes que cumplan los filtros", "count": 0}
+        
+    client_ids = [c.id for c in clients]
+    background_tasks.add_task(send_mass_push_task, client_ids, payload.title, payload.body)
+    
+    return {"message": "Aviso enviado exitosamente", "count": len(clients)}

@@ -17,6 +17,9 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import EmailIcon from "@mui/icons-material/Email";
 import EditIcon from "@mui/icons-material/Edit";
 import CampaignIcon from "@mui/icons-material/Campaign";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import SendIcon from "@mui/icons-material/Send";
+import { Autocomplete } from "@mui/material";
 import BlockIcon from "@mui/icons-material/Block";
 
 const API = import.meta.env.VITE_API_URL || "";
@@ -267,6 +270,7 @@ export default function ManagePromotions() {
           <Tab label="Promociones" />
           <Tab label={<Box display="flex" alignItems="center" gap={0.5}><WhatsAppIcon fontSize="small" sx={{ color: "#25D366" }} /> Mensajes Automáticos</Box>} />
           <Tab label={<Box display="flex" alignItems="center" gap={0.5}><CampaignIcon fontSize="small" color="primary" /> Campañas por Fecha</Box>} />
+          <Tab label={<Box display="flex" alignItems="center" gap={0.5}><NotificationsActiveIcon fontSize="small" color="primary" /> Avisos App</Box>} />
         </Tabs>
 
         {/* â”€â”€â”€ TAB 1: MENSAJES AUTOMÃTICOS â”€â”€â”€ */}
@@ -562,6 +566,99 @@ export default function ManagePromotions() {
                 ); })}
               </Stack>
             )}
+          </Box>
+        )}
+
+        {/* ======================= TAB 3: AVISOS PUSH APP ======================= */}
+        {tab === 3 && (
+          <Box>
+            <Typography fontWeight={700} fontSize={15} mb={2}>Enviar Aviso / Notificación Push</Typography>
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Stack spacing={3}>
+                <TextField 
+                  label="Título de la Notificación" 
+                  fullWidth 
+                  value={pushCampaign.title}
+                  onChange={(e) => setPushCampaign({...pushCampaign, title: e.target.value})}
+                  placeholder="Ej. ¡2x1 en Edredones!"
+                />
+                <TextField 
+                  label="Mensaje" 
+                  fullWidth 
+                  multiline 
+                  rows={3} 
+                  value={pushCampaign.body}
+                  onChange={(e) => setPushCampaign({...pushCampaign, body: e.target.value})}
+                  placeholder="Ej. Este viernes no abrimos, anticipa tus pedidos."
+                />
+                
+                <FormControl fullWidth>
+                  <InputLabel>¿A quién se lo enviamos?</InputLabel>
+                  <Select
+                    value={pushCampaign.target_type}
+                    label="¿A quién se lo enviamos?"
+                    onChange={(e) => setPushCampaign({...pushCampaign, target_type: e.target.value, target_id: ""})}
+                  >
+                    <MenuItem value="all">A todos los clientes de la empresa</MenuItem>
+                    <MenuItem value="branch">A los clientes de una sucursal</MenuItem>
+                    <MenuItem value="client">A un cliente en específico</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                {pushCampaign.target_type === "branch" && (
+                  <FormControl fullWidth>
+                    <InputLabel>Sucursal</InputLabel>
+                    <Select
+                      value={pushCampaign.target_id}
+                      label="Sucursal"
+                      onChange={(e) => setPushCampaign({...pushCampaign, target_id: e.target.value})}
+                    >
+                      <MenuItem value="">Selecciona una sucursal...</MenuItem>
+                      {branches.map(b => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                )}
+                
+                {pushCampaign.target_type === "client" && (
+                  <Autocomplete
+                    options={clients}
+                    getOptionLabel={(option) => `${option.full_name} (${option.phone})`}
+                    onChange={(e, newValue) => setPushCampaign({...pushCampaign, target_id: newValue ? newValue.id : ""})}
+                    renderInput={(params) => <TextField {...params} label="Buscar Cliente" />}
+                  />
+                )}
+                
+                <Box textAlign="right">
+                  <Button 
+                    variant="contained" 
+                    color="primary" 
+                    startIcon={<SendIcon />}
+                    disabled={pushSending || !pushCampaign.title || !pushCampaign.body || (pushCampaign.target_type !== 'all' && !pushCampaign.target_id)}
+                    onClick={async () => {
+                      setPushSending(true);
+                      try {
+                        const token = localStorage.getItem("token");
+                        const res = await fetch(`${API}/businesses/${businessId}/push-campaign`, {
+                          method: "POST",
+                          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                          body: JSON.stringify(pushCampaign)
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.detail || data.message || "Error al enviar");
+                        alert(data.message + ` (${data.count} clientes)`);
+                        setPushCampaign({ title: "", body: "", target_type: "all", target_id: "" });
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setPushSending(false);
+                      }
+                    }}
+                  >
+                    {pushSending ? "Enviando..." : "Enviar Aviso"}
+                  </Button>
+                </Box>
+              </Stack>
+            </Paper>
           </Box>
         )}
       </Box>
