@@ -427,3 +427,15 @@ except Exception as e:
 
 
 
+
+@app.get("/api/v1/debug-db2")
+def debug_db2():
+    from sqlalchemy import text
+    from core.database import engine
+    import traceback
+    try:
+        with engine.connect() as conn:
+            res = conn.execute(text("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'whatsapp_templates'")).fetchall()
+            return {"status": "ok", "columns": [dict(r._mapping) for r in res]}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
