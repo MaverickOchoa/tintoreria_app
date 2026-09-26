@@ -1,0 +1,3 @@
+#!/bin/bash
+flask db upgrade || true
+gunicorn --workers=1 --threads=2 --bind 0.0.0.0:$PORT app:app
