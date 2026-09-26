@@ -406,11 +406,23 @@ def update_branch_config(branch_id: int, payload: dict, claims: dict = Depends(r
     if not branch: raise HTTPException(status_code=404)
     if branch.business_id != claims.get("business_id"): raise HTTPException(status_code=403, detail="Acceso denegado a esta sucursal")
     cfg = branch.get_config()
+    if "uses_iva" in payload: branch.uses_iva = payload["uses_iva"]
+    if "payment_cash" in payload: branch.payment_cash = payload["payment_cash"]
+    if "payment_card" in payload: branch.payment_card = payload["payment_card"]
     if "payment_points" in payload: branch.payment_points = payload["payment_points"]
+    if "allow_deferred" in payload: branch.allow_deferred = payload["allow_deferred"]
     if "points_per_peso" in payload: branch.points_per_peso = float(payload["points_per_peso"])
     if "peso_per_point" in payload: branch.peso_per_point = float(payload["peso_per_point"])
-    if "uses_iva" in payload: branch.uses_iva = payload["uses_iva"]
     if "discount_enabled" in payload: branch.discount_enabled = payload["discount_enabled"]
+    if "max_discount_pct" in payload: branch.max_discount_pct = float(payload["max_discount_pct"])
+    if "normal_days" in payload: branch.normal_days = int(payload["normal_days"])
+    if "urgent_days" in payload: branch.urgent_days = int(payload["urgent_days"])
+    if "extra_urgent_days" in payload: branch.extra_urgent_days = int(payload["extra_urgent_days"])
+    if "urgent_pct" in payload: branch.urgent_pct = float(payload["urgent_pct"])
+    if "extra_urgent_pct" in payload: branch.extra_urgent_pct = float(payload["extra_urgent_pct"])
+    if "carousel_format_hint" in payload: branch.carousel_format_hint = payload["carousel_format_hint"]
+    if "cost_per_point" in payload: branch.cost_per_point = float(payload["cost_per_point"]) if payload["cost_per_point"] else None
+    if "require_scan" in payload: branch.require_scan = bool(payload["require_scan"])
     db.commit()
     db.refresh(branch)
     return branch.to_dict()

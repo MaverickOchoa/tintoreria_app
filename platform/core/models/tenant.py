@@ -111,6 +111,8 @@ class Branch(Base):
     urgent_pct = Column(Float, nullable=True)
     extra_urgent_pct = Column(Float, nullable=True)
     require_scan = Column(Boolean, nullable=True)
+    carousel_format_hint = Column(String(100), nullable=True)
+    cost_per_point = Column(Float, nullable=True)
 
     business = relationship("Business", back_populates="branches")
     users = relationship("Admin", back_populates="branch")
@@ -136,6 +138,8 @@ class Branch(Base):
             "urgent_pct": cv(self.urgent_pct, biz.urgent_pct if biz else 20.0),
             "extra_urgent_pct": cv(self.extra_urgent_pct, biz.extra_urgent_pct if biz else 50.0),
             "require_scan": self.require_scan if self.require_scan is not None else True,
+            "carousel_format_hint": cv(self.carousel_format_hint, biz.carousel_format_hint if biz else ""),
+            "cost_per_point": self.cost_per_point,
         }
 
     def to_dict(self) -> dict:
