@@ -142,6 +142,7 @@ def create_order(db: Session, data: dict, claims: dict) -> Order:
         db.add(OrderPayment(
             order_id=new_order.id, method=p["method"],
             amount=float(p["amount"]), reference=p.get("reference"),
+            points_used=float(p.get("points_used", 0.0))
         ))
 
     if branch:

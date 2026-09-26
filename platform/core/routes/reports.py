@@ -617,3 +617,50 @@ def get_discounts(branch_id: int = None, date_from: str = None, date_to: str = N
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/client-behavior")
+def get_client_behavior(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    branch_id = claims.get('branch_id')
+    business_id = claims.get('business_id')
+    
+    if not business_id and branch_id:
+        br = db.query(Branch).filter(Branch.id == branch_id).first()
+        business_id = br.business_id if br else None
+    if not business_id:
+        raise HTTPException(status_code=400, detail="No business context")
+        
+    clients = db.query(Client).join(Branch, Client.branch_id == Branch.id).filter(Branch.business_id == business_id).all()
+    result = []
+    now = datetime.utcnow()
+    
+    for c in clients:
+        completed = db.query(Order).filter(Order.client_id == c.id, Order.status.in_(['Listo', 'Entregada', 'Entregado'])).all()
+        total_orders = len(completed)
+        avg_ticket = round(sum(float(o.total_amount or 0) for o in completed) / total_orders, 2) if total_orders else 0
+        last_order = max((o.order_date for o in completed if o.order_date), default=None)
+        
+        last_order_date = last_order.date() if hasattr(last_order, 'date') else last_order
+        days_inactive = (now.date() - last_order_date).days if last_order_date else None
+        
+        if total_orders >= 2:
+            dates = sorted((o.order_date.date() if hasattr(o.order_date, 'date') else o.order_date) for o in completed if o.order_date)
+            span_days = (dates[-1] - dates[0]).days or 1
+            freq = round(total_orders / (span_days / 30.0), 2)
+        else:
+            freq = total_orders
+            
+        result.append({
+            'client_id': c.id,
+            'full_name': f"{c.full_name or ''} {c.last_name or ''}".strip(),
+            'phone': c.phone,
+            'email': c.email,
+            'client_type': c.client_type.name if getattr(c, 'client_type', None) else None,
+            'total_orders': total_orders,
+            'avg_ticket': avg_ticket,
+            'last_visit': last_order.isoformat() if last_order else None,
+            'days_inactive': days_inactive,
+            'freq_per_month': freq,
+        })
+        
+    result.sort(key=lambda x: (x['days_inactive'] is None, -(x['days_inactive'] or 0)))
+    return {'clients': result}
