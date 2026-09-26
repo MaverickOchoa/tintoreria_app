@@ -18,11 +18,15 @@ const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 const getClaims = () => { try { return JSON.parse(localStorage.getItem("user_claims") || "{}"); } catch { return {}; } };
 
 const STATUS_COLORS = {
-  "Pendiente": "default",
-  "En Proceso": "info",
-  "En Producción": "warning",
-  "Listo": "success",
-  "Entregado": "primary",
+  "Creada": "warning",
+  "En proceso": "warning",
+  "En Proceso": "warning",
+  "En Produccin": "warning",
+  "Pendiente": "warning",
+  "Listo": "info",
+  "Entregada": "success",
+  "Entregado": "success",
+  "Cancelada": "error",
   "Cancelado": "error",
 };
 

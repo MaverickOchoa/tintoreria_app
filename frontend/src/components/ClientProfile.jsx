@@ -23,8 +23,16 @@ const getClaims = () => { try { return JSON.parse(localStorage.getItem("user_cla
 const MONTHS = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 const STATUS_COLORS = {
-  "Pendiente": "warning", "En Proceso": "info", "En Producción": "primary",
-  "Listo": "success", "Entregado": "default", "Cancelado": "error",
+  "Creada": "warning",
+  "En proceso": "warning",
+  "En Proceso": "warning",
+  "En Produccin": "warning",
+  "Pendiente": "warning",
+  "Listo": "info",
+  "Entregada": "success",
+  "Entregado": "success",
+  "Cancelada": "error",
+  "Cancelado": "error",
 };
 
 function OrderRow({ order }) {
