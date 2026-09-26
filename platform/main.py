@@ -309,6 +309,49 @@ async def apply_migrations():
     except Exception as e:
         logger.error("Startup migration failed: %s", e)
 
+    try:
+        from core.database import SessionLocal
+        from core.models.tenant import Business
+        from core.models.client import Client, ClientType
+        from verticals.laundry.models import Order
+        db = SessionLocal()
+        try:
+            businesses = db.query(Business).all()
+            for b in businesses:
+                # Seed types
+                t_nuevo = db.query(ClientType).filter(ClientType.business_id == b.id, ClientType.name.ilike('nuevo')).first()
+                if not t_nuevo:
+                    t_nuevo = ClientType(name='Nuevo', business_id=b.id)
+                    db.add(t_nuevo)
+                    db.commit()
+                    db.refresh(t_nuevo)
+                
+                t_recurrente = db.query(ClientType).filter(ClientType.business_id == b.id, ClientType.name.ilike('recurrente')).first()
+                if not t_recurrente:
+                    t_recurrente = ClientType(name='Recurrente', business_id=b.id)
+                    db.add(t_recurrente)
+                    db.commit()
+                    db.refresh(t_recurrente)
+                
+                # Auto-assign clients
+                clients = db.query(Client).filter(Client.branch_id.in_([br.id for br in b.branches])).all()
+                for c in clients:
+                    completed_orders = db.query(Order).filter(Order.client_id == c.id, Order.status.in_(['Listo', 'Entregada', 'Entregado'])).count()
+                    if completed_orders >= 3:
+                        if c.client_type_id != t_recurrente.id:
+                            c.client_type_id = t_recurrente.id
+                    elif not c.client_type_id:
+                        c.client_type_id = t_nuevo.id
+                
+            db.commit()
+        except Exception as e:
+            logger.error(f"Error seeding client types: {e}")
+            db.rollback()
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Failed to run seed script: {e}")
+
     # Log env var status for debugging
     import os
     logger.info("CLOUDINARY_CLOUD_NAME set: %s", bool(os.getenv("CLOUDINARY_CLOUD_NAME")))

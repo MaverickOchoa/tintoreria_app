@@ -312,6 +312,21 @@ def assign_carousel(
     if client and branch:
         from core.utils.push import dispatch_event
         dispatch_event(db, "order_ready", branch.business_id, client, {"folio": order.folio or str(order.id)})
+        
+        # Check for recurring client
+        completed_orders = db.query(Order).filter(Order.client_id == client.id, Order.status.in_(["Listo", "Entregada", "Entregado"])).count()
+        if completed_orders == 3:
+            dispatch_event(db, "client_recurring", branch.business_id, client)
+        if completed_orders >= 3:
+            from sqlalchemy import func
+            from core.models.client import ClientType
+            recurring_type = db.query(ClientType).filter(
+                ClientType.business_id == branch.business_id,
+                func.lower(ClientType.name).in_(["frecuente", "recurrente"])
+            ).first()
+            if recurring_type and client.client_type_id != recurring_type.id:
+                client.client_type_id = recurring_type.id
+                db.commit()
 
     db.refresh(order)
     return {"message": "Posición asignada", "order": order.to_dict()}
