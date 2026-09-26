@@ -126,6 +126,9 @@ export default function ManagePromotions() {
   const [campaignForm, setCampaignForm] = useState(EMPTY_CAMPAIGN);
   const [savingCampaign, setSavingCampaign] = useState(false);
   const [campaignMsg, setCampaignMsg]   = useState(null);
+  const [pushCampaign, setPushCampaign] = useState({ title: "", body: "", target_type: "all", target_id: "" });
+  const [pushSending, setPushSending] = useState(false);
+  const [clients, setClients] = useState([]);
 
   // â”€â”€ Load all â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
