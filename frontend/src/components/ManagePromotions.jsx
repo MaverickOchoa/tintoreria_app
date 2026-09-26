@@ -24,6 +24,37 @@ import BlockIcon from "@mui/icons-material/Block";
 
 const API = import.meta.env.VITE_API_URL || "";
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, info: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error("ErrorBoundary caught an error", error, info);
+    this.setState({ info });
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Box p={3} bgcolor="#ffebee" borderRadius={2}>
+          <Typography variant="h6" color="error">Error en la pestaña</Typography>
+          <Typography variant="body2" color="error" sx={{ whiteSpace: "pre-wrap" }}>
+            {this.state.error && this.state.error.toString()}
+          </Typography>
+          <Typography variant="caption" sx={{ whiteSpace: "pre-wrap", display: "block", mt: 2 }}>
+            {this.state.info && this.state.info.componentStack}
+          </Typography>
+        </Box>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+
 const TRIGGER_META = {
   client_welcome:   { label: "Bienvenida al cliente nuevo",          icon: "👋", hint: "Se envía cuando se registra un cliente nuevo." },
   client_recurring: { label: "Felicitación cliente recurrente",      icon: "⭐", hint: "Se envía cuando el cliente completa su 3ª orden." },
@@ -104,6 +135,7 @@ export default function ManagePromotions() {
     fetch(`${API}/services`,                                         { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setServices(Array.isArray(d) ? d : ((Array.isArray(d) ? d : (d.services || []))))).catch(() => {});
     fetch(`${API}/client-types`,                              { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setClientTypes((Array.isArray(d) ? d : (d.client_types || [])))).catch(() => {});
     fetch(`${API}/businesses/${claims.business_id}/branches`,        { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setBranches((Array.isArray(d) ? d : (d.branches || [])))).catch(() => {});
+    fetch(`${API}/businesses/${claims.business_id}/clients`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setClients((Array.isArray(d) ? d : (d.clients || [])))).catch(() => {});
   }, []);
 
   const loadAll = () =>
@@ -571,6 +603,7 @@ export default function ManagePromotions() {
 
         {/* ======================= TAB 3: AVISOS PUSH APP ======================= */}
         {tab === 3 && (
+          <ErrorBoundary>
           <Box>
             <Typography fontWeight={700} fontSize={15} mb={2}>Enviar Aviso / Notificación Push</Typography>
             <Paper sx={{ p: 3, mb: 3 }}>
@@ -642,7 +675,7 @@ export default function ManagePromotions() {
                       setPushSending(true);
                       try {
                         const token = localStorage.getItem("token");
-                        const res = await fetch(`${API}/businesses/${businessId}/push-campaign`, {
+                        const res = await fetch(`${API}/businesses/${claims.business_id}/push-campaign`, {
                           method: "POST",
                           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
                           body: JSON.stringify(pushCampaign)
@@ -664,6 +697,7 @@ export default function ManagePromotions() {
               </Stack>
             </Paper>
           </Box>
+          </ErrorBoundary>
         )}
       </Box>
     </Box>
