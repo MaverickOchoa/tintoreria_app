@@ -69,6 +69,18 @@ def create_client(
     
     password_hash = generate_password_hash(payload.phone) if payload.phone else generate_password_hash("1234567890")
 
+    branch = db.query(Branch).filter(Branch.id == dump.get("branch_id")).first() if dump.get("branch_id") else None
+    
+    # Auto-assign "Nuevo" type if not provided
+    if not payload.client_type_id and branch:
+        from sqlalchemy import func
+        nuevo_type = db.query(ClientType).filter(
+            ClientType.business_id == branch.business_id,
+            func.lower(ClientType.name) == 'nuevo'
+        ).first()
+        if nuevo_type:
+            dump["client_type_id"] = nuevo_type.id
+
     client = Client(**dump, full_name=full_name, street_and_number=street_and_number, username=username, password=password_hash)
     try:
         db.add(client)
@@ -78,7 +90,6 @@ def create_client(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
         
-    branch = db.query(Branch).filter(Branch.id == client.branch_id).first()
     if branch:
         dispatch_event(db, "client_welcome", branch.business_id, client, {"plain_password": payload.phone if payload.phone else "1234567890"})
         

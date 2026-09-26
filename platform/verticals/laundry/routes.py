@@ -82,12 +82,36 @@ def update_order_status(
                     detail=f"Faltan {len(unscanned)} prendas por escanear."
                 )
 
+    old_status = order.status
     if payload.status == "Entregada":
         order.delivered_at = datetime.utcnow()
     order.status = payload.status
     if payload.notes:
         order.notes = payload.notes
     db.commit()
+
+    if payload.status == "Listo" and old_status != "Listo":
+        from core.models.client import Client, ClientType
+        from core.utils.push import dispatch_event
+        client = db.query(Client).filter(Client.id == order.client_id).first() if order.client_id else None
+        if client and branch:
+            # 1. Dispatch order ready
+            dispatch_event(db, "order_ready", branch.business_id, client, {"folio": order.folio or str(order.id)})
+            
+            # 2. Check for recurring client (3rd order completed)
+            completed_orders = db.query(Order).filter(Order.client_id == client.id, Order.status.in_(["Listo", "Entregada"])).count()
+            if completed_orders == 3:
+                dispatch_event(db, "client_recurring", branch.business_id, client)
+            if completed_orders >= 3:
+                from sqlalchemy import func
+                recurring_type = db.query(ClientType).filter(
+                    ClientType.business_id == branch.business_id,
+                    func.lower(ClientType.name).in_(["frecuente", "recurrente"])
+                ).first()
+                if recurring_type and client.client_type_id != recurring_type.id:
+                    client.client_type_id = recurring_type.id
+                    db.commit()
+
     return order.to_dict()
 
 
