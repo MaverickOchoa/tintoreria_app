@@ -23,7 +23,7 @@ const getClaims = () => { try { return JSON.parse(localStorage.getItem("user_cla
 const MONTHS = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 const STATUS_COLORS = {
-  "Creada": "warning",
+  "Creada": "secondary",
   "En proceso": "warning",
   "En Proceso": "warning",
   "En Produccin": "warning",

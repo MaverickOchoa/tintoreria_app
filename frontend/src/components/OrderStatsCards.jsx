@@ -20,7 +20,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 const STATUS_COLORS = {
-  "Creada": "warning",
+  "Creada": "secondary",
   "En proceso": "warning",
   "En Proceso": "warning",
   "En Produccin": "warning",

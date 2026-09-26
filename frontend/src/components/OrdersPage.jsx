@@ -18,7 +18,7 @@ const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 const getClaims = () => { try { return JSON.parse(localStorage.getItem("user_claims") || "{}"); } catch { return {}; } };
 
 const STATUS_COLORS = {
-  "Creada": "warning",
+  "Creada": "secondary",
   "En proceso": "warning",
   "En Proceso": "warning",
   "En Produccin": "warning",
