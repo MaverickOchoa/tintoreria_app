@@ -589,8 +589,10 @@ def seed_all_data(db: Session = Depends(get_db)):
 
 
 @router.get("/debug/orders/stats")
-def debug_order_stats(db: Session = Depends(get_db)):
+def debug_order_stats(branch_id: int = None, db: Session = Depends(get_db)):
     q = db.query(Order).filter(Order.status.notin_(["Entregado", "Cancelado"]))
+    if branch_id:
+        q = q.filter(Order.branch_id == branch_id)
     orders = q.all()
     
     from datetime import datetime, timedelta
