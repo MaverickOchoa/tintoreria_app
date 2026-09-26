@@ -587,3 +587,62 @@ def seed_all_data(db: Session = Depends(get_db)):
 
 
 
+
+@router.get("/debug/orders/stats")
+def debug_order_stats(db: Session = Depends(get_db)):
+    q = db.query(Order).filter(Order.status.notin_(["Entregado", "Cancelado"]))
+    orders = q.all()
+    
+    from datetime import datetime, timedelta
+    now_date = datetime.utcnow().date()
+    
+    stats = {
+        "overdue": 0,
+        "today_normal": 0,
+        "today_urgent": 0,
+        "today_extra": 0,
+        "past_30": 0,
+        "past_60": 0,
+        "past_90": 0,
+        "debug_count": len(orders),
+        "debug_types": []
+    }
+    
+    for o in orders:
+        if not o.delivery_date:
+            continue
+        
+        if isinstance(o.delivery_date, datetime):
+            dd = o.delivery_date.date()
+        elif isinstance(o.delivery_date, str):
+            try:
+                dd = datetime.fromisoformat(o.delivery_date.replace("Z", "")).date()
+            except Exception:
+                continue
+        else:
+            try:
+                dd = o.delivery_date.date()
+            except Exception:
+                dd = o.delivery_date
+                
+        stats["debug_types"].append({"id": o.id, "dd": str(dd), "urgency": o.urgency})
+        
+        if type(dd) != type(now_date):
+            continue
+            
+        if dd < now_date:
+            stats["overdue"] += 1
+            days_past = (now_date - dd).days
+            if days_past >= 90:
+                stats["past_90"] += 1
+            elif days_past >= 60:
+                stats["past_60"] += 1
+            elif days_past >= 30:
+                stats["past_30"] += 1
+        elif dd == now_date:
+            urg = (o.urgency or "normal").lower()
+            if urg == "normal": stats["today_normal"] += 1
+            elif urg == "urgent": stats["today_urgent"] += 1
+            elif urg == "extra_urgent": stats["today_extra"] += 1
+
+    return stats
