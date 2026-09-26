@@ -406,11 +406,11 @@ def update_branch_config(branch_id: int, payload: dict, claims: dict = Depends(r
     if not branch: raise HTTPException(status_code=404)
     if branch.business_id != claims.get("business_id"): raise HTTPException(status_code=403, detail="Acceso denegado a esta sucursal")
     cfg = branch.get_config()
-    cfg["payment_points"] = payload.get("payment_points", cfg.get("payment_points", False))
-    cfg["points_per_peso"] = float(payload.get("points_per_peso", cfg.get("points_per_peso", 0.0)))
-    cfg["uses_iva"] = payload.get("uses_iva", cfg.get("uses_iva", False))
-    cfg["discount_enabled"] = payload.get("discount_enabled", cfg.get("discount_enabled", True))
-    branch.set_config(cfg)
+    if "payment_points" in payload: branch.payment_points = payload["payment_points"]
+    if "points_per_peso" in payload: branch.points_per_peso = float(payload["points_per_peso"])
+    if "peso_per_point" in payload: branch.peso_per_point = float(payload["peso_per_point"])
+    if "uses_iva" in payload: branch.uses_iva = payload["uses_iva"]
+    if "discount_enabled" in payload: branch.discount_enabled = payload["discount_enabled"]
     db.commit()
     db.refresh(branch)
     return branch.to_dict()
