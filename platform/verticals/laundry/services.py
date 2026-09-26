@@ -165,13 +165,14 @@ def create_order(db: Session, data: dict, claims: dict) -> Order:
             ))
             ticket_seq += 1
 
-    if branch_cfg.get("payment_points") and payment_status == "paid":
-        ppp = branch_cfg.get("points_per_peso", 0)
-        client.points_balance = (client.points_balance or 0) + round(total * ppp, 2)
-
     total_points_used = sum(float(p.get("points_used", 0)) for p in payments_data)
     if total_points_used > 0:
         client.points_balance = max(0, (client.points_balance or 0) - total_points_used)
+
+    if branch_cfg.get("payment_points") and payment_status == "paid":
+        if total_points_used == 0:
+            ppp = branch_cfg.get("points_per_peso", 0)
+            client.points_balance = (client.points_balance or 0) + round(total * ppp, 2)
 
     db.commit()
     db.refresh(new_order)

@@ -101,7 +101,7 @@ const OrdersPage = () => {
     const payments = [];
     if (cashAmt > 0) payments.push({ method: "cash", amount: cashAmt });
     if (cardAmt > 0) payments.push({ method: "card", amount: cardAmt });
-    if (ptsAmt  > 0) payments.push({ method: "points", amount: ptsVal });
+    if (ptsAmt  > 0) payments.push({ method: "points", amount: ptsVal, points_used: ptsAmt });
     if (deliverBalance > 0 && payments.length === 0) {
       setError("Debes registrar el pago para entregar."); return;
     }

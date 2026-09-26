@@ -28,6 +28,14 @@ class OrderStatusUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+class PaymentItem(BaseModel):
+    method: str
+    amount: float
+    points_used: Optional[float] = 0.0
+
+class OrderDeliverIn(BaseModel):
+    payments: List[PaymentItem] = []
+
 class OrderPaymentIn(BaseModel):
     method: str
     amount: float

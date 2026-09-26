@@ -191,12 +191,39 @@ def add_payment(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Orden no encontrada.")
-    payment = OrderPayment(order_id=order_id, method=payload.method, amount=payload.amount, reference=payload.reference)
+        
+    points_used = 0.0
+    if payload.method == "points":
+        # Usually points amount = points_used since 1 peso = 1 point in redemption,
+        # but to be perfectly safe, we deduct the monetary amount from points_balance.
+        points_used = float(payload.amount)
+        
+    payment = OrderPayment(order_id=order_id, method=payload.method, amount=payload.amount, reference=payload.reference, points_used=points_used)
     db.add(payment)
+    
+    if points_used > 0:
+        client = db.query(Client).filter(Client.id == order.client_id).first()
+        if client:
+            client.points_balance = max(0, (client.points_balance or 0) - points_used)
+            
     total_paid = sum(float(p.amount) for p in order.payments) + float(payload.amount)
+    
+    # Do we award points if it's fully paid now?
+    # NO: The user explicitly said: "si pagan con puntos ya no generan puntos".
+    # Since OrderPaymentIn is just a single payment, we can check if the order has ANY points payments.
+    
     if total_paid >= float(order.total_amount):
         order.payment_status = "paid"
         order.amount_paid = order.total_amount
+        
+        # Check if points were used in any payment for this order
+        used_points_in_order = any(p.points_used > 0 for p in order.payments) or (points_used > 0)
+        if not used_points_in_order:
+            branch = db.query(Branch).filter(Branch.id == order.branch_id).first()
+            if branch and branch.payment_points:
+                client = db.query(Client).filter(Client.id == order.client_id).first()
+                if client:
+                    client.points_balance = (client.points_balance or 0) + round(float(order.total_amount) * branch.points_per_peso, 2)
     else:
         order.payment_status = "partial"
         order.amount_paid = total_paid
@@ -277,12 +304,46 @@ def assign_carousel(
     return {"message": "Posición asignada", "order": order.to_dict()}
 
 
+from verticals.laundry.schemas import OrderDeliverIn
+from core.models.payment import OrderPayment
+from core.models.client import Client
+
 @router.post("/orders/{order_id}/deliver")
-def deliver_order(order_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+def deliver_order(order_id: int, payload: OrderDeliverIn, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Orden no encontrada.")
-    order.status = "Entregada"
+    if order.status == "Entregado":
+        raise HTTPException(status_code=400, detail="Esta orden ya fue entregada")
+    if order.status == "Cancelado":
+        raise HTTPException(status_code=400, detail="No se puede entregar una orden cancelada")
+    
+    total = float(order.total_amount)
+    prev_paid = float(order.amount_paid)
+    remaining = round(total - prev_paid, 2)
+    new_paid = round(sum(p.amount for p in payload.payments), 2)
+    
+    if remaining > 0 and new_paid < remaining:
+        raise HTTPException(status_code=400, detail=f"Saldo pendiente: ${remaining}. Debe liquidarse completo para entregar")
+        
+    client = db.query(Client).filter(Client.id == order.client_id).first()
+    total_points_used = 0.0
+    
+    for p in payload.payments:
+        db.add(OrderPayment(
+            order_id=order.id,
+            method=p.method,
+            amount=p.amount,
+            points_used=p.points_used or 0.0
+        ))
+        total_points_used += float(p.points_used or 0.0)
+        
+    if total_points_used > 0 and client:
+        client.points_balance = max(0, (client.points_balance or 0) - total_points_used)
+        
+    order.payment_status = "paid"
+    order.amount_paid = total
+    order.status = "Entregado"
     order.delivered_at = datetime.utcnow()
     db.commit()
     return order.to_dict()
