@@ -60,8 +60,31 @@ def dispatch_event(db: Session, event_type: str, business_id: int, client: Clien
     db.commit()
         
     subs = db.query(ClientPushSubscription).filter(ClientPushSubscription.client_id == client.id).all()
+    
+    # Also trigger legacy Whatsapp/Email logic
+    try:
+        import sys
+        if "backend.app" in sys.modules:
+            dispatch_trigger = sys.modules["backend.app"].dispatch_trigger
+            # Create a mock object that matches what legacy dispatch_trigger expects
+            class LegacyClientMock:
+                def __init__(self, c):
+                    self.id = c.id
+                    self.full_name = c.full_name
+                    self.last_name = c.last_name
+                    self.email = c.email
+                    self.phone = c.phone
+                    self.whatsapp_consent = getattr(c, "whatsapp_consent", True)
+                    self.email_consent = getattr(c, "email_consent", True)
+                    self.username = getattr(c, "username", "")
+            
+            with sys.modules["backend.app"].app.app_context():
+                dispatch_trigger(event_type, business_id, LegacyClientMock(client), extra)
+    except Exception as e:
+        logger.error(f"Failed to call legacy dispatch_trigger: {e}")
+
     if not subs:
-        logger.info(f"No push subscriptions for Client {client.id}. Falling back to WhatsApp/Email logic.")
+        logger.info(f"No push subscriptions for Client {client.id}.")
         return
         
     pushed = False
