@@ -47,6 +47,12 @@ _STARTUP_MIGRATIONS = [
     "CREATE TABLE IF NOT EXISTS client_messages (id SERIAL PRIMARY KEY, client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE, title VARCHAR(200) NOT NULL, body TEXT NOT NULL, is_read BOOLEAN DEFAULT FALSE NOT NULL, created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now())",
     "CREATE TABLE IF NOT EXISTS client_push_subscriptions (id SERIAL PRIMARY KEY, client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE, endpoint TEXT NOT NULL, p256dh TEXT NOT NULL, auth TEXT NOT NULL, created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now())",
 
+    
+    "ALTER TABLE whatsapp_templates ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES businesses(id)",
+    "ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES businesses(id)",
+    "ALTER TABLE trigger_channel_config ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES businesses(id)",
+    "ALTER TABLE date_campaigns ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES businesses(id)",
+
     "CREATE TABLE IF NOT EXISTS whatsapp_templates (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, template_text TEXT NOT NULL, business_id INTEGER REFERENCES businesses(id))",
     "CREATE TABLE IF NOT EXISTS email_templates (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, subject VARCHAR(200) NOT NULL, body_html TEXT NOT NULL, business_id INTEGER REFERENCES businesses(id))",
     "CREATE TABLE IF NOT EXISTS trigger_channel_config (id SERIAL PRIMARY KEY, trigger_type VARCHAR(50) NOT NULL, channel VARCHAR(50) NOT NULL, template_id INTEGER NOT NULL, business_id INTEGER REFERENCES businesses(id))",

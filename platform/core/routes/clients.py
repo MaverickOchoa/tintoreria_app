@@ -165,3 +165,9 @@ def add_discount(
     db.commit()
     db.refresh(discount)
     return discount.to_dict()
+
+@router.get("/businesses/{business_id}/clients")
+def list_business_clients(business_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    # Optional: verify business_id against claims if needed
+    q = db.query(Client).join(Branch).filter(Branch.business_id == business_id).all()
+    return {"clients": [c.to_dict() for c in q]}
