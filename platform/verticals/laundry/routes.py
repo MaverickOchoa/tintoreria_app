@@ -229,7 +229,7 @@ def order_stats(
     db: Session = Depends(get_db),
 ):
     effective_branch = branch_id or claims.get("branch_id") or claims.get("active_branch_id")
-    q = db.query(Order).filter(Order.status.not_in(["Entregado", "Cancelado"]))
+    q = db.query(Order).filter(Order.status.notin_(["Entregado", "Cancelado"]))
     if effective_branch:
         q = q.filter(Order.branch_id == effective_branch)
     elif claims.get("business_id"):
@@ -254,8 +254,23 @@ def order_stats(
     for o in orders:
         if not o.delivery_date:
             continue
-        dd = o.delivery_date.date() if isinstance(o.delivery_date, datetime) else o.delivery_date
         
+        if isinstance(o.delivery_date, datetime):
+            dd = o.delivery_date.date()
+        elif isinstance(o.delivery_date, str):
+            try:
+                dd = datetime.fromisoformat(o.delivery_date.replace("Z", "")).date()
+            except Exception:
+                continue
+        else:
+            try:
+                dd = o.delivery_date.date()
+            except Exception:
+                dd = o.delivery_date
+        
+        if type(dd) != type(now_date):
+            continue
+            
         if dd < now_date:
             stats["overdue"] += 1
             days_past = (now_date - dd).days
