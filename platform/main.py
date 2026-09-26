@@ -52,6 +52,8 @@ _STARTUP_MIGRATIONS = [
     "ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES businesses(id)",
     "ALTER TABLE trigger_channel_config ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES businesses(id)",
     "ALTER TABLE date_campaigns ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES businesses(id)",
+    "ALTER TABLE branches ADD COLUMN IF NOT EXISTS carousel_format_hint VARCHAR(100)",
+    "ALTER TABLE branches ADD COLUMN IF NOT EXISTS extra_urgent_pct FLOAT",
 
     "CREATE TABLE IF NOT EXISTS whatsapp_templates (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, template_text TEXT NOT NULL, business_id INTEGER REFERENCES businesses(id))",
     "CREATE TABLE IF NOT EXISTS email_templates (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, subject VARCHAR(200) NOT NULL, body_html TEXT NOT NULL, business_id INTEGER REFERENCES businesses(id))",
