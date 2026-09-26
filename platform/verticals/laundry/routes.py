@@ -51,6 +51,72 @@ def list_orders(
     return {"orders": [o.to_dict() for o in orders]}
 
 
+@router.get("/orders/stats")
+def order_stats(
+    branch_id: Optional[int] = None,
+    claims: dict = Depends(get_current_claims),
+    db: Session = Depends(get_db),
+):
+    effective_branch = branch_id or claims.get("branch_id") or claims.get("active_branch_id")
+    q = db.query(Order).filter(Order.status.notin_(["Entregado", "Cancelado"]))
+    if effective_branch:
+        q = q.filter(Order.branch_id == effective_branch)
+    elif claims.get("business_id"):
+        biz_id = claims.get("business_id")
+        branch_ids = [b.id for b in db.query(Branch).filter_by(business_id=biz_id).all()]
+        q = q.filter(Order.branch_id.in_(branch_ids))
+    orders = q.all()
+    
+    from datetime import datetime, timedelta
+    now_date = datetime.utcnow().date()
+    
+    stats = {
+        "overdue": 0,
+        "today_normal": 0,
+        "today_urgent": 0,
+        "today_extra": 0,
+        "past_30": 0,
+        "past_60": 0,
+        "past_90": 0,
+    }
+    
+    for o in orders:
+        if not o.delivery_date:
+            continue
+        
+        if isinstance(o.delivery_date, datetime):
+            dd = o.delivery_date.date()
+        elif isinstance(o.delivery_date, str):
+            try:
+                dd = datetime.fromisoformat(o.delivery_date.replace("Z", "")).date()
+            except Exception:
+                continue
+        else:
+            try:
+                dd = o.delivery_date.date()
+            except Exception:
+                dd = o.delivery_date
+        
+        if type(dd) != type(now_date):
+            continue
+            
+        if dd < now_date:
+            stats["overdue"] += 1
+            days_past = (now_date - dd).days
+            if days_past >= 90:
+                stats["past_90"] += 1
+            elif days_past >= 60:
+                stats["past_60"] += 1
+            elif days_past >= 30:
+                stats["past_30"] += 1
+        elif dd == now_date:
+            urg = o.urgency or "normal"
+            if urg == "normal": stats["today_normal"] += 1
+            elif urg == "urgent": stats["today_urgent"] += 1
+            elif urg == "extra_urgent": stats["today_extra"] += 1
+
+    return stats
+
 @router.get("/orders/{order_id}")
 def get_order(order_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.id == order_id).first()
@@ -222,71 +288,7 @@ def deliver_order(order_id: int, claims: dict = Depends(get_current_claims), db:
     return order.to_dict()
 
 
-@router.get("/orders/stats")
-def order_stats(
-    branch_id: Optional[int] = None,
-    claims: dict = Depends(get_current_claims),
-    db: Session = Depends(get_db),
-):
-    effective_branch = branch_id or claims.get("branch_id") or claims.get("active_branch_id")
-    q = db.query(Order).filter(Order.status.notin_(["Entregado", "Cancelado"]))
-    if effective_branch:
-        q = q.filter(Order.branch_id == effective_branch)
-    elif claims.get("business_id"):
-        biz_id = claims.get("business_id")
-        branch_ids = [b.id for b in db.query(Branch).filter_by(business_id=biz_id).all()]
-        q = q.filter(Order.branch_id.in_(branch_ids))
-    orders = q.all()
-    
-    from datetime import datetime, timedelta
-    now_date = datetime.utcnow().date()
-    
-    stats = {
-        "overdue": 0,
-        "today_normal": 0,
-        "today_urgent": 0,
-        "today_extra": 0,
-        "past_30": 0,
-        "past_60": 0,
-        "past_90": 0,
-    }
-    
-    for o in orders:
-        if not o.delivery_date:
-            continue
-        
-        if isinstance(o.delivery_date, datetime):
-            dd = o.delivery_date.date()
-        elif isinstance(o.delivery_date, str):
-            try:
-                dd = datetime.fromisoformat(o.delivery_date.replace("Z", "")).date()
-            except Exception:
-                continue
-        else:
-            try:
-                dd = o.delivery_date.date()
-            except Exception:
-                dd = o.delivery_date
-        
-        if type(dd) != type(now_date):
-            continue
-            
-        if dd < now_date:
-            stats["overdue"] += 1
-            days_past = (now_date - dd).days
-            if days_past >= 90:
-                stats["past_90"] += 1
-            elif days_past >= 60:
-                stats["past_60"] += 1
-            elif days_past >= 30:
-                stats["past_30"] += 1
-        elif dd == now_date:
-            urg = o.urgency or "normal"
-            if urg == "normal": stats["today_normal"] += 1
-            elif urg == "urgent": stats["today_urgent"] += 1
-            elif urg == "extra_urgent": stats["today_extra"] += 1
 
-    return stats
 
 
 @router.get("/services")
