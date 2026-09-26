@@ -40,7 +40,7 @@ def cash_cut_preview(
         payments = (db.query(OrderPayment.method, func.sum(OrderPayment.amount))
             .join(Order, Order.id == OrderPayment.order_id)
             .filter(Order.branch_id == branch_id)
-            .filter(Order.order_date >= period_from)
+            .filter(OrderPayment.created_at >= period_from)
             .group_by(OrderPayment.method)
             .all())
 
@@ -122,7 +122,7 @@ def create_cash_cut(
         payments = (db.query(OrderPayment.method, func.sum(OrderPayment.amount))
             .join(Order, Order.id == OrderPayment.order_id)
             .filter(Order.branch_id == branch_id)
-            .filter(Order.order_date >= period_from)
+            .filter(OrderPayment.created_at >= period_from)
             .group_by(OrderPayment.method)
             .all())
             

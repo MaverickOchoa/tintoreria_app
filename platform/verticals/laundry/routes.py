@@ -229,7 +229,7 @@ def order_stats(
     db: Session = Depends(get_db),
 ):
     effective_branch = branch_id or claims.get("branch_id") or claims.get("active_branch_id")
-    q = db.query(Order)
+    q = db.query(Order).filter(Order.status.not_in(["Entregado", "Cancelado"]))
     if effective_branch:
         q = q.filter(Order.branch_id == effective_branch)
     elif claims.get("business_id"):
@@ -237,10 +237,41 @@ def order_stats(
         branch_ids = [b.id for b in db.query(Branch).filter_by(business_id=biz_id).all()]
         q = q.filter(Order.branch_id.in_(branch_ids))
     orders = q.all()
-    status_counts = {}
+    
+    from datetime import datetime, timedelta
+    now_date = datetime.utcnow().date()
+    
+    stats = {
+        "overdue": 0,
+        "today_normal": 0,
+        "today_urgent": 0,
+        "today_extra": 0,
+        "past_30": 0,
+        "past_60": 0,
+        "past_90": 0,
+    }
+    
     for o in orders:
-        status_counts[o.status] = status_counts.get(o.status, 0) + 1
-    return {"status_counts": status_counts, "total": len(orders)}
+        if not o.delivery_date:
+            continue
+        dd = o.delivery_date.date() if isinstance(o.delivery_date, datetime) else o.delivery_date
+        
+        if dd < now_date:
+            stats["overdue"] += 1
+            days_past = (now_date - dd).days
+            if days_past >= 90:
+                stats["past_90"] += 1
+            elif days_past >= 60:
+                stats["past_60"] += 1
+            elif days_past >= 30:
+                stats["past_30"] += 1
+        elif dd == now_date:
+            urg = o.urgency or "normal"
+            if urg == "normal": stats["today_normal"] += 1
+            elif urg == "urgent": stats["today_urgent"] += 1
+            elif urg == "extra_urgent": stats["today_extra"] += 1
+
+    return stats
 
 
 @router.get("/services")
