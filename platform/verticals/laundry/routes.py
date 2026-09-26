@@ -24,6 +24,16 @@ def post_order(payload: dict, claims: dict = Depends(get_current_claims), db: Se
     return {"message": "Orden creada.", "order": order.to_dict()}
 
 
+def _auto_advance_orders(orders, db: Session):
+    now = datetime.utcnow()
+    changed = False
+    for o in orders:
+        if o.status == "Creada" and o.order_date and (now - o.order_date).total_seconds() >= 7200:
+            o.status = "En proceso"
+            changed = True
+    if changed:
+        db.commit()
+
 @router.get("/orders")
 def list_orders(
     branch_id: Optional[int] = None,
@@ -48,6 +58,7 @@ def list_orders(
     if status:
         q = q.filter(Order.status == status)
     orders = q.order_by(Order.order_date.desc()).limit(200).all()
+    _auto_advance_orders(orders, db)
     return {"orders": [o.to_dict() for o in orders]}
 
 
@@ -122,6 +133,7 @@ def get_order(order_id: int, claims: dict = Depends(get_current_claims), db: Ses
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Orden no encontrada.")
+    _auto_advance_orders([order], db)
     return order.to_dict()
 
 
@@ -241,6 +253,7 @@ def get_order_by_folio(folio: str, claims: dict = Depends(get_current_claims), d
     order = q.first()
     if not order:
         raise HTTPException(status_code=404, detail="Orden no encontrada")
+    _auto_advance_orders([order], db)
     
     # Check permissions (super admin or same business)
     if not claims.get("is_super_admin"):
