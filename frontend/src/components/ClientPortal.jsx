@@ -66,6 +66,46 @@ export default function ClientPortal() {
   const [cpForm, setCpForm] = useState({ current: "", next: "", confirm: "" });
   const [cpMsg, setCpMsg] = useState(null);
   const [cpSaving, setCpSaving] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [birthDay, setBirthDay] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [profileMsg, setProfileMsg] = useState(null);
+
+  const handleUpdateProfile = async () => {
+    if (!birthDay || !birthMonth) {
+      setProfileMsg({ type: "error", text: "Selecciona tu día y mes de nacimiento" });
+      return;
+    }
+    setProfileSaving(true);
+    setProfileMsg(null);
+    try {
+      const token = localStorage.getItem("client_access_token");
+      const res = await fetch(`${API}/client-portal/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          date_of_birth_day: parseInt(birthDay, 10),
+          date_of_birth_month: parseInt(birthMonth, 10)
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMe(data);
+        setEditingProfile(false);
+        setProfileMsg({ type: "success", text: "Perfil actualizado exitosamente" });
+      } else {
+        setProfileMsg({ type: "error", text: data.detail || "Error al actualizar" });
+      }
+    } catch (err) {
+      setProfileMsg({ type: "error", text: "Error de conexión" });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -247,41 +287,6 @@ export default function ClientPortal() {
             </Button>
           </Box>
 
-          <Stack direction="row" spacing={2} sx={{ mt: 2, mb: 2 }} flexWrap="wrap">
-            <Button 
-              variant="contained" 
-              color="primary" 
-              startIcon={<DownloadIcon />} 
-              onClick={handleInstallClick}
-              sx={{ borderRadius: "20px" }}
-            >
-              Instalar App
-            </Button>
-            
-            {pushStatus !== 'granted' ? (
-              <Button 
-                variant="outlined" 
-                color="primary" 
-                startIcon={<NotificationsActiveIcon />} 
-                onClick={handleSubscribePush}
-                disabled={isSubscribing}
-                sx={{ borderRadius: "20px" }}
-              >
-                Activar Notificaciones
-              </Button>
-            ) : (
-              <Button 
-                variant="outlined" 
-                color="success" 
-                startIcon={<NotificationsActiveIcon />} 
-                disabled
-                sx={{ borderRadius: "20px", opacity: "0.8 !important" }}
-              >
-                Notificaciones Activas
-              </Button>
-            )}
-          </Stack>
-
           <Dialog open={showInstallGuide} onClose={() => setShowInstallGuide(false)}>
             <DialogTitle>Instalar Aplicación</DialogTitle>
             <DialogContent>
@@ -398,9 +403,46 @@ export default function ClientPortal() {
           )}
 
           {/* MIS DATOS */}
-          {tab === 1 && me && (
-            <Stack spacing={1.5}>
-              <Box display="flex" justifyContent="space-between">
+          {tab === 1 && me && (<Stack spacing={3}>
+<Box><Typography variant="h6" fontWeight={700}>Opciones de App</Typography>
+
+          <Stack direction="row" spacing={2} sx={{ mt: 1, mb: 0 }} flexWrap="wrap">
+            <Button 
+              variant="contained" 
+              color="primary" 
+              startIcon={<DownloadIcon />} 
+              onClick={handleInstallClick}
+              sx={{ borderRadius: "20px" }}
+            >
+              Instalar App
+            </Button>
+            
+            {pushStatus !== 'granted' ? (
+              <Button 
+                variant="outlined" 
+                color="primary" 
+                startIcon={<NotificationsActiveIcon />} 
+                onClick={handleSubscribePush}
+                disabled={isSubscribing}
+                sx={{ borderRadius: "20px" }}
+              >
+                Activar Notificaciones
+              </Button>
+            ) : (
+              <Button 
+                variant="outlined" 
+                color="success" 
+                startIcon={<NotificationsActiveIcon />} 
+                disabled
+                sx={{ borderRadius: "20px", opacity: "0.8 !important" }}
+              >
+                Notificaciones Activas
+              </Button>
+            )}
+          </Stack></Box>
+<Box><Typography variant="h6" fontWeight={700} mb={1}>Perfil</Typography>
+<Stack spacing={1.5}>
+<Box display="flex" justifyContent="space-between">
                 <Typography color="text.secondary">Nombre</Typography>
                 <Typography fontWeight={500}>{me.full_name} {me.last_name || ""}</Typography>
               </Box>
@@ -423,24 +465,61 @@ export default function ClientPortal() {
                   <Chip label={me.client_type_name} size="small" color="primary" />
                 </Box>
               </>}
-              {(me.date_of_birth_day && me.date_of_birth_month) && <>
-                <Divider />
-                <Box display="flex" justifyContent="space-between">
-                  <Typography color="text.secondary">Cumpleaños</Typography>
-                  <Typography fontWeight={500}>
-                    {me.date_of_birth_day} de {MONTHS[parseInt(me.date_of_birth_month, 10)] || ""}
-                  </Typography>
-                </Box>
-              </>}
+              
+              {(!me.date_of_birth_day || !me.date_of_birth_month) ? (
+                editingProfile ? (
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
+                    <Typography variant="subtitle2" fontWeight={700} mb={1}>Completar Perfil</Typography>
+                    {profileMsg && <Alert severity={profileMsg.type} sx={{ mb: 1 }}>{profileMsg.text}</Alert>}
+                    <Stack direction="row" spacing={1} mb={2}>
+                      <TextField select SelectProps={{ native: true }} label="Día" value={birthDay} onChange={e => setBirthDay(e.target.value)} size="small" fullWidth>
+                        <option value=""></option>
+                        {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                      </TextField>
+                      <TextField select SelectProps={{ native: true }} label="Mes" value={birthMonth} onChange={e => setBirthMonth(e.target.value)} size="small" fullWidth>
+                        <option value=""></option>
+                        {MONTHS.slice(1).map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+                      </TextField>
+                    </Stack>
+                    <Stack direction="row" spacing={1}>
+                      <Button variant="contained" size="small" onClick={handleUpdateProfile} disabled={profileSaving}>{profileSaving ? "Guardando..." : "Guardar"}</Button>
+                      <Button variant="outlined" size="small" onClick={() => setEditingProfile(false)} disabled={profileSaving}>Cancelar</Button>
+                    </Stack>
+                  </Paper>
+                ) : (
+                  <>
+                    <Divider />
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Typography color="text.secondary">Cumpleaños</Typography>
+                      <Button size="small" variant="outlined" color="primary" onClick={() => setEditingProfile(true)}>
+                        Completar Perfil
+                      </Button>
+                    </Box>
+                  </>
+                )
+              ) : (
+                <>
+                  <Divider />
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography color="text.secondary">Cumpleaños</Typography>
+                    <Typography fontWeight={500}>
+                      {me.date_of_birth_day} de {MONTHS[parseInt(me.date_of_birth_month, 10)] || ""}
+                    </Typography>
+                  </Box>
+                </>
+              )}
+
               <Divider />
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "primary.50", borderRadius: 1, px: 2, py: 1.5, border: "1px solid", borderColor: "primary.200" }}>
                 <Typography fontWeight={700} color="primary.main">Puntos acumulados</Typography>
                 <Typography variant="h6" fontWeight={700} color="primary.main">{(me.points_balance || 0).toFixed(0)} pts</Typography>
               </Box>
-              <Alert severity="info" sx={{ mt: 1 }}>
-                Para modificar tus datos acude a cualquier sucursal.
-              </Alert>
-            </Stack>
+              {!editingProfile && (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  Para modificar otros datos acude a cualquier sucursal.
+                </Alert>
+              )}
+            </Stack></Box></Stack>
           )}
 
           {/* DESCUENTOS Y PROMOCIONES */}

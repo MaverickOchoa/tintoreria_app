@@ -54,6 +54,28 @@ def client_login(payload: LoginRequest, db: Session = Depends(get_db)):
         "full_name": client.full_name
     }
 
+class ClientPortalUpdateIn(BaseModel):
+    date_of_birth_day: int = None
+    date_of_birth_month: int = None
+
+@router.put("/client-portal/me")
+def update_client_me(payload: ClientPortalUpdateIn, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    if claims.get("role") != "client":
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    client_id = claims.get("client_id")
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        
+    if payload.date_of_birth_day:
+        client.date_of_birth_day = payload.date_of_birth_day
+    if payload.date_of_birth_month:
+        client.date_of_birth_month = payload.date_of_birth_month
+        
+    db.commit()
+    db.refresh(client)
+    return client.to_dict()
+
 @router.get("/client-portal/me")
 def get_client_me(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
     if claims.get("role") != "client":
