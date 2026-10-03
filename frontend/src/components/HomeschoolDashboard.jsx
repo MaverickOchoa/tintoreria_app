@@ -333,9 +333,9 @@ const HomeschoolDashboard = () => {
                   <Box mt={3}>
                     <Box display="flex" justifyContent="space-between" mb={1}>
                       <Typography variant="body2" color="text.secondary">Progreso Semanal</Typography>
-                      <Typography variant="body2" fontWeight="bold">0%</Typography>
-                    </Box>
-                    <LinearProgress variant="determinate" value={0} sx={{ height: 8, borderRadius: 4 }} />
+                      <Typography variant="body2" fontWeight="bold">{student.weekly_progress || 0}%</Typography>
+                      </Box>
+                      <LinearProgress variant="determinate" value={student.weekly_progress || 0} sx={{ height: 8, borderRadius: 4 }} />
                   </Box>
                   
                   <Box mt={3} display="flex" flexDirection="column" gap={1}>
