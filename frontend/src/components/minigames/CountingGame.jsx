@@ -66,6 +66,7 @@ export default function CountingGame({ onWin }) {
     if (basketApples.length === targetNumber) {
       setSuccess(true);
       setMessage('¡Excelente! Lo hiciste muy bien. 🌟');
+      if (onWin) onWin(1.0);
     } else {
       setSuccess(false);
       if (basketApples.length > targetNumber) {
