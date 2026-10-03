@@ -20,6 +20,7 @@ import AddBusinessIcon from "@mui/icons-material/AddBusiness";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
+import SchoolIcon from "@mui/icons-material/School";
 
 import { toTitleCase } from "../utils";
 
