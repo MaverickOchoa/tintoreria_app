@@ -1,0 +1,103 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from typing import List, Optional, Any
+from datetime import datetime
+
+from core.database import get_db
+from core.dependencies import get_current_claims
+from verticals.homeschool.models import (
+    HSGrade, HSSubject, HSDomain, HSObjective, 
+    HSStudent, HSStudentMastery, MasteryStatus
+)
+
+router = APIRouter(prefix="/homeschool", tags=["homeschool"])
+
+# --- SCHEMAS ---
+class StudentCreate(BaseModel):
+    first_name: str
+    last_name: str
+    grade_id: int
+    date_of_birth: Optional[datetime] = None
+    bilingual_preference: str = "es"
+
+class MasteryUpdate(BaseModel):
+    objective_id: int
+    status: MasteryStatus
+    progress_score: float = 0.0
+
+# --- ROUTES ---
+
+@router.get("/curriculum")
+def get_curriculum(db: Session = Depends(get_db)):
+    """Returns the base curriculum structure (Grades and Subjects)"""
+    grades = db.query(HSGrade).order_by(HSGrade.level_order).all()
+    subjects = db.query(HSSubject).all()
+    
+    return {
+        "grades": grades,
+        "subjects": subjects
+    }
+
+@router.get("/students")
+def get_students(claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    """Get all students registered in the family (Business)"""
+    business_id = claims.get("business_id")
+    if not business_id:
+        raise HTTPException(status_code=400, detail="Not associated with a family/business")
+        
+    students = db.query(HSStudent).filter(HSStudent.business_id == business_id).all()
+    return students
+
+@router.post("/students")
+def create_student(data: StudentCreate, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    """Register a new student in the family"""
+    business_id = claims.get("business_id")
+    if not business_id:
+        raise HTTPException(status_code=400, detail="Not associated with a family/business")
+        
+    student = HSStudent(
+        business_id=business_id,
+        first_name=data.first_name,
+        last_name=data.last_name,
+        grade_id=data.grade_id,
+        date_of_birth=data.date_of_birth,
+        bilingual_preference=data.bilingual_preference
+    )
+    db.add(student)
+    db.commit()
+    db.refresh(student)
+    return student
+
+@router.post("/students/{student_id}/mastery")
+def update_mastery(student_id: int, data: MasteryUpdate, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    """Update mastery from mini-games or parent manual check"""
+    business_id = claims.get("business_id")
+    
+    # Verify student belongs to family
+    student = db.query(HSStudent).filter(HSStudent.id == student_id, HSStudent.business_id == business_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found in this family")
+        
+    mastery = db.query(HSStudentMastery).filter(
+        HSStudentMastery.student_id == student_id,
+        HSStudentMastery.objective_id == data.objective_id
+    ).first()
+    
+    if not mastery:
+        mastery = HSStudentMastery(
+            student_id=student_id,
+            objective_id=data.objective_id,
+            status=data.status,
+            progress_score=data.progress_score,
+            last_assessed_at=datetime.utcnow()
+        )
+        db.add(mastery)
+    else:
+        mastery.status = data.status
+        mastery.progress_score = data.progress_score
+        mastery.last_assessed_at = datetime.utcnow()
+        
+    db.commit()
+    db.refresh(mastery)
+    return mastery
