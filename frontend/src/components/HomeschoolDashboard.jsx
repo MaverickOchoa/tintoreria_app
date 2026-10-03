@@ -303,35 +303,32 @@ const HomeschoolDashboard = () => {
           {students.map((student) => (
             <Grid item xs={12} sm={6} md={4} key={student.id}>
               <Card sx={{ borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', position: 'relative' }}>
-                  <IconButton 
-                    color="error" 
-                    size="small" 
-                    sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }} 
-                    onClick={() => handleDelete(student.id)} 
-                    title="Borrar alumno"
-                  >
-                    <span role="img" aria-label="borrar" style={{ fontSize: '1.2rem' }}>🗑️</span>
-                  </IconButton>
+                  
                 <CardContent>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <Avatar sx={{ 
-                      bgcolor: student.gender === 'girl' ? '#ec407a' : (student.gender === 'boy' ? '#29b6f6' : '#ab47bc'), 
-                      mr: 2, width: 64, height: 64, fontSize: '2rem', fontWeight: 'bold' 
-                    }}>
-                      {student.first_name.charAt(0)}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h6" fontWeight="bold">
-                        {student.first_name} {student.last_name}
-                      </Typography>
-                      <Chip 
-                        label={getGradeName(student.grade_id)} 
-                        size="small" 
-                        color="secondary" 
-                        sx={{ mt: 0.5, fontWeight: 'bold' }} 
-                      />
+                  <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
+                      <Box display="flex" alignItems="center">
+                        <Avatar sx={{ 
+                          bgcolor: student.gender === 'girl' ? '#ec407a' : (student.gender === 'boy' ? '#29b6f6' : '#ab47bc'), 
+                          mr: 2, width: 64, height: 64, fontSize: '2rem', fontWeight: 'bold' 
+                        }}>
+                          {student.first_name.charAt(0)}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h6" fontWeight="bold">
+                            {student.first_name} {student.last_name}
+                          </Typography>
+                          <Chip 
+                            label={getGradeName(student.grade_id)} 
+                            size="small" 
+                            color="secondary" 
+                            sx={{ mt: 0.5, fontWeight: 'bold' }} 
+                          />
+                        </Box>
+                      </Box>
+                      <IconButton color="error" size="small" onClick={() => handleDelete(student.id)} title="Borrar alumno">
+                        <span role="img" aria-label="borrar" style={{ fontSize: '1.2rem' }}>🗑️</span>
+                      </IconButton>
                     </Box>
-                  </Box>
                   
                   <Box mt={3}>
                     <Box display="flex" justifyContent="space-between" mb={1}>
@@ -356,6 +353,7 @@ const HomeschoolDashboard = () => {
                           variant="contained" 
                           sx={{ flex: 1, borderRadius: 4, bgcolor: '#29b6f6', color: 'white', fontWeight: 'bold', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 3px 6px rgba(41, 182, 246, 0.3)', '&:hover': { bgcolor: '#0288d1' } }} 
                           size="small"
+                          onClick={() => alert("El panel avanzado de progreso estará disponible en la siguiente actualización.")}
                         >
                           📊 Progreso
                         </Button>
