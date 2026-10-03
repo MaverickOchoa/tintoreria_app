@@ -111,6 +111,7 @@ const Login = () => {
       }
 
       const isClinic = data.vertical_type === "clinic";
+      const isHomeschool = data.vertical_type === "homeschool";
 
       // 4) redirect por rol
       switch (data.role) {
