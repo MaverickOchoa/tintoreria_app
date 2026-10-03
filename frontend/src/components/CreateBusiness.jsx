@@ -170,6 +170,7 @@ function CreateBusiness() {
                 {[
                   { value: "laundry", label: "Tintorería", icon: <StorefrontIcon fontSize="small" />, color: "#4361ee" },
                   { value: "clinic",  label: "Clínica",    icon: <LocalHospitalIcon fontSize="small" />, color: "#2ec4b6" },
+                  { value: "homeschool", label: "Homeschool", icon: <SchoolIcon fontSize="small" />, color: "#f72585" },
                 ].map(opt => (
                   <Box
                     key={opt.value}
