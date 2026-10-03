@@ -128,6 +128,20 @@ const HomeschoolDashboard = () => {
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
   };
 
+  const handleDelete = async (studentId) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este alumno?")) return;
+    try {
+      const token = localStorage.getItem("access_token");
+      const res = await fetch(`${API}/homeschool/students/${studentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) await fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleEdit = (student) => {
     setEditingStudentId(student.id);
     setFormData({
@@ -333,6 +347,12 @@ const HomeschoolDashboard = () => {
                         Ver Progreso
                       </Button>
                       <Button variant="outlined" fullWidth size="small" onClick={() => handleEdit(student)}>Editar</Button>
+                      <Button variant="text" color="error" size="small" sx={{ minWidth: "40px", ml: 1 }} onClick={() => handleDelete(student.id)}>
+                        🗑️
+                      </Button>
+                      <Button variant="text" color="error" size="small" sx={{ minWidth: "40px", ml: 1 }} onClick={() => handleDelete(student.id)}>
+                        🗑️
+                      </Button>
                     </Box>
                   </Box>
                 </CardContent>
