@@ -253,13 +253,25 @@ const HomeschoolDashboard = () => {
                     <LinearProgress variant="determinate" value={0} sx={{ height: 8, borderRadius: 4 }} />
                   </Box>
                   
-                  <Box mt={3} display="flex" gap={1}>
-                    <Button variant="contained" fullWidth size="small">
-                      Ver Progreso
+                  <Box mt={3} display="flex" flexDirection="column" gap={1}>
+                    <Button 
+                      variant="contained" 
+                      color="secondary"
+                      fullWidth 
+                      size="large"
+                      onClick={() => navigate(`/homeschool/student/${student.id}`)}
+                      sx={{ borderRadius: 3, fontWeight: "bold", textTransform: "none", fontSize: "1.1rem" }}
+                    >
+                      Entrar al Aula 🚀
                     </Button>
-                    <Button variant="outlined" fullWidth size="small">
-                      Editar
-                    </Button>
+                    <Box display="flex" gap={1}>
+                      <Button variant="outlined" fullWidth size="small">
+                        Ver Progreso
+                      </Button>
+                      <Button variant="outlined" fullWidth size="small">
+                        Editar
+                      </Button>
+                    </Box>
                   </Box>
                 </CardContent>
               </Card>
