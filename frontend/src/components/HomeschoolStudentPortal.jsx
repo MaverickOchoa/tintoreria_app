@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  Container, Typography, Box, AppBar, Toolbar, IconButton, 
-  Card, CardContent, Button, Grid
-} from "@mui/material";
+import { Container, Typography, Box, AppBar, Toolbar, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ExtensionIcon from "@mui/icons-material/Extension";
+import CountingGame from './minigames/CountingGame';
+
+
 
 
 
@@ -20,7 +19,7 @@ const HomeschoolStudentPortal = () => {
   }, [studentId]);
 
   return (
-    <Box sx={{ bgcolor: "#f0f8ff", minHeight: "100vh" }}>
+    <Box sx={{ bgcolor: "#e0f7fa", minHeight: "100vh" }}>
       <AppBar position="static" elevation={0} sx={{ bgcolor: "#00acc1" }}>
         <Toolbar>
           <IconButton 
@@ -45,18 +44,9 @@ const HomeschoolStudentPortal = () => {
           Estamos preparando tus misiones de hoy...
         </Typography>
 
-        <Grid container spacing={4} justifyContent="center">
-          <Grid item xs={12} sm={6} md={4}>
-            <Card sx={{ borderRadius: 4, border: "2px dashed #00acc1", bgcolor: "transparent", boxShadow: "none" }}>
-              <CardContent sx={{ py: 6 }}>
-                <ExtensionIcon sx={{ fontSize: 60, color: "#00acc1", opacity: 0.5, mb: 2 }} />
-                <Typography variant="h6" color="text.secondary">
-                  Minijuego en construcción
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+        <Box sx={{ mt: 4, p: 4, bgcolor: '#ffffff', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+          <CountingGame />
+        </Box>
       </Container>
     </Box>
   );
