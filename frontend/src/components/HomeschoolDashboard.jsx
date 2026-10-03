@@ -10,6 +10,16 @@ import SchoolIcon from "@mui/icons-material/School";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+// Helper for title case
+const toTitleCase = (str) => {
+  return str.replace(
+    /\w\S*/g,
+    function(txt) {
+      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    }
+  );
+};
+
 const HomeschoolDashboard = () => {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
@@ -61,7 +71,11 @@ const HomeschoolDashboard = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    let finalValue = value;
+    if (name === "first_name" || name === "last_name") {
+      finalValue = toTitleCase(value);
+    }
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
   };
 
   const handleClose = () => {
@@ -160,9 +174,9 @@ const HomeschoolDashboard = () => {
       {students.length === 0 ? (
         <Card variant="outlined" sx={{ p: 4, textAlign: 'center', borderRadius: 3, bgcolor: '#fafafa' }}>
           <SchoolIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.5, mb: 2 }} />
-          <Typography variant="h6" color="text.secondary">A\u00fan no tienes alumnos registrados</Typography>
+          <Typography variant="h6" color="text.secondary">Aún no tienes alumnos registrados</Typography>
           <Typography variant="body2" color="text.secondary" mb={3}>
-            Comienza dando de alta a tus hijos para asignarles su curr\u00edculum.
+            Comienza dando de alta a tus hijos para asignarles su currículum.
           </Typography>
           <Button variant="outlined" onClick={() => setOpen(true)}>
             Agregar mi primer alumno
@@ -276,9 +290,9 @@ const HomeschoolDashboard = () => {
                 value={formData.bilingual_preference}
                 onChange={handleChange}
                 fullWidth
-                helperText="El sistema priorizar\u00e1 este idioma para las lecciones"
+                helperText="El sistema priorizará este idioma para las lecciones"
               >
-                <MenuItem value="es">Espa\u00f1ol (Principal)</MenuItem>
+                <MenuItem value="es">Español (Principal)</MenuItem>
                 <MenuItem value="en">Ingl\u00e9s (Principal)</MenuItem>
                 <MenuItem value="bilingual">Biling\u00fce (Mezclado)</MenuItem>
               </TextField>
