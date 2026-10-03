@@ -90,13 +90,22 @@ export default function CountingGame() {
 
       {/* Alertas / Mensajes */}
       {message && (
-        <Alert 
-          severity={success ? "success" : "warning"} 
-          sx={{ mb: 3, fontSize: '1.2rem', borderRadius: 4, justifyContent: 'center' }}
-          icon={success ? <StarIcon fontSize="inherit" /> : undefined}
+        <Box 
+          sx={{ 
+            mb: 3, p: 2, borderRadius: 6, 
+            bgcolor: success ? '#fff9c4' : '#ffe0b2', 
+            color: success ? '#f57f17' : '#e65100',
+            border: `3px dashed ${success ? '#fbc02d' : '#ffb74d'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2,
+            boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+          }}
         >
-          {message}
-        </Alert>
+          {success && <StarIcon sx={{ fontSize: 40, color: '#fbc02d' }} />}
+          <Typography variant="h5" fontWeight="bold">
+            {message}
+          </Typography>
+          {success && <StarIcon sx={{ fontSize: 40, color: '#fbc02d' }} />}
+        </Box>
       )}
 
       {/* Áreas de Drag & Drop */}
@@ -114,7 +123,7 @@ export default function CountingGame() {
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   sx={{
-                    minHeight: 200,
+                    height: 380, // Tamaño fijo
                     bgcolor: snapshot.isDraggingOver ? '#c8e6c9' : '#e8f5e9',
                     borderRadius: 6,
                     border: '4px dashed #81c784',
@@ -162,7 +171,7 @@ export default function CountingGame() {
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   sx={{
-                    minHeight: 200,
+                    height: 380, // Tamaño fijo
                     bgcolor: snapshot.isDraggingOver ? '#ffe0b2' : '#fff3e0',
                     borderRadius: 6,
                     border: '4px solid #ffb74d',
@@ -211,7 +220,7 @@ export default function CountingGame() {
             size="large"
             startIcon={<CheckCircleIcon />}
             onClick={checkAnswer}
-            sx={{ borderRadius: 8, fontSize: '1.5rem', px: 6, py: 2, fontWeight: 'bold' }}
+            sx={{ borderRadius: 8, fontSize: '1.5rem', px: 6, py: 2, fontWeight: 'bold', bgcolor: '#66bb6a', color: 'white', '&:hover': { bgcolor: '#4caf50' } }}
           >
             ¡Revisar!
           </Button>
