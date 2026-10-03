@@ -121,3 +121,14 @@ def seed_curriculum(db: Session = Depends(get_db)):
             added += 1
     db.commit()
     return {"message": f"Seeded {added} grades."}
+
+@router.get("/debug-db")
+def debug_db():
+    try:
+        from core.database import engine, Base
+        from verticals.homeschool import models as hs_models
+        Base.metadata.create_all(bind=engine)
+        return {"status": "success", "message": "Tables created successfully"}
+    except Exception as e:
+        import traceback
+        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}

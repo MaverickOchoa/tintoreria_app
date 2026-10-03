@@ -125,7 +125,7 @@ class HSStudentMastery(Base):
     student_id = Column(Integer, ForeignKey('hs_students.id'))
     objective_id = Column(Integer, ForeignKey('hs_objectives.id'))
     
-    status = Column(Enum(MasteryStatus), default=MasteryStatus.NOT_STARTED)
+    status = Column(String(30), default=MasteryStatus.NOT_STARTED.value)
     progress_score = Column(Float, default=0.0) # E.g., 0.85 for 85%
     
     last_assessed_at = Column(DateTime, nullable=True)
