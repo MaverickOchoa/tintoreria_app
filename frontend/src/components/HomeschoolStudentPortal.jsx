@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { API } from "../../config";
 import { useParams, useNavigate } from "react-router-dom";
 import { Container, Typography, Box, AppBar, Toolbar, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -11,6 +12,27 @@ import CountingGame from './minigames/CountingGame';
 const HomeschoolStudentPortal = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
+
+  const handleWin = async (score) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      await fetch(${API}/homeschool/students//mastery, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: Bearer 
+        },
+        body: JSON.stringify({
+          objective_id: 1, 
+          status: "MASTERED",
+          progress_score: score
+        })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   
 
   useEffect(() => {
@@ -45,7 +67,7 @@ const HomeschoolStudentPortal = () => {
         </Typography>
 
         <Box sx={{ mt: 4, p: 4, bgcolor: '#ffffff', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
-          <CountingGame />
+          <CountingGame onWin={handleWin} />
         </Box>
       </Container>
     </Box>

@@ -5,7 +5,7 @@ import StarIcon from '@mui/icons-material/Star';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
-export default function CountingGame() {
+export default function CountingGame({ onWin }) {
   const [targetNumber, setTargetNumber] = useState(3);
   const [treeApples, setTreeApples] = useState([]);
   const [basketApples, setBasketApples] = useState([]);

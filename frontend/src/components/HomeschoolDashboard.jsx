@@ -302,7 +302,16 @@ const HomeschoolDashboard = () => {
         <Grid container spacing={3}>
           {students.map((student) => (
             <Grid item xs={12} sm={6} md={4} key={student.id}>
-              <Card sx={{ borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <Card sx={{ borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', position: 'relative' }}>
+                  <IconButton 
+                    color="error" 
+                    size="small" 
+                    sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }} 
+                    onClick={() => handleDelete(student.id)} 
+                    title="Borrar alumno"
+                  >
+                    <span role="img" aria-label="borrar" style={{ fontSize: '1.2rem' }}>🗑️</span>
+                  </IconButton>
                 <CardContent>
                   <Box display="flex" alignItems="center" mb={2}>
                     <Avatar sx={{ 
@@ -343,11 +352,9 @@ const HomeschoolDashboard = () => {
                       Entrar al Aula 🚀
                     </Button>
                     <Box display="flex" gap={1}>
-                      <Button variant="outlined" sx={{ flex: 1, borderRadius: 2 }} size="small">Ver Progreso</Button>
+                      <Button variant="outlined" sx={{ flex: 1, borderRadius: 2 }} size="small">Progreso</Button>
                       <Button variant="outlined" sx={{ flex: 1, borderRadius: 2 }} size="small" onClick={() => handleEdit(student)}>Editar</Button>
-                      <IconButton color="error" size="small" sx={{ ml: 0.5 }} onClick={() => handleDelete(student.id)} title="Borrar">
-                        <span role="img" aria-label="borrar" style={{ fontSize: '1.2rem' }}>🗑️</span>
-                      </IconButton></Box>
+                      </Box>
                   </Box>
                 </CardContent>
               </Card>
