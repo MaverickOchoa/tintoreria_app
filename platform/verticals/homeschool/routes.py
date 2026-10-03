@@ -48,7 +48,32 @@ def get_students(claims: dict = Depends(get_current_claims), db: Session = Depen
         raise HTTPException(status_code=400, detail="Not associated with a family/business")
         
     students = db.query(HSStudent).filter(HSStudent.business_id == business_id).all()
-    return [{"id": s.id, "first_name": s.first_name, "last_name": s.last_name, "grade_id": s.grade_id, "bilingual_preference": s.bilingual_preference, "gender": getattr(s, "gender", "unspecified")} for s in students]
+    
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    start_of_week = now - timedelta(days=now.weekday())
+    start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    result = []
+    for s in students:
+        masteries = db.query(HSStudentMastery).filter(
+            HSStudentMastery.student_id == s.id,
+            HSStudentMastery.last_assessed_at >= start_of_week
+        ).all()
+        
+        total_score = sum(m.progress_score for m in masteries if m.progress_score)
+        progress_pct = min(int((total_score / 5.0) * 100), 100)
+        
+        result.append({
+            "id": s.id, 
+            "first_name": s.first_name, 
+            "last_name": s.last_name, 
+            "grade_id": s.grade_id, 
+            "bilingual_preference": s.bilingual_preference, 
+            "gender": getattr(s, "gender", "unspecified"),
+            "weekly_progress": progress_pct
+        })
+    return result
 
 @router.post("/students")
 def create_student(data: StudentCreate, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
