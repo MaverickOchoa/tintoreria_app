@@ -35,8 +35,8 @@ def get_curriculum(db: Session = Depends(get_db)):
     subjects = db.query(HSSubject).all()
     
     return {
-        "grades": grades,
-        "subjects": subjects
+        "grades": [{"id": g.id, "level_order": g.level_order, "name": g.name} for g in grades],
+        "subjects": [{"id": s.id, "name": s.name, "color_code": s.color_code} for s in subjects]
     }
 
 @router.get("/students")
@@ -47,7 +47,7 @@ def get_students(claims: dict = Depends(get_current_claims), db: Session = Depen
         raise HTTPException(status_code=400, detail="Not associated with a family/business")
         
     students = db.query(HSStudent).filter(HSStudent.business_id == business_id).all()
-    return students
+    return [{"id": s.id, "first_name": s.first_name, "last_name": s.last_name, "grade_id": s.grade_id, "bilingual_preference": s.bilingual_preference} for s in students]
 
 @router.post("/students")
 def create_student(data: StudentCreate, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
@@ -67,7 +67,7 @@ def create_student(data: StudentCreate, claims: dict = Depends(get_current_claim
     db.add(student)
     db.commit()
     db.refresh(student)
-    return student
+    return {"id": student.id, "first_name": student.first_name, "last_name": student.last_name, "grade_id": student.grade_id, "bilingual_preference": student.bilingual_preference}
 
 @router.post("/students/{student_id}/mastery")
 def update_mastery(student_id: int, data: MasteryUpdate, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
@@ -100,7 +100,7 @@ def update_mastery(student_id: int, data: MasteryUpdate, claims: dict = Depends(
         
     db.commit()
     db.refresh(mastery)
-    return mastery
+    return {"id": mastery.id, "objective_id": mastery.objective_id, "status": mastery.status, "progress_score": mastery.progress_score}
 
 @router.post("/seed-curriculum")
 def seed_curriculum(db: Session = Depends(get_db)):
