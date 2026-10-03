@@ -23,6 +23,9 @@ const toTitleCase = (str) => {
 };
 
 const HomeschoolDashboard = () => {
+  const claimsStr = localStorage.getItem("user_claims");
+  const claims = claimsStr ? JSON.parse(claimsStr) : {};
+  const familyName = claims.business_name || "Mi Familia";
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -225,7 +228,7 @@ const HomeschoolDashboard = () => {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} mt={4}>
         <Box>
           <Typography variant="h3" fontWeight="900" sx={{ color: "#00acc1", fontFamily: "'Comic Sans MS', 'Chalkboard SE', sans-serif" }}>
-            🏠 Mi Familia
+            🏠 {familyName}
           </Typography>
           <Typography variant="h6" color="text.secondary">
             Panel de control para papás

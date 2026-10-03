@@ -291,6 +291,7 @@ _STARTUP_MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS ix_form_templates_business ON form_templates(business_id)",
     "ALTER TABLE clinical_form_entries ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES form_templates(id)",
     "ALTER TABLE clinical_form_entries ADD COLUMN IF NOT EXISTS filled_pdf_url TEXT",
+    "ALTER TABLE hs_students ADD COLUMN IF NOT EXISTS gender VARCHAR(20) DEFAULT 'unspecified'",
     "CREATE INDEX IF NOT EXISTS ix_cfe_template_id ON clinical_form_entries(template_id)",
 ]
 
@@ -304,14 +305,7 @@ async def apply_migrations():
         from core.database import Base
         Base.metadata.create_all(bind=engine)
         
-                # Add gender column safely
-        try:
-            from sqlalchemy import text
-            with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE hs_students ADD COLUMN gender VARCHAR(10) DEFAULT 'unspecified'"))
-                conn.commit()
-        except Exception:
-            pass
+        
         
         # Seed Homeschool grades
         with SessionLocal() as db:

@@ -20,6 +20,7 @@ class StudentCreate(BaseModel):
     grade_id: int
     date_of_birth: Optional[datetime] = None
     bilingual_preference: str = "es"
+    gender: str = "unspecified"
 
 class MasteryUpdate(BaseModel):
     objective_id: int
