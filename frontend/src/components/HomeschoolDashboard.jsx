@@ -166,8 +166,8 @@ const HomeschoolDashboard = () => {
 
 
   return (
-    <Box sx={{ bgcolor: "#f5f6fa", minHeight: "100vh" }}>
-      <AppBar position="static" elevation={0} sx={{ bgcolor: "#ffffff", borderBottom: "1px solid #e0e0e0" }}>
+    <Box sx={{ bgcolor: "#fffdf5", minHeight: "100vh", bgcolor: "#fffdf5", pb: 10, bgcolor: "#fffdf5", pb: 10, pb: 10 }}>
+      <AppBar position="static" elevation={0} sx={{ bgcolor: "#ff7043", color: "white" }}>
         <Toolbar>
           <SchoolIcon sx={{ color: "primary.main", mr: 2 }} />
           <Typography variant="h6" fontWeight="bold" color="text.primary" sx={{ flexGrow: 1 }}>
@@ -186,20 +186,21 @@ const HomeschoolDashboard = () => {
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
 
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} mt={4}>
         <Box>
-          <Typography variant="h4" fontWeight="bold" color="primary">
-            Homeschool Core
+          <Typography variant="h3" fontWeight="900" sx={{ color: "#00acc1", fontFamily: "'Comic Sans MS', 'Chalkboard SE', sans-serif" }}>
+            🏠 Mi Familia
           </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Panel de control para familias
+          <Typography variant="h6" color="text.secondary">
+            Panel de control para papás
           </Typography>
         </Box>
         <Button 
           variant="contained" 
-          startIcon={<AddIcon />}
+          startIcon={<AddIcon />} 
           onClick={() => setOpen(true)}
-          sx={{ borderRadius: 2 }}
+          size="large"
+          sx={{ borderRadius: 6, bgcolor: "#29b6f6", fontWeight: "bold", '&:hover': { bgcolor: '#039be5' } }}
         >
           Nuevo Alumno
         </Button>
@@ -207,8 +208,8 @@ const HomeschoolDashboard = () => {
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      <Typography variant="h6" fontWeight="bold" mb={2}>
-        Mis Alumnos
+      <Typography variant="h4" fontWeight="bold" mb={3} color="#ff7043">
+        🚀 Mis Alumnos
       </Typography>
 
       {students.length === 0 ? (
@@ -229,7 +230,7 @@ const HomeschoolDashboard = () => {
               <Card sx={{ borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                 <CardContent>
                   <Box display="flex" alignItems="center" mb={2}>
-                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 56, height: 56 }}>
+                    <Avatar sx={{ bgcolor: '#ab47bc', mr: 2, width: 64, height: 64, fontSize: '2rem', fontWeight: 'bold' }}>
                       {student.first_name.charAt(0)}
                     </Avatar>
                     <Box>
@@ -256,11 +257,10 @@ const HomeschoolDashboard = () => {
                   <Box mt={3} display="flex" flexDirection="column" gap={1}>
                     <Button 
                       variant="contained" 
-                      color="secondary"
                       fullWidth 
                       size="large"
                       onClick={() => navigate(`/homeschool/student/${student.id}`)}
-                      sx={{ borderRadius: 3, fontWeight: "bold", textTransform: "none", fontSize: "1.1rem" }}
+                      sx={{ borderRadius: 4, fontWeight: "bold", textTransform: "none", fontSize: "1.2rem", bgcolor: "#ff4081", color: "white", '&:hover': { bgcolor: "#f50057" }, boxShadow: '0 4px 10px rgba(255, 64, 129, 0.3)' }}
                     >
                       Entrar al Aula 🚀
                     </Button>
