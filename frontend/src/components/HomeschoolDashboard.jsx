@@ -39,6 +39,7 @@ const HomeschoolDashboard = () => {
     gender: ""
   });
   const [submitting, setSubmitting] = useState(false);
+  const [editingStudentId, setEditingStudentId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -117,6 +118,19 @@ const HomeschoolDashboard = () => {
       finalValue = toTitleCase(value);
     }
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
+  };
+
+  const handleEdit = (student) => {
+    setEditingStudentId(student.id);
+    setFormData({
+      first_name: student.first_name || "",
+      last_name: student.last_name || "",
+      grade_id: student.grade_id || "",
+      date_of_birth: student.date_of_birth ? student.date_of_birth.substring(0,10) : "",
+      bilingual_preference: student.bilingual_preference || "es",
+      gender: student.gender || ""
+    });
+    setOpen(true);
   };
 
   const handleClose = () => {
@@ -305,9 +319,7 @@ const HomeschoolDashboard = () => {
                       <Button variant="outlined" fullWidth size="small">
                         Ver Progreso
                       </Button>
-                      <Button variant="outlined" fullWidth size="small">
-                        Editar
-                      </Button>
+                      <Button variant="outlined" fullWidth size="small" onClick={() => handleEdit(student)}>Editar</Button>
                     </Box>
                   </Box>
                 </CardContent>
@@ -320,7 +332,7 @@ const HomeschoolDashboard = () => {
       {/* Nuevo Alumno Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>
-          <DialogTitle>Registrar Nuevo Alumno</DialogTitle>
+          <DialogTitle>{editingStudentId ? "Editar Alumno" : "Registrar Nuevo Alumno"}</DialogTitle>
           <DialogContent dividers>
             <Stack spacing={3}>
               <Grid container spacing={2}>
@@ -403,7 +415,7 @@ const HomeschoolDashboard = () => {
           <DialogActions>
             <Button onClick={handleClose} disabled={submitting}>Cancelar</Button>
             <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? "Guardando..." : "Guardar Alumno"}
+              {submitting ? "Guardando..." : (editingStudentId ? "Actualizar Alumno" : "Guardar Alumno")}
             </Button>
           </DialogActions>
         </form>
