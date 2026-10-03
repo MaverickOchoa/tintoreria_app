@@ -298,6 +298,7 @@ _STARTUP_MIGRATIONS = [
 async def apply_migrations():
     try:
         # Create Homeschool models
+        from core.models.tenant import Business
         from verticals.homeschool import models as hs_models
         from core.database import Base
         Base.metadata.create_all(bind=engine)

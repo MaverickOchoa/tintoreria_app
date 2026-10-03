@@ -33,6 +33,7 @@ import BranchSelector from "./components/BranchSelector";
 
 // Ops pages + Layout
 import BusinessAdminLayout from "./components/BusinessAdminLayout";
+import HomeschoolDashboard from "./components/HomeschoolDashboard";
 import ClientsPage from "./components/ClientsPage";
 import CreateClient from "./components/CreateClient.jsx";
 import EditClient from "./components/EditClient.jsx";
