@@ -3,10 +3,12 @@ import {
   Container, Typography, Box, Grid, Card, CardContent, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
   MenuItem, IconButton, Chip, Stack, Alert, CircularProgress,
-  Avatar, LinearProgress
+  Avatar, LinearProgress, AppBar, Toolbar, Menu, MenuItem as MuiMenuItem, Fade
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SchoolIcon from "@mui/icons-material/School";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { useNavigate } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -37,19 +39,37 @@ const HomeschoolDashboard = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_claims");
+    localStorage.removeItem("role");
+    localStorage.removeItem("vertical_type");
+    navigate("/login");
+  };
+
+
   useEffect(() => {
     fetchData();
   }, []);
 
+  
   const fetchData = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("access_token");
       
+      // Auto-seed curriculum if empty
+      await fetch(`${API}/homeschool/seed-curriculum`, {
+        method: "POST"
+      }).catch(() => {});
+
       // Fetch Curriculum (Grades)
       const curRes = await fetch(`${API}/homeschool/curriculum`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
       const curData = await curRes.json();
       setGrades(curData.grades || []);
 
@@ -144,8 +164,28 @@ const HomeschoolDashboard = () => {
     );
   }
 
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ bgcolor: "#f5f6fa", minHeight: "100vh" }}>
+      <AppBar position="static" elevation={0} sx={{ bgcolor: "#ffffff", borderBottom: "1px solid #e0e0e0" }}>
+        <Toolbar>
+          <SchoolIcon sx={{ color: "primary.main", mr: 2 }} />
+          <Typography variant="h6" fontWeight="bold" color="text.primary" sx={{ flexGrow: 1 }}>
+            Zentro Homeschool
+          </Typography>
+          <Button 
+            color="error" 
+            variant="text" 
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+          >
+            Cerrar Sesión
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Box>
           <Typography variant="h4" fontWeight="bold" color="primary">
@@ -293,8 +333,8 @@ const HomeschoolDashboard = () => {
                 helperText="El sistema priorizará este idioma para las lecciones"
               >
                 <MenuItem value="es">Español (Principal)</MenuItem>
-                <MenuItem value="en">Ingl\u00e9s (Principal)</MenuItem>
-                <MenuItem value="bilingual">Biling\u00fce (Mezclado)</MenuItem>
+                <MenuItem value="en">Inglés (Principal)</MenuItem>
+                <MenuItem value="bilingual">Bilingüe (Mezclado)</MenuItem>
               </TextField>
             </Stack>
           </DialogContent>
@@ -307,6 +347,7 @@ const HomeschoolDashboard = () => {
         </form>
       </Dialog>
     </Container>
+    </Box>
   );
 };
 
