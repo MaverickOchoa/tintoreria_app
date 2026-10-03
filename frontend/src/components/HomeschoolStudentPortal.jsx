@@ -16,11 +16,11 @@ const HomeschoolStudentPortal = () => {
   const handleWin = async (score) => {
     try {
       const token = localStorage.getItem("access_token");
-      await fetch(${API}/homeschool/students//mastery, {
+      await fetch(`${API}/homeschool/students/${studentId}/mastery`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: Bearer 
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           objective_id: 1, 
