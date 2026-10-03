@@ -24,6 +24,7 @@ from core.routes.client_portal import router as client_portal_router
 from core.routes.notifications import router as notifications_router
 from verticals.laundry.routes import router as laundry_router
 from verticals.clinic.routes import router as clinic_router
+from verticals.homeschool.routes import router as homeschool_router
 
 logger = logging.getLogger(__name__)
 
@@ -431,6 +432,7 @@ app.include_router(client_portal_router)
 app.include_router(notifications_router)
 app.include_router(laundry_router)
 app.include_router(clinic_router)
+app.include_router(homeschool_router)
 
 
 @app.get("/health")
