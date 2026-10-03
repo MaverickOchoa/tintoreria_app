@@ -343,17 +343,11 @@ const HomeschoolDashboard = () => {
                       Entrar al Aula 🚀
                     </Button>
                     <Box display="flex" gap={1}>
-                      <Button variant="outlined" fullWidth size="small">
-                        Ver Progreso
-                      </Button>
-                      <Button variant="outlined" fullWidth size="small" onClick={() => handleEdit(student)}>Editar</Button>
-                      <Button variant="text" color="error" size="small" sx={{ minWidth: "40px", ml: 1 }} onClick={() => handleDelete(student.id)}>
-                        🗑️
-                      </Button>
-                      <Button variant="text" color="error" size="small" sx={{ minWidth: "40px", ml: 1 }} onClick={() => handleDelete(student.id)}>
-                        🗑️
-                      </Button>
-                    </Box>
+                      <Button variant="outlined" sx={{ flex: 1, borderRadius: 2 }} size="small">Ver Progreso</Button>
+                      <Button variant="outlined" sx={{ flex: 1, borderRadius: 2 }} size="small" onClick={() => handleEdit(student)}>Editar</Button>
+                      <IconButton color="error" size="small" sx={{ ml: 0.5 }} onClick={() => handleDelete(student.id)} title="Borrar">
+                        <span role="img" aria-label="borrar" style={{ fontSize: '1.2rem' }}>🗑️</span>
+                      </IconButton></Box>
                   </Box>
                 </CardContent>
               </Card>
