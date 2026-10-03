@@ -124,7 +124,7 @@ const Login = () => {
           break;
 
         case "business_admin":
-          navigate(isClinic ? "/clinic/kanban" : "/select-branch");
+          navigate(isHomeschool ? "/homeschool" : (isClinic ? "/clinic/kanban" : "/select-branch"));
           break;
 
         case "branch_manager":
