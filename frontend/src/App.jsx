@@ -203,6 +203,7 @@ function App() {
               />
             }
           >
+            <Route path="/homeschool" element={<HomeschoolDashboard />} />
             <Route element={<BusinessAdminLayout />}>
               <Route
                 path="/manager-panel"

@@ -34,7 +34,7 @@ const HomeschoolDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       
       // Fetch Curriculum (Grades)
       const curRes = await fetch(`${API}/homeschool/curriculum`, {
@@ -79,7 +79,7 @@ const HomeschoolDashboard = () => {
     e.preventDefault();
     try {
       setSubmitting(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       
       // Transform date to ISO if present
       let formattedDate = null;
