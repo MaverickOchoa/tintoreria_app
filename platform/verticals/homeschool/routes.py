@@ -173,3 +173,15 @@ def debug_db():
     except Exception as e:
         import traceback
         return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
+
+
+@router.delete("/students/{student_id}")
+def delete_student(student_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    business_id = claims.get("business_id")
+    student = db.query(HSStudent).filter(HSStudent.id == student_id, HSStudent.business_id == business_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    db.delete(student)
+    db.commit()
+    return {"status": "deleted"}
