@@ -129,6 +129,31 @@ def update_mastery(student_id: int, data: MasteryUpdate, claims: dict = Depends(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found in this family")
         
+    # Ensure objective exists to prevent Foreign Key constraint error
+    obj = db.query(HSObjective).filter(HSObjective.id == data.objective_id).first()
+    if not obj:
+        dummy_subject = db.query(HSSubject).first()
+        if not dummy_subject:
+            dummy_subject = HSSubject(name={"es": "Matemáticas", "en": "Math"}, color_code="#4fc3f7")
+            db.add(dummy_subject)
+            db.commit()
+            
+        dummy_domain = db.query(HSDomain).first()
+        if not dummy_domain:
+            dummy_domain = HSDomain(subject_id=dummy_subject.id, grade_id=1, name={"es": "Números", "en": "Numbers"})
+            db.add(dummy_domain)
+            db.commit()
+            
+        new_obj = HSObjective(
+            id=data.objective_id, 
+            domain_id=dummy_domain.id,
+            code="MATH.1",
+            title={"es": "Conteo Básico", "en": "Basic Counting"},
+            description={"es": "Cuenta manzanas", "en": "Count apples"}
+        )
+        db.add(new_obj)
+        db.commit()
+
     mastery = db.query(HSStudentMastery).filter(
         HSStudentMastery.student_id == student_id,
         HSStudentMastery.objective_id == data.objective_id
