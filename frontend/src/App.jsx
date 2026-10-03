@@ -34,6 +34,7 @@ import BranchSelector from "./components/BranchSelector";
 // Ops pages + Layout
 import BusinessAdminLayout from "./components/BusinessAdminLayout";
 import HomeschoolDashboard from "./components/HomeschoolDashboard";
+import HomeschoolStudentPortal from "./components/HomeschoolStudentPortal";
 import ClientsPage from "./components/ClientsPage";
 import CreateClient from "./components/CreateClient.jsx";
 import EditClient from "./components/EditClient.jsx";
@@ -204,6 +205,7 @@ function App() {
             }
           >
             <Route path="/homeschool" element={<HomeschoolDashboard />} />
+              <Route path="/homeschool/student/:studentId" element={<HomeschoolStudentPortal />} />
             <Route element={<BusinessAdminLayout />}>
               <Route
                 path="/manager-panel"
