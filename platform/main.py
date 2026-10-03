@@ -304,6 +304,15 @@ async def apply_migrations():
         from core.database import Base
         Base.metadata.create_all(bind=engine)
         
+                # Add gender column safely
+        try:
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE hs_students ADD COLUMN gender VARCHAR(10) DEFAULT 'unspecified'"))
+                conn.commit()
+        except Exception:
+            pass
+        
         # Seed Homeschool grades
         with SessionLocal() as db:
             grades_data = [

@@ -47,7 +47,7 @@ def get_students(claims: dict = Depends(get_current_claims), db: Session = Depen
         raise HTTPException(status_code=400, detail="Not associated with a family/business")
         
     students = db.query(HSStudent).filter(HSStudent.business_id == business_id).all()
-    return [{"id": s.id, "first_name": s.first_name, "last_name": s.last_name, "grade_id": s.grade_id, "bilingual_preference": s.bilingual_preference} for s in students]
+    return [{"id": s.id, "first_name": s.first_name, "last_name": s.last_name, "grade_id": s.grade_id, "bilingual_preference": s.bilingual_preference, "gender": getattr(s, "gender", "unspecified")} for s in students]
 
 @router.post("/students")
 def create_student(data: StudentCreate, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
@@ -62,12 +62,13 @@ def create_student(data: StudentCreate, claims: dict = Depends(get_current_claim
         last_name=data.last_name,
         grade_id=data.grade_id,
         date_of_birth=data.date_of_birth,
-        bilingual_preference=data.bilingual_preference
+        bilingual_preference=data.bilingual_preference,
+        gender=data.gender
     )
     db.add(student)
     db.commit()
     db.refresh(student)
-    return {"id": student.id, "first_name": student.first_name, "last_name": student.last_name, "grade_id": student.grade_id, "bilingual_preference": student.bilingual_preference}
+    return {"id": student.id, "first_name": student.first_name, "last_name": student.last_name, "grade_id": student.grade_id, "bilingual_preference": student.bilingual_preference, "gender": getattr(student, "gender", "unspecified")}
 
 @router.post("/students/{student_id}/mastery")
 def update_mastery(student_id: int, data: MasteryUpdate, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):

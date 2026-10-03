@@ -107,6 +107,7 @@ class HSStudent(Base):
     first_name = Column(String)
     last_name = Column(String)
     date_of_birth = Column(DateTime)
+    gender = Column(String(10), default="unspecified") # "boy" or "girl"
     
     # Controls which language the curriculum displays for this student
     bilingual_preference = Column(String, default="es") # 'es', 'en', or 'bilingual'
