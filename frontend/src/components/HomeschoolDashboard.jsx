@@ -25,8 +25,10 @@ const toTitleCase = (str) => {
 const HomeschoolDashboard = () => {
   const claimsStr = localStorage.getItem("user_claims");
   const claims = claimsStr ? JSON.parse(claimsStr) : {};
-  let familyName = claims.business_name || "Mi Familia";
+  let familyName = claims.business_name || claims.username || "Mi Familia";
   if (familyName !== "Mi Familia" && !familyName.toLowerCase().includes("familia")) {
+    // Capitalize first letter
+    familyName = familyName.charAt(0).toUpperCase() + familyName.slice(1);
     familyName = `Familia ${familyName}`;
   }
   const [students, setStudents] = useState([]);
@@ -168,8 +170,13 @@ const HomeschoolDashboard = () => {
         date_of_birth: formattedDate
       };
 
-      const res = await fetch(`${API}/homeschool/students`, {
-        method: "POST",
+      const url = editingStudentId 
+        ? `${API}/homeschool/students/${editingStudentId}` 
+        : `${API}/homeschool/students`;
+      const method = editingStudentId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
