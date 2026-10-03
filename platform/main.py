@@ -297,6 +297,11 @@ _STARTUP_MIGRATIONS = [
 @app.on_event("startup")
 async def apply_migrations():
     try:
+        # Create Homeschool models
+        from verticals.homeschool import models as hs_models
+        from core.database import Base
+        Base.metadata.create_all(bind=engine)
+        
         with engine.connect() as conn:
             for sql in _STARTUP_MIGRATIONS:
                 try:

@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from core.database import Base
 from core.models import *
 from verticals.laundry.models import *
+from verticals.homeschool.models import *
 from verticals.clinic.models import *
 
 config = context.config
