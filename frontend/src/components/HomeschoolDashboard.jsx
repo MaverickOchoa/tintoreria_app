@@ -25,7 +25,10 @@ const toTitleCase = (str) => {
 const HomeschoolDashboard = () => {
   const claimsStr = localStorage.getItem("user_claims");
   const claims = claimsStr ? JSON.parse(claimsStr) : {};
-  const familyName = claims.business_name || "Mi Familia";
+  let familyName = claims.business_name || "Mi Familia";
+  if (familyName !== "Mi Familia" && !familyName.toLowerCase().includes("familia")) {
+    familyName = `Familia ${familyName}`;
+  }
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
