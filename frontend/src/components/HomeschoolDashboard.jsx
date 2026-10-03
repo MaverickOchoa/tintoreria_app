@@ -351,9 +351,22 @@ const HomeschoolDashboard = () => {
                     >
                       Entrar al Aula 🚀
                     </Button>
-                    <Box display="flex" gap={1}>
-                      <Button variant="outlined" sx={{ flex: 1, borderRadius: 2 }} size="small">Progreso</Button>
-                      <Button variant="outlined" sx={{ flex: 1, borderRadius: 2 }} size="small" onClick={() => handleEdit(student)}>Editar</Button>
+                    <Box display="flex" gap={1.5}>
+                        <Button 
+                          variant="contained" 
+                          sx={{ flex: 1, borderRadius: 4, bgcolor: '#29b6f6', color: 'white', fontWeight: 'bold', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 3px 6px rgba(41, 182, 246, 0.3)', '&:hover': { bgcolor: '#0288d1' } }} 
+                          size="small"
+                        >
+                          📊 Progreso
+                        </Button>
+                        <Button 
+                          variant="contained" 
+                          sx={{ flex: 1, borderRadius: 4, bgcolor: '#ffa726', color: 'white', fontWeight: 'bold', textTransform: 'none', fontSize: '0.95rem', boxShadow: '0 3px 6px rgba(255, 167, 38, 0.3)', '&:hover': { bgcolor: '#f57c00' } }} 
+                          size="small" 
+                          onClick={() => handleEdit(student)}
+                        >
+                          ✏️ Editar
+                        </Button>
                       </Box>
                   </Box>
                 </CardContent>
