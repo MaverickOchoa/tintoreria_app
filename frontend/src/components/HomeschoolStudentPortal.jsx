@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { API } from "../../config";
+const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 import { useParams, useNavigate } from "react-router-dom";
 import { Container, Typography, Box, AppBar, Toolbar, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
