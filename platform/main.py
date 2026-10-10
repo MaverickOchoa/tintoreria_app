@@ -474,7 +474,6 @@ except Exception as e:
 def debug_db2():
     from sqlalchemy import text
     from core.database import engine, SessionLocal
-import core.models.cash
     import traceback
     try:
         with engine.connect() as conn:
