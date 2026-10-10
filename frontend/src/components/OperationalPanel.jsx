@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
 import OrderStatsCards from "./OrderStatsCards";
+import OpenShiftModal from "./OpenShiftModal";
 
 export default function OperationalPanel() {
   return (
