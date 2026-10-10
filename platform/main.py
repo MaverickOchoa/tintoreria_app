@@ -9,6 +9,7 @@ from sqlalchemy import text
 import logging
 
 from core.database import engine, SessionLocal
+import core.models.cash
 from core.jobs import setup_scheduler
 from core.routes.auth import router as auth_router
 from core.routes.tenants import router as tenants_router
@@ -473,6 +474,7 @@ except Exception as e:
 def debug_db2():
     from sqlalchemy import text
     from core.database import engine, SessionLocal
+import core.models.cash
     import traceback
     try:
         with engine.connect() as conn:
