@@ -58,6 +58,15 @@ function useRealTime() {
 
 export default function OrderStatsCards() {
   const token = localStorage.getItem("access_token");
+  let role = "";
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      role = payload.role || "";
+    } catch(e){}
+  }
+  const canCutCash = ["Colaborador", "Gerente", "business_admin", "super_admin"].includes(role);
+  const canViewReports = ["Gerente", "business_admin", "super_admin"].includes(role);
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
