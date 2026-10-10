@@ -90,6 +90,84 @@ def list_cash_cuts(
 
 
 from pydantic import BaseModel
+
+class ShiftOpen(BaseModel):
+    branch_id: Optional[int] = None
+    register_id: int
+    opening_balance: float
+
+@router.get("/cash-registers")
+def get_cash_registers(branch_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    business_id = claims.get('business_id')
+    from core.models.cash import CashRegister
+    regs = db.query(CashRegister).filter(
+        CashRegister.business_id == business_id,
+        CashRegister.branch_id == branch_id,
+        CashRegister.is_active == True
+    ).all()
+    return [{"id": r.id, "name": r.name} for r in regs]
+
+@router.get("/cash-shifts/active")
+def get_active_shift(branch_id: int, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    business_id = claims.get('business_id')
+    from core.models.cash import CashShift
+    shift = db.query(CashShift).filter(
+        CashShift.business_id == business_id,
+        CashShift.branch_id == branch_id,
+        CashShift.status == "OPEN"
+    ).first()
+    
+    if not shift:
+        return {"active": False}
+        
+    return {
+        "active": True,
+        "shift": {
+            "id": shift.id,
+            "register_id": shift.register_id,
+            "opened_at": shift.opened_at.isoformat(),
+            "opening_balance": str(shift.opening_balance),
+            "opened_by_name": shift.opened_by_name
+        }
+    }
+
+@router.post("/cash-shifts/open")
+def open_cash_shift(payload: ShiftOpen, claims: dict = Depends(get_current_claims), db: Session = Depends(get_db)):
+    business_id = claims.get('business_id')
+    branch_id = payload.branch_id or claims.get('branch_id')
+    username = claims.get('sub')
+    
+    from core.models.cash import CashShift
+    from core.models.user import Employee
+    
+    # Check if there is already an open shift for this branch (simplified: 1 shift per branch for now, or per register)
+    existing = db.query(CashShift).filter(
+        CashShift.branch_id == branch_id,
+        CashShift.status == "OPEN"
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe un turno abierto en esta sucursal.")
+        
+    # Get employee ID if operative
+    emp = db.query(Employee).filter(Employee.username == username, Employee.business_id == business_id).first()
+    emp_id = emp.id if emp else None
+    
+    new_shift = CashShift(
+        register_id=payload.register_id,
+        branch_id=branch_id,
+        business_id=business_id,
+        opened_by_id=emp_id,
+        opened_by_name=username,
+        opening_balance=payload.opening_balance,
+        status="OPEN"
+    )
+    db.add(new_shift)
+    db.commit()
+    db.refresh(new_shift)
+    return {"status": "success", "shift_id": new_shift.id}
+
+
 class CashCutCreate(BaseModel):
     branch_id: Optional[int] = None
     counted_cash: float

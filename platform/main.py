@@ -298,6 +298,9 @@ _STARTUP_MIGRATIONS = [
     "CREATE TABLE IF NOT EXISTS cash_shifts (id SERIAL PRIMARY KEY, register_id INTEGER NOT NULL REFERENCES cash_registers(id) ON DELETE CASCADE, branch_id INTEGER NOT NULL REFERENCES branches(id) ON DELETE CASCADE, business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE, opened_by_id INTEGER NOT NULL REFERENCES employees(id), closed_by_id INTEGER REFERENCES employees(id), opened_at TIMESTAMP NOT NULL DEFAULT NOW(), closed_at TIMESTAMP, opening_balance NUMERIC(10,2) DEFAULT 0, expected_closing_balance NUMERIC(10,2), actual_closing_balance NUMERIC(10,2), difference NUMERIC(10,2), status VARCHAR(20) DEFAULT 'OPEN', notes TEXT)",
     "ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS cash_shift_id INTEGER REFERENCES cash_shifts(id)",
     "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS cash_shift_id INTEGER REFERENCES cash_shifts(id)",
+    "ALTER TABLE cash_shifts ALTER COLUMN opened_by_id DROP NOT NULL",
+    "ALTER TABLE cash_shifts ADD COLUMN IF NOT EXISTS opened_by_name VARCHAR(120)",
+    
     "INSERT INTO cash_registers (branch_id, business_id, name) SELECT id, business_id, 'Caja Principal' FROM branches WHERE NOT EXISTS (SELECT 1 FROM cash_registers WHERE cash_registers.branch_id = branches.id)",
 ]
 

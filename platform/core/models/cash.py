@@ -23,8 +23,10 @@ class CashShift(Base):
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
     business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
     
-    opened_by_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    opened_by_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    opened_by_name = Column(String(120), nullable=True)
     closed_by_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    closed_by_name = Column(String(120), nullable=True)
     
     opened_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     closed_at = Column(DateTime, nullable=True)
