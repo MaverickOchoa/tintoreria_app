@@ -293,6 +293,12 @@ _STARTUP_MIGRATIONS = [
     "ALTER TABLE clinical_form_entries ADD COLUMN IF NOT EXISTS filled_pdf_url TEXT",
     "ALTER TABLE hs_students ADD COLUMN IF NOT EXISTS gender VARCHAR(20) DEFAULT 'unspecified'",
     "CREATE INDEX IF NOT EXISTS ix_cfe_template_id ON clinical_form_entries(template_id)",
+
+    "CREATE TABLE IF NOT EXISTS cash_registers (id SERIAL PRIMARY KEY, branch_id INTEGER NOT NULL REFERENCES branches(id) ON DELETE CASCADE, business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE, name VARCHAR(100) NOT NULL, is_active BOOLEAN DEFAULT TRUE)",
+    "CREATE TABLE IF NOT EXISTS cash_shifts (id SERIAL PRIMARY KEY, register_id INTEGER NOT NULL REFERENCES cash_registers(id) ON DELETE CASCADE, branch_id INTEGER NOT NULL REFERENCES branches(id) ON DELETE CASCADE, business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE, opened_by_id INTEGER NOT NULL REFERENCES employees(id), closed_by_id INTEGER REFERENCES employees(id), opened_at TIMESTAMP NOT NULL DEFAULT NOW(), closed_at TIMESTAMP, opening_balance NUMERIC(10,2) DEFAULT 0, expected_closing_balance NUMERIC(10,2), actual_closing_balance NUMERIC(10,2), difference NUMERIC(10,2), status VARCHAR(20) DEFAULT 'OPEN', notes TEXT)",
+    "ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS cash_shift_id INTEGER REFERENCES cash_shifts(id)",
+    "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS cash_shift_id INTEGER REFERENCES cash_shifts(id)",
+    "INSERT INTO cash_registers (branch_id, business_id, name) SELECT id, business_id, 'Caja Principal' FROM branches WHERE NOT EXISTS (SELECT 1 FROM cash_registers WHERE cash_registers.branch_id = branches.id)",
 ]
 
 

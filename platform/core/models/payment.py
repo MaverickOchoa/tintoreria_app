@@ -14,6 +14,7 @@ class OrderPayment(Base):
     points_used = Column(Float, nullable=True, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
     reference = Column(String(100), nullable=True)
+    cash_shift_id = Column(Integer, ForeignKey("cash_shifts.id"), nullable=True)
 
     order = relationship("Order", back_populates="payments")
 

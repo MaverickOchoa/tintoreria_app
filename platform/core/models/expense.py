@@ -27,6 +27,7 @@ class Expense(Base):
     id = Column(Integer, primary_key=True)
     business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
+    cash_shift_id = Column(Integer, ForeignKey("cash_shifts.id"), nullable=True)
     expense_date = Column(Date, nullable=False)
     category = Column(String(50), nullable=False)
     item_name = Column(String(120), nullable=False)
