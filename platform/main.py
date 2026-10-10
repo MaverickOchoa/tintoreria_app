@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 import logging
 
-from core.database import engine
+from core.database import engine, SessionLocal
 from core.jobs import setup_scheduler
 from core.routes.auth import router as auth_router
 from core.routes.tenants import router as tenants_router
@@ -472,7 +472,7 @@ except Exception as e:
 @app.get("/api/v1/debug-db2")
 def debug_db2():
     from sqlalchemy import text
-    from core.database import engine
+    from core.database import engine, SessionLocal
     import traceback
     try:
         with engine.connect() as conn:

@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import {
   Box, Typography, Card, CardActionArea, CardContent,
   Chip, CircularProgress, Alert, Dialog, DialogTitle,
@@ -8,53 +7,37 @@ import {
 } from "@mui/material";
 import TodayIcon from "@mui/icons-material/Today";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import BoltIcon from "@mui/icons-material/Bolt";
-import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
-import HourglassBottomIcon from "@mui/icons-material/HourglassBottom";
-import WatchLaterIcon from "@mui/icons-material/WatchLater";
-import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
+import LocalLaundryServiceIcon from "@mui/icons-material/LocalLaundryService";
+import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
+import MoneyOffIcon from "@mui/icons-material/MoneyOff";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import WatchLaterIcon from "@mui/icons-material/WatchLater";
+import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
+import { useNavigate } from "react-router-dom";
+import { useRealTime } from "../context/RealTimeContext";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API = import.meta.env.VITE_API_URL;
 
 const STATUS_COLORS = {
-  "Creada": "secondary",
-  "En proceso": "warning",
-  "En Proceso": "warning",
-  "En Produccin": "warning",
-  "Pendiente": "warning",
-  "Listo": "info",
-  "Entregada": "success",
+  "Recibido": "default",
+  "En Lavado": "info",
+  "En Planchado": "secondary",
+  "Listo": "success",
   "Entregado": "success",
-  "Cancelada": "error",
   "Cancelado": "error",
 };
 
 const STAT_CARDS = [
-  { key: "overdue",      label: "Atrasadas",            color: "#d32f2f", bg: "#ffebee", icon: WarningAmberIcon,     filter: { type: "overdue" } },
-  { key: "today_normal", label: "Hoy – Normal",          color: "#1976d2", bg: "#e3f2fd", icon: TodayIcon,            filter: { type: "today", urgency: "normal" } },
-  { key: "today_urgent", label: "Hoy – Urgente",         color: "#e65100", bg: "#fff3e0", icon: BoltIcon,             filter: { type: "today", urgency: "urgent" } },
-  { key: "today_extra",  label: "Hoy – Extra",           color: "#6a1b9a", bg: "#f3e5f5", icon: ElectricBoltIcon,     filter: { type: "today", urgency: "extra_urgent" } },
-  { key: "past_30",      label: "+30 días sin recoger",  color: "#f57c00", bg: "#fff8e1", icon: AccessTimeIcon,       filter: { type: "past", days: 30 } },
-  { key: "past_60",      label: "+60 días sin recoger",  color: "#c62828", bg: "#fce4ec", icon: HourglassBottomIcon,  filter: { type: "past", days: 60 } },
-  { key: "past_90",      label: "+90 días sin recoger",  color: "#4a148c", bg: "#ede7f6", icon: HourglassBottomIcon,  filter: { type: "past", days: 90 } },
+  { key: "today_regular", label: "Para Hoy (Regular)", icon: TodayIcon, filter: { type: "today", urgency: "regular" } },
+  { key: "today_express", label: "Para Hoy (Express)", icon: LocalLaundryServiceIcon, filter: { type: "today", urgency: "express" } },
+  { key: "today_urgent", label: "Para Hoy (Urgente)", icon: AssignmentTurnedInIcon, filter: { type: "today", urgency: "urgent" } },
+  { key: "overdue", label: "Atrasadas", icon: WarningAmberIcon, filter: { type: "overdue" } },
+  { key: "ready", label: "Listas para Entregar", icon: DoneAllIcon, filter: { type: "status", value: "Listo" } },
+  { key: "unpaid", label: "Pendientes de Pago", icon: MoneyOffIcon, filter: { type: "unpaid" } },
+  { key: "past_3days", label: "Hace 3+ das", icon: WatchLaterIcon, filter: { type: "past", days: 3 } },
 ];
-
-function useRealTime() {
-  const [now, setNow] = useState(new Date());
-  const clockAlert = false;
-
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(tick);
-  }, []);
-
-
-
-  return { now, clockAlert };
-}
 
 export default function OrderStatsCards() {
   const token = localStorage.getItem("access_token");
@@ -67,6 +50,7 @@ export default function OrderStatsCards() {
   }
   const canCutCash = ["Colaborador", "Gerente", "business_admin", "super_admin"].includes(role);
   const canViewReports = ["Gerente", "business_admin", "super_admin"].includes(role);
+
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -120,14 +104,12 @@ export default function OrderStatsCards() {
 
   return (
     <>
-      {/* Alerta de reloj desincronizado */}
       {clockAlert && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          El reloj del sistema parece estar desincronizado con la hora real. Ajústalo para evitar errores en las fechas de entrega.
+          El reloj del sistema parece estar desincronizado con la hora real. Ajstalo para evitar errores en las fechas de entrega.
         </Alert>
       )}
 
-      {/* Fecha/hora + botón Corte de Caja */}
       <Box display="flex" alignItems="center" gap={1} mb={2} flexWrap="wrap">
         <WatchLaterIcon fontSize="small" color="action" />
         <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ textTransform: "capitalize" }}>
@@ -137,55 +119,63 @@ export default function OrderStatsCards() {
           {timeStr}
         </Typography>
         <Box flex={1} />
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<PointOfSaleIcon />}
-          onClick={() => navigate("/corte-de-caja")}
-          sx={{ whiteSpace: "nowrap" }}
-        >
-          Corte de Caja
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          color="secondary"
-          startIcon={<AssessmentIcon />}
-          onClick={() => navigate("/reportes")}
-          sx={{ whiteSpace: "nowrap" }}
-        >
-          Reportes
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          color="secondary"
-          startIcon={<AssessmentIcon />}
-          onClick={() => navigate("/reportes/clientes")}
-          sx={{ whiteSpace: "nowrap" }}
-        >
-          Comportamiento
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          color="secondary"
-          startIcon={<AssessmentIcon />}
-          onClick={() => navigate("/reportes/rentabilidad")}
-          sx={{ whiteSpace: "nowrap" }}
-        >
-          Rentabilidad
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          color="secondary"
-          startIcon={<ReceiptLongIcon />}
-          onClick={() => navigate("/gastos")}
-          sx={{ whiteSpace: "nowrap" }}
-        >
-          Gastos
-        </Button>
+        
+        {canCutCash && (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<PointOfSaleIcon />}
+            onClick={() => navigate("/corte-de-caja")}
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            Corte de Caja
+          </Button>
+        )}
+        
+        {canViewReports && (
+          <>
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              startIcon={<AssessmentIcon />}
+              onClick={() => navigate("/reportes")}
+              sx={{ whiteSpace: "nowrap" }}
+            >
+              Reportes
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              startIcon={<AssessmentIcon />}
+              onClick={() => navigate("/reportes/clientes")}
+              sx={{ whiteSpace: "nowrap" }}
+            >
+              Comportamiento
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              startIcon={<AssessmentIcon />}
+              onClick={() => navigate("/reportes/rentabilidad")}
+              sx={{ whiteSpace: "nowrap" }}
+            >
+              Rentabilidad
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              startIcon={<ReceiptLongIcon />}
+              onClick={() => navigate("/gastos")}
+              sx={{ whiteSpace: "nowrap" }}
+            >
+              Gastos
+            </Button>
+          </>
+        )}
       </Box>
 
       {loading ? <Box py={2}><CircularProgress size={20} /></Box> : (
@@ -225,12 +215,11 @@ export default function OrderStatsCards() {
         </Box>
       )}
 
-      {/* Modal detalle */}
       <Dialog open={!!modalFilter} onClose={() => setModalFilter(null)} maxWidth="md" fullWidth>
         <DialogTitle>{modalFilter?.label}</DialogTitle>
         <DialogContent>
           {modalLoading ? <CircularProgress /> : modalOrders.length === 0 ? (
-            <Typography color="text.secondary">No hay órdenes en esta categoría.</Typography>
+            <Typography color="text.secondary">No hay rdenes en esta categora.</Typography>
           ) : (
             <TableContainer component={Paper}>
               <Table size="small">
@@ -248,8 +237,8 @@ export default function OrderStatsCards() {
                     <TableRow key={o.id} hover sx={{ cursor: "pointer" }}
                       onClick={() => { setModalFilter(null); navigate(`/orders/${o.id}`); }}>
                       <TableCell>{o.folio_number || o.id}</TableCell>
-                      <TableCell>{o.client_name || "—"}</TableCell>
-                      <TableCell>{o.delivery_date ? new Date(o.delivery_date).toLocaleDateString("es-MX") : "—"}</TableCell>
+                      <TableCell>{o.client_name || "?"}</TableCell>
+                      <TableCell>{o.delivery_date ? new Date(o.delivery_date).toLocaleDateString("es-MX") : "?"}</TableCell>
                       <TableCell><Chip label={o.status} color={STATUS_COLORS[o.status] || "default"} size="small" /></TableCell>
                       <TableCell>${parseFloat(o.total_amount || 0).toFixed(2)}</TableCell>
                     </TableRow>
